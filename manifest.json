@@ -1,0 +1,14 @@
+{
+  "name": "Bloom Puzzle — Iris Moon Design Co.",
+  "short_name": "Bloom Puzzle",
+  "description": "A flower-themed block puzzle game by Iris Moon Design Co.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1a1528",
+  "theme_color": "#4a3f6b",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
