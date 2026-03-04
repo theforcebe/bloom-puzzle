@@ -43,7 +43,8 @@
     --grid-cell: rgba(30, 24, 50, 0.6);
   }
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  html { overflow: hidden; position: fixed; width: 100%; height: 100%; touch-action: none; }
 
   body {
     font-family: 'Quicksand', sans-serif;
@@ -62,8 +63,11 @@
     padding-bottom: env(safe-area-inset-bottom);
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
-    touch-action: manipulation; /* prevent double-tap zoom */
+    touch-action: none; /* prevent ALL scroll/zoom/bounce */
     overscroll-behavior: none;
+    position: fixed;
+    width: 100%;
+    height: 100%;
   }
 
   /* ── Background Canvas ── */
@@ -1380,10 +1384,10 @@ const scoreObserver = new MutationObserver(() => {
 });
 scoreObserver.observe(scoreEl, { childList: true, characterData: true, subtree: true });
 
-// ── Prevent iOS pull-to-refresh / bounce scroll ──
-document.body.addEventListener('touchmove', e => {
-  if (dragStarted) e.preventDefault();
-}, { passive: false });
+// ── Prevent ALL iOS scroll / bounce / pull-to-refresh ──
+document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+document.addEventListener('gesturestart', e => e.preventDefault());
+document.addEventListener('gesturechange', e => e.preventDefault());
 
 // Prevent context menu on long press
 document.addEventListener('contextmenu', e => e.preventDefault());
