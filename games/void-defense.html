@@ -24,13 +24,13 @@ html,body{overflow:hidden;position:fixed;inset:0;width:100%;height:100dvh;touch-
 .speed-btn.active{color:var(--moon-glow);background:rgba(179,136,255,0.3);border-color:var(--neon-purple);box-shadow:0 0 8px var(--game-glow)}
 
 /* ── Shop Bar ── */
-.shop-bar{position:fixed;bottom:0;left:0;right:0;z-index:10;display:flex;justify-content:center;gap:2px;padding:2px 3px calc(env(safe-area-inset-bottom,0px) + 1px);background:rgba(10,10,20,0.95);border-top:1px solid rgba(68,170,255,0.12);pointer-events:auto}
-.shop-item{display:flex;flex-direction:column;align-items:center;justify-content:center;width:clamp(38px,11vw,48px);height:clamp(40px,10vw,50px);border-radius:6px;background:rgba(30,24,50,0.6);border:2px solid transparent;cursor:pointer;transition:all .15s;position:relative}
+.shop-bar{position:fixed;bottom:0;left:0;right:0;z-index:10;display:flex;justify-content:center;gap:3px;padding:4px 4px calc(env(safe-area-inset-bottom,0px) + 3px);background:rgba(10,10,20,0.95);border-top:1px solid rgba(68,170,255,0.12);pointer-events:auto}
+.shop-item{display:flex;flex-direction:column;align-items:center;justify-content:center;width:clamp(42px,12vw,56px);min-height:clamp(52px,13vw,64px);border-radius:6px;background:rgba(30,24,50,0.6);border:2px solid transparent;cursor:pointer;transition:all .15s;position:relative;padding:3px 1px}
 .shop-item.selected{border-color:var(--ta,#4488cc);background:rgba(68,136,204,0.15);box-shadow:0 0 10px var(--ta,rgba(68,136,204,0.4))}
 .shop-item.cant-afford{opacity:0.35}
-.shop-item .si-icon{font-size:clamp(16px,2.8dvh,22px);line-height:1}
-.shop-item .si-cost{font-size:clamp(8px,1dvh,10px);color:#ffd740;font-weight:700;margin-top:1px}
-.shop-item .si-name{font-size:clamp(6px,0.8dvh,8px);color:var(--iris-light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;padding:0 2px}
+.shop-item .si-icon{font-size:clamp(18px,3dvh,24px);line-height:1}
+.shop-item .si-cost{font-size:clamp(9px,1.2dvh,11px);color:#ffd740;font-weight:700;margin-top:2px}
+.shop-item .si-name{font-size:clamp(8px,1dvh,10px);color:var(--iris-light);white-space:nowrap;max-width:100%;padding:0 1px;text-align:center}
 
 /* ── Send Wave Button ── */
 .send-wave-btn{position:fixed;z-index:12;left:50%;transform:translateX(-50%);font-family:var(--font-ui);font-size:clamp(11px,1.4dvh,13px);font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--moon-glow);background:linear-gradient(135deg,var(--iris-deep),var(--iris-mid));border:1px solid rgba(184,169,212,0.3);border-radius:20px;padding:7px 20px;cursor:pointer;pointer-events:auto;display:none;animation:neonPulse 1.5s infinite}
