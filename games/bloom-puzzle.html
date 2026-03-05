@@ -491,6 +491,7 @@
 
   function showBoardGhost(shape, anchorRow, anchorCol, valid) {
     clearBoardGhost();
+    const cls = valid ? 'ghost' : 'ghost-invalid';
     for (const [dr, dc] of shape) {
       const r = anchorRow + dr;
       const c = anchorCol + dc;
@@ -498,16 +499,17 @@
       const idx = r * GRID + c;
       const cell = boardEl.children[idx];
       if (cell) {
-        cell.classList.add(valid ? 'ghost' : 'ghost-invalid');
+        cell.classList.add(cls);
+        ghostCells.push(cell);
       }
     }
   }
 
   function clearBoardGhost() {
-    const cells = boardEl.querySelectorAll('.ghost, .ghost-invalid');
-    cells.forEach(c => {
+    for (const c of ghostCells) {
       c.classList.remove('ghost', 'ghost-invalid');
-    });
+    }
+    ghostCells.length = 0;
   }
 
   // ═══════════════════════════════════════════
@@ -862,6 +864,12 @@
   let dragPieceData = null;
   let lastGridRow = -1;
   let lastGridCol = -1;
+  // Cached geometry during drag (avoid per-frame getBoundingClientRect)
+  let dragCellSize = 0;
+  let dragBoardRect = null;
+  let dragBounds = null;
+  let dragShapeCenter = null;
+  let ghostCells = []; // track highlighted cells to avoid querySelectorAll
 
   // Build drag ghost element for a piece
   function buildDragGhost(piece) {
@@ -902,33 +910,21 @@
     return boardEl.getBoundingClientRect();
   }
 
-  function screenToGrid(clientX, clientY, shape) {
-    const rect = getBoardPosition();
-    const cellSize = rect.width / GRID;
-    // Convert screen coords to grid, centering on the piece's center of mass
-    let sumR = 0, sumC = 0;
-    for (const [r, c] of shape) { sumR += r; sumC += c; }
-    const centerR = sumR / shape.length;
-    const centerC = sumC / shape.length;
-
-    const gridCol = Math.round((clientX - rect.left) / cellSize - centerC - 0.5);
-    const gridRow = Math.round((clientY - rect.top) / cellSize - centerR - 0.5);
+  function screenToGrid(clientX, clientY) {
+    const cellSize = dragBoardRect.width / GRID;
+    const gridCol = Math.round((clientX - dragBoardRect.left) / cellSize - dragShapeCenter.c - 0.5);
+    const gridRow = Math.round((clientY - dragBoardRect.top) / cellSize - dragShapeCenter.r - 0.5);
     return { row: gridRow, col: gridCol };
   }
 
   function positionGhost(clientX, clientY) {
-    if (!dragPieceData) return;
-    const cellSize = getCellPixelSize();
-    const bounds = getShapeBounds(dragPieceData.shape);
+    if (!dragBounds) return;
 
     // Offset so piece center follows finger, shifted up so visible
-    const offsetX = -(bounds.cols * cellSize) / 2;
-    const offsetY = -(bounds.rows * cellSize) - 30; // above finger
+    const offsetX = -(dragBounds.cols * dragCellSize) / 2;
+    const offsetY = -(dragBounds.rows * dragCellSize) - 30; // above finger
 
-    const x = clientX + offsetX;
-    const y = clientY + offsetY;
-
-    ghostEl.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+    ghostEl.style.transform = `translate3d(${clientX + offsetX}px, ${clientY + offsetY}px, 0)`;
   }
 
   // Determine which tray piece was touched
@@ -959,52 +955,53 @@
       lastGridRow = -1;
       lastGridCol = -1;
 
-      // Hide tray piece
-      const trayItem = trayEl.children[idx];
-      if (trayItem) trayItem.style.opacity = '0.3';
+      // Cache geometry for the duration of this drag
+      dragCellSize = getCellPixelSize();
+      dragBoardRect = getBoardPosition();
+      dragBounds = getShapeBounds(piece.shape);
+      let sumR = 0, sumC = 0;
+      for (const [r, c] of piece.shape) { sumR += r; sumC += c; }
+      dragShapeCenter = { r: sumR / piece.shape.length, c: sumC / piece.shape.length };
 
-      // Build and show ghost
+      // Hide tray piece instantly
+      const trayItem = trayEl.children[idx];
+      if (trayItem) {
+        trayItem.style.transition = 'none';
+        trayItem.style.opacity = '0.3';
+      }
+
+      // Build and show ghost instantly
       buildDragGhost(piece);
       positionGhost(info.x, info.y);
+      ghostEl.style.transition = 'none';
       ghostEl.classList.add('active');
     },
 
     onDrag(info) {
-      if (dragPieceIdx < 0 || !dragPieceData) return;
+      if (dragPieceIdx < 0 || !dragBounds) return;
 
-      // Position ghost with hardware acceleration
       positionGhost(info.x, info.y);
 
-      // Calculate grid snap position (using a point above the finger to match ghost)
-      const cellSize = getCellPixelSize();
-      const bounds = getShapeBounds(dragPieceData.shape);
-      const snapY = info.y - (bounds.rows * cellSize) - 30 + (bounds.rows * cellSize) / 2;
-      const snapX = info.x;
+      // Grid snap position (offset above finger to match ghost)
+      const snapY = info.y - (dragBounds.rows * dragCellSize) / 2 - 30;
+      const { row, col } = screenToGrid(info.x, snapY);
 
-      const { row, col } = screenToGrid(snapX, snapY, dragPieceData.shape);
-
-      // Only update ghost highlight if grid position changed
       if (row !== lastGridRow || col !== lastGridCol) {
         lastGridRow = row;
         lastGridCol = col;
-        const valid = canPlace(dragPieceData.shape, row, col);
-        showBoardGhost(dragPieceData.shape, row, col, valid);
+        showBoardGhost(dragPieceData.shape, row, col, canPlace(dragPieceData.shape, row, col));
       }
     },
 
     onDragEnd(info) {
-      if (dragPieceIdx < 0 || !dragPieceData) {
+      if (dragPieceIdx < 0 || !dragBounds) {
         cleanupDrag();
         return;
       }
 
       // Try to place
-      const cellSize = getCellPixelSize();
-      const bounds = getShapeBounds(dragPieceData.shape);
-      const snapY = info.y - (bounds.rows * cellSize) - 30 + (bounds.rows * cellSize) / 2;
-      const snapX = info.x;
-
-      const { row, col } = screenToGrid(snapX, snapY, dragPieceData.shape);
+      const snapY = info.y - (dragBounds.rows * dragCellSize) / 2 - 30;
+      const { row, col } = screenToGrid(info.x, snapY);
       const placed = placePiece(dragPieceIdx, row, col);
 
       if (!placed) {
@@ -1025,15 +1022,23 @@
   function cleanupDrag() {
     clearBoardGhost();
     ghostEl.classList.remove('active');
+    ghostEl.style.transition = '';
     ghostEl.innerHTML = '';
     if (dragPieceIdx >= 0) {
       const trayItem = trayEl.children[dragPieceIdx];
-      if (trayItem && !trayPieces[dragPieceIdx]?.placed) {
-        trayItem.style.opacity = '';
+      if (trayItem) {
+        trayItem.style.transition = '';
+        if (!trayPieces[dragPieceIdx]?.placed) {
+          trayItem.style.opacity = '';
+        }
       }
     }
     dragPieceIdx = -1;
     dragPieceData = null;
+    dragCellSize = 0;
+    dragBoardRect = null;
+    dragBounds = null;
+    dragShapeCenter = null;
     lastGridRow = -1;
     lastGridCol = -1;
   }

@@ -220,6 +220,7 @@ class TouchManager {
     }
 
     if (this._isDragging) {
+      e.preventDefault();
       this._needsUpdate = true;
     }
   }
