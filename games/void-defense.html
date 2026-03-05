@@ -15,16 +15,16 @@ html,body{overflow:hidden;position:fixed;inset:0;width:100%;height:100dvh;touch-
 #game-canvas{display:block;position:absolute;top:0;left:0;touch-action:none;z-index:1}
 
 /* ── HUD ── */
-.hud{position:fixed;top:0;left:0;right:0;z-index:10;display:flex;justify-content:space-between;align-items:center;padding:calc(env(safe-area-inset-top) + 1px) 3px 1px;pointer-events:none;background:linear-gradient(180deg,rgba(13,10,26,0.92) 0%,rgba(13,10,26,0.6) 80%,transparent 100%);height:calc(env(safe-area-inset-top) + 28px);min-height:28px;overflow:visible}
-.hud-item{display:flex;align-items:center;gap:2px;font-family:var(--font-ui);font-size:clamp(9px,1.3dvh,12px);font-weight:600;color:var(--moon-glow);background:rgba(13,10,26,0.8);border:1px solid var(--glass-border);border-radius:5px;padding:1px 5px;pointer-events:auto;white-space:nowrap;line-height:1.2}
-.hud-left,.hud-center,.hud-right{display:flex;gap:2px;align-items:center}
-.hud-item .gold-icon{color:#ffd740;font-size:clamp(8px,1.1dvh,10px)}
-.hud-item .life-icon{color:#44aaff;font-size:clamp(8px,1.1dvh,10px)}
-.speed-btn{font-family:var(--font-ui);font-size:clamp(8px,1dvh,10px);font-weight:600;color:var(--iris-light);background:rgba(30,24,50,0.7);border:1px solid var(--glass-border);border-radius:5px;padding:1px 5px;cursor:pointer;pointer-events:auto;transition:all .15s;line-height:1.2}
+.hud{position:fixed;top:0;left:0;right:0;z-index:10;display:flex;justify-content:space-between;align-items:flex-end;padding:env(safe-area-inset-top,0px) 3px 1px;pointer-events:none;background:linear-gradient(180deg,rgba(13,10,26,0.92) 0%,rgba(13,10,26,0.6) 80%,transparent 100%);overflow:visible}
+.hud-item{display:flex;align-items:center;gap:2px;font-family:var(--font-ui);font-size:clamp(11px,1.5dvh,14px);font-weight:600;color:var(--moon-glow);background:rgba(13,10,26,0.8);border:1px solid var(--glass-border);border-radius:5px;padding:2px 6px;pointer-events:auto;white-space:nowrap;line-height:1.2}
+.hud-left,.hud-center,.hud-right{display:flex;gap:3px;align-items:center}
+.hud-item .gold-icon{color:#ffd740}
+.hud-item .life-icon{color:#44aaff}
+.speed-btn{font-family:var(--font-ui);font-size:clamp(10px,1.2dvh,12px);font-weight:600;color:var(--iris-light);background:rgba(30,24,50,0.7);border:1px solid var(--glass-border);border-radius:5px;padding:2px 6px;cursor:pointer;pointer-events:auto;transition:all .15s;line-height:1.2}
 .speed-btn.active{color:var(--moon-glow);background:rgba(179,136,255,0.3);border-color:var(--neon-purple);box-shadow:0 0 8px var(--game-glow)}
 
 /* ── Shop Bar ── */
-.shop-bar{position:fixed;bottom:0;left:0;right:0;z-index:10;display:flex;justify-content:center;gap:2px;padding:2px 3px calc(env(safe-area-inset-bottom) + 2px);background:rgba(10,10,20,0.95);border-top:1px solid rgba(68,170,255,0.12);pointer-events:auto}
+.shop-bar{position:fixed;bottom:0;left:0;right:0;z-index:10;display:flex;justify-content:center;gap:2px;padding:2px 3px calc(env(safe-area-inset-bottom,0px) + 1px);background:rgba(10,10,20,0.95);border-top:1px solid rgba(68,170,255,0.12);pointer-events:auto}
 .shop-item{display:flex;flex-direction:column;align-items:center;justify-content:center;width:clamp(38px,11vw,48px);height:clamp(40px,10vw,50px);border-radius:6px;background:rgba(30,24,50,0.6);border:2px solid transparent;cursor:pointer;transition:all .15s;position:relative}
 .shop-item.selected{border-color:var(--ta,#4488cc);background:rgba(68,136,204,0.15);box-shadow:0 0 10px var(--ta,rgba(68,136,204,0.4))}
 .shop-item.cant-afford{opacity:0.35}
@@ -84,9 +84,9 @@ html,body{overflow:hidden;position:fixed;inset:0;width:100%;height:100dvh;touch-
 .ov-btn:hover{background:rgba(74,63,107,0.7)}
 .ov-btns{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
 
-/* Back / Pause — compact, inline with HUD */
-.back-btn{background:rgba(30,24,50,0.7);border:1px solid var(--glass-border);border-radius:5px;width:22px;height:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--iris-light);font-size:12px;text-decoration:none;pointer-events:auto;flex-shrink:0}
-.pause-btn{background:rgba(30,24,50,0.7);border:1px solid var(--glass-border);border-radius:5px;width:22px;height:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--iris-light);font-size:10px;pointer-events:auto;flex-shrink:0}
+/* Back / Pause — inline with HUD */
+.back-btn{background:rgba(30,24,50,0.7);border:1px solid var(--glass-border);border-radius:5px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--iris-light);font-size:14px;text-decoration:none;pointer-events:auto;flex-shrink:0}
+.pause-btn{background:rgba(30,24,50,0.7);border:1px solid var(--glass-border);border-radius:5px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--iris-light);font-size:12px;pointer-events:auto;flex-shrink:0}
 
 /* Placement ghost */
 .placement-range{position:fixed;z-index:5;pointer-events:none;border:2px dashed rgba(179,136,255,0.3);border-radius:50%;display:none}
@@ -197,8 +197,29 @@ let popCombo = 0, comboTimer = 0;
 let cellSize = 0, gridOffX = 0, gridOffY = 0;
 let grid = [];
 const MAX_PARTICLES = 300;
-const SHOP_HEIGHT = 58;
-const HUD_HEIGHT = 28;
+
+function getHudHeight() {
+  const hud = $('hud');
+  if (hud && hud.style.display !== 'none' && hud.offsetHeight > 0) return hud.offsetHeight;
+  // Fallback: measure safe-area via a temp element
+  const d = document.createElement('div');
+  d.style.cssText = 'position:fixed;top:0;left:0;padding-top:env(safe-area-inset-top,0px);visibility:hidden;pointer-events:none';
+  document.body.appendChild(d);
+  const sat = d.offsetHeight;
+  d.remove();
+  return sat + 30;
+}
+function getShopHeight() {
+  const shop = $('shopBar');
+  if (shop && shop.style.display !== 'none' && shop.offsetHeight > 0) return shop.offsetHeight;
+  // Fallback: measure safe-area-bottom
+  const d = document.createElement('div');
+  d.style.cssText = 'position:fixed;bottom:0;left:0;padding-bottom:env(safe-area-inset-bottom,0px);visibility:hidden;pointer-events:none';
+  document.body.appendChild(d);
+  const sab = d.offsetHeight;
+  d.remove();
+  return sab + 50;
+}
 
 // ── Starfield & Nebula ──
 const stars = [];
@@ -925,15 +946,20 @@ const WAVES = generateWaves();
 //  MAP & GRID SETUP
 // ═══════════════════════════════════════
 
+function computeLayout(W, H) {
+  const hudH = getHudHeight();
+  const shopH = getShopHeight();
+  return { hudH, shopH, availW: W - 2, availH: H - hudH - shopH - 2 };
+}
+
 function initMap() {
   const m = MAPS[selectedMap];
   grid = m.generate();
   const W = C.width / DPR, H = C.height / DPR;
-  const availW = W - 2;
-  const availH = H - HUD_HEIGHT - SHOP_HEIGHT - 2;
+  const { hudH, availW, availH } = computeLayout(W, H);
   cellSize = Math.floor(Math.min(availW / m.cols, availH / m.rows));
   gridOffX = Math.floor((W - cellSize * m.cols) / 2);
-  gridOffY = HUD_HEIGHT + Math.floor((availH - cellSize * m.rows) / 2);
+  gridOffY = hudH + Math.floor((availH - cellSize * m.rows) / 2);
   setupPaths();
 }
 
@@ -950,21 +976,18 @@ function resize() {
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   initNebula(w, h);
 
-  // Position send-wave button above shop bar
-  const swb = $('sendWaveBtn');
-  swb.style.bottom = (SHOP_HEIGHT + 10) + 'px';
-
-  // Position tower panel above shop bar
-  const tp = $('towerPanel');
-  tp.style.bottom = (SHOP_HEIGHT + 8) + 'px';
+  // Position send-wave button and tower panel above shop bar
+  const shopH = getShopHeight();
+  $('sendWaveBtn').style.bottom = (shopH + 10) + 'px';
+  $('towerPanel').style.bottom = (shopH + 8) + 'px';
 
   if (STATE !== 'menu') {
     const m = MAPS[selectedMap];
     const W2 = C.width / DPR, H2 = C.height / DPR;
-    const aW = W2 - 2, aH = H2 - HUD_HEIGHT - SHOP_HEIGHT - 2;
-    cellSize = Math.floor(Math.min(aW / m.cols, aH / m.rows));
+    const { hudH, availW, availH } = computeLayout(W2, H2);
+    cellSize = Math.floor(Math.min(availW / m.cols, availH / m.rows));
     gridOffX = Math.floor((W2 - cellSize * m.cols) / 2);
-    gridOffY = HUD_HEIGHT + Math.floor((aH - cellSize * m.rows) / 2);
+    gridOffY = hudH + Math.floor((availH - cellSize * m.rows) / 2);
     setupPaths();
     for (const t of towers) { const p = cellCenter(t.row, t.col); t.x = p.x; t.y = p.y; }
   }
