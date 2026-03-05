@@ -277,7 +277,7 @@
   <div class="menu-title text-gradient">Garden Runner</div>
   <div class="menu-subtitle">Iris Moon Arcade</div>
   <div class="best-score-line" id="menuBest"></div>
-  <div class="tap-prompt">Tap to Run</div>
+  <button class="btn-primary" id="btnStart" style="margin:16px 0">Start Running</button>
   <div class="swipe-hints">
     <div class="swipe-hint"><span class="arrow">&#8592;</span>Lane Left</div>
     <div class="swipe-hint"><span class="arrow">&#8593;</span>Jump</div>
@@ -458,6 +458,7 @@ const goPetalsEl = document.getElementById('goPetals');
 const goNewBestEl = document.getElementById('goNewBest');
 const menuBestEl = document.getElementById('menuBest');
 const btnRetry = document.getElementById('btnRetry');
+const btnStart = document.getElementById('btnStart');
 
 // ═══════════════════════════════════════════
 //  CANVAS SETUP
@@ -1846,6 +1847,10 @@ document.addEventListener('keydown', (e) => {
 // Retry button
 btnRetry.addEventListener('click', () => {
   gameOverOverlay.classList.remove('visible');
+  startGame();
+});
+
+btnStart.addEventListener('click', () => {
   startGame();
 });
 
