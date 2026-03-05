@@ -2861,17 +2861,41 @@ function initMapSelector() {
     const pCtx = preview.getContext('2d');
     const tempGrid = m.generate();
     const pCW = preview.width / m.cols, pCH = preview.height / m.rows;
+    // Background
+    pCtx.fillStyle = '#0a0818';
+    pCtx.fillRect(0, 0, preview.width, preview.height);
     for (let r = 0; r < m.rows; r++) {
       for (let c = 0; c < m.cols; c++) {
         const v = tempGrid[r][c];
-        pCtx.fillStyle = (v===1||v===3||v===4) ? '#1a1a2e' : v===0 ? '#151525' : '#050510';
-        pCtx.fillRect(c*pCW, r*pCH, pCW, pCH);
-        if (v===3) { pCtx.fillStyle = 'rgba(68,255,68,0.3)'; pCtx.fillRect(c*pCW, r*pCH, pCW, pCH); }
-        if (v===4) { pCtx.fillStyle = 'rgba(255,68,68,0.3)'; pCtx.fillRect(c*pCW, r*pCH, pCW, pCH); }
+        if (v === 1) {
+          pCtx.fillStyle = '#1a1a2e';
+          pCtx.fillRect(c*pCW, r*pCH, pCW, pCH);
+          // Path glow
+          pCtx.fillStyle = 'rgba(68,170,255,0.08)';
+          pCtx.fillRect(c*pCW, r*pCH, pCW, pCH);
+        } else if (v === 0) {
+          pCtx.fillStyle = '#151525';
+          pCtx.fillRect(c*pCW, r*pCH, pCW, pCH);
+        } else if (v === 5) {
+          pCtx.fillStyle = '#0e0e1a';
+          pCtx.fillRect(c*pCW, r*pCH, pCW, pCH);
+        }
+        // v===2 border: leave as background
+        if (v === 3) { pCtx.fillStyle = '#1a1a2e'; pCtx.fillRect(c*pCW, r*pCH, pCW, pCH); pCtx.fillStyle = 'rgba(68,255,68,0.4)'; pCtx.fillRect(c*pCW, r*pCH, pCW, pCH); }
+        if (v === 4) { pCtx.fillStyle = '#1a1a2e'; pCtx.fillRect(c*pCW, r*pCH, pCW, pCH); pCtx.fillStyle = 'rgba(255,68,68,0.4)'; pCtx.fillRect(c*pCW, r*pCH, pCW, pCH); }
       }
     }
+    // Grid lines for definition
+    pCtx.strokeStyle = 'rgba(100,120,150,0.06)'; pCtx.lineWidth = 0.5;
+    for (let r = 0; r <= m.rows; r++) { pCtx.beginPath(); pCtx.moveTo(0, r*pCH); pCtx.lineTo(preview.width, r*pCH); pCtx.stroke(); }
+    for (let c = 0; c <= m.cols; c++) { pCtx.beginPath(); pCtx.moveTo(c*pCW, 0); pCtx.lineTo(c*pCW, preview.height); pCtx.stroke(); }
     card.appendChild(preview);
-    card.innerHTML += `<div class="mc-name">${m.name}</div><div class="mc-diff">${m.difficulty}</div>`;
+    const nameDiv = document.createElement('div');
+    nameDiv.className = 'mc-name'; nameDiv.textContent = m.name;
+    const diffDiv = document.createElement('div');
+    diffDiv.className = 'mc-diff'; diffDiv.textContent = m.difficulty;
+    card.appendChild(nameDiv);
+    card.appendChild(diffDiv);
     card.addEventListener('pointerdown', () => {
       selectedMap = i;
       document.querySelectorAll('.map-card').forEach(c2 => c2.classList.remove('selected'));
