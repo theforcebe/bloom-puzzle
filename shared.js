@@ -153,6 +153,7 @@ class TouchManager {
     this._pointerId = null;
     this._startX = 0;
     this._startY = 0;
+    this._startTarget = null;
     this._startTime = 0;
     this._isDragging = false;
     this._longPressTimer = null;
@@ -177,6 +178,7 @@ class TouchManager {
     this._pointerId = e.pointerId;
     this._startX = e.clientX;
     this._startY = e.clientY;
+    this._startTarget = e.target;
     this._lastMoveX = e.clientX;
     this._lastMoveY = e.clientY;
     this._startTime = Date.now();
@@ -211,7 +213,7 @@ class TouchManager {
         this._onDragStart({
           x: e.clientX, y: e.clientY,
           startX: this._startX, startY: this._startY,
-          target: e.target, event: e
+          target: this._startTarget, event: e
         });
       }
       this._startUpdateLoop();
