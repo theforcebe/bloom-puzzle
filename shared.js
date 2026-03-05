@@ -256,38 +256,26 @@ class TouchManager {
     const dist = Math.sqrt(dx * dx + dy * dy);
 
     if (this._isDragging) {
-      if (this._onDragEnd) {
+      // Check if this drag qualifies as a swipe
+      const velocity = dist / Math.max(dt, 1);
+      if (this._onSwipe && dist >= this.swipeThreshold && velocity > 0.2) {
+        const absX = Math.abs(dx);
+        const absY = Math.abs(dy);
+        let dir;
+        if (absX > absY) dir = dx > 0 ? 'right' : 'left';
+        else dir = dy > 0 ? 'down' : 'up';
+        this._onSwipe({ direction: dir, dx, dy, velocity, target: e.target });
+      } else if (this._onDragEnd) {
         this._onDragEnd({
           x: e.clientX, y: e.clientY,
           dx, dy, startX: this._startX, startY: this._startY,
           target: e.target, event: e
         });
       }
-    } else if (dist < this.dragThreshold) {
-      // Check for swipe (fast short gesture)
-      const velocity = dist / Math.max(dt, 1);
-      if (this._onSwipe && dist >= this.swipeThreshold && velocity > 0.3) {
-        const absX = Math.abs(dx);
-        const absY = Math.abs(dy);
-        let dir;
-        if (absX > absY) dir = dx > 0 ? 'right' : 'left';
-        else dir = dy > 0 ? 'down' : 'up';
-        this._onSwipe({ direction: dir, dx, dy, velocity, target: e.target });
-      } else if (this._onTap) {
+    } else {
+      // Short touch — tap
+      if (this._onTap) {
         this._onTap({ x: e.clientX, y: e.clientY, target: e.target, event: e });
-      }
-    }
-
-    // Also check swipe even if dragging was detected (for swipe games)
-    if (this._isDragging && this._onSwipe) {
-      const velocity = dist / Math.max(dt, 1);
-      if (dist >= this.swipeThreshold && velocity > 0.2) {
-        const absX = Math.abs(dx);
-        const absY = Math.abs(dy);
-        let dir;
-        if (absX > absY) dir = dx > 0 ? 'right' : 'left';
-        else dir = dy > 0 ? 'down' : 'up';
-        this._onSwipe({ direction: dir, dx, dy, velocity, target: e.target });
       }
     }
 
