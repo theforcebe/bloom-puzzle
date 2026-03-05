@@ -15,17 +15,17 @@ html,body{overflow:hidden;position:fixed;inset:0;width:100%;height:100dvh;touch-
 #game-canvas{display:block;position:absolute;top:0;left:0;touch-action:none;z-index:1}
 
 /* ── HUD ── */
-.hud{position:fixed;top:0;left:0;right:0;z-index:10;display:flex;justify-content:space-between;align-items:center;padding:calc(env(safe-area-inset-top) + 4px) 8px 4px;pointer-events:none;background:linear-gradient(180deg,rgba(13,10,26,0.85) 0%,transparent 100%)}
-.hud-item{display:flex;align-items:center;gap:3px;font-family:var(--font-ui);font-size:clamp(11px,1.5dvh,14px);font-weight:600;color:var(--moon-glow);background:rgba(13,10,26,0.7);border:1px solid var(--glass-border);border-radius:8px;padding:3px 8px;pointer-events:auto;white-space:nowrap}
-.hud-left,.hud-center,.hud-right{display:flex;gap:5px;align-items:center}
+.hud{position:fixed;top:0;left:0;right:0;z-index:10;display:flex;justify-content:space-between;align-items:center;padding:calc(env(safe-area-inset-top) + 2px) 4px 2px;pointer-events:none;background:linear-gradient(180deg,rgba(13,10,26,0.9) 0%,transparent 100%)}
+.hud-item{display:flex;align-items:center;gap:2px;font-family:var(--font-ui);font-size:clamp(10px,1.4dvh,13px);font-weight:600;color:var(--moon-glow);background:rgba(13,10,26,0.7);border:1px solid var(--glass-border);border-radius:6px;padding:2px 6px;pointer-events:auto;white-space:nowrap}
+.hud-left,.hud-center,.hud-right{display:flex;gap:3px;align-items:center}
 .hud-item .gold-icon{color:#ffd740}
 .hud-item .life-icon{color:#44aaff}
-.speed-btn{font-family:var(--font-ui);font-size:clamp(10px,1.2dvh,12px);font-weight:600;color:var(--iris-light);background:rgba(30,24,50,0.7);border:1px solid var(--glass-border);border-radius:6px;padding:2px 7px;cursor:pointer;pointer-events:auto;transition:all .15s}
+.speed-btn{font-family:var(--font-ui);font-size:clamp(9px,1.1dvh,11px);font-weight:600;color:var(--iris-light);background:rgba(30,24,50,0.7);border:1px solid var(--glass-border);border-radius:6px;padding:2px 6px;cursor:pointer;pointer-events:auto;transition:all .15s}
 .speed-btn.active{color:var(--moon-glow);background:rgba(179,136,255,0.3);border-color:var(--neon-purple);box-shadow:0 0 8px var(--game-glow)}
 
 /* ── Shop Bar ── */
-.shop-bar{position:fixed;bottom:0;left:0;right:0;z-index:10;display:flex;justify-content:center;gap:3px;padding:4px 6px calc(env(safe-area-inset-bottom) + 4px);background:rgba(10,10,20,0.95);border-top:1px solid rgba(68,170,255,0.12);pointer-events:auto}
-.shop-item{display:flex;flex-direction:column;align-items:center;justify-content:center;width:clamp(42px,12vw,54px);height:clamp(48px,12vw,58px);border-radius:8px;background:rgba(30,24,50,0.6);border:2px solid transparent;cursor:pointer;transition:all .15s;position:relative}
+.shop-bar{position:fixed;bottom:0;left:0;right:0;z-index:10;display:flex;justify-content:center;gap:2px;padding:3px 4px calc(env(safe-area-inset-bottom) + 3px);background:rgba(10,10,20,0.95);border-top:1px solid rgba(68,170,255,0.12);pointer-events:auto}
+.shop-item{display:flex;flex-direction:column;align-items:center;justify-content:center;width:clamp(40px,12vw,52px);height:clamp(44px,11vw,54px);border-radius:8px;background:rgba(30,24,50,0.6);border:2px solid transparent;cursor:pointer;transition:all .15s;position:relative}
 .shop-item.selected{border-color:var(--ta,#4488cc);background:rgba(68,136,204,0.15);box-shadow:0 0 10px var(--ta,rgba(68,136,204,0.4))}
 .shop-item.cant-afford{opacity:0.35}
 .shop-item .si-icon{font-size:clamp(16px,2.8dvh,22px);line-height:1}
@@ -84,9 +84,9 @@ html,body{overflow:hidden;position:fixed;inset:0;width:100%;height:100dvh;touch-
 .ov-btn:hover{background:rgba(74,63,107,0.7)}
 .ov-btns{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
 
-/* Back / Pause */
-.back-btn{position:fixed;top:calc(env(safe-area-inset-top) + 6px);left:8px;z-index:30;background:rgba(30,24,50,0.7);border:1px solid var(--glass-border);border-radius:50%;width:clamp(28px,4dvh,36px);height:clamp(28px,4dvh,36px);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--iris-light);font-size:clamp(12px,1.6dvh,16px);text-decoration:none;pointer-events:auto}
-.pause-btn{position:fixed;top:calc(env(safe-area-inset-top) + 6px);right:8px;z-index:30;background:rgba(30,24,50,0.7);border:1px solid var(--glass-border);border-radius:50%;width:clamp(28px,4dvh,36px);height:clamp(28px,4dvh,36px);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--iris-light);font-size:clamp(12px,1.6dvh,16px);pointer-events:auto}
+/* Back / Pause — integrated into HUD row */
+.back-btn{background:rgba(30,24,50,0.7);border:1px solid var(--glass-border);border-radius:6px;width:clamp(24px,3dvh,30px);height:clamp(24px,3dvh,30px);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--iris-light);font-size:clamp(11px,1.4dvh,14px);text-decoration:none;pointer-events:auto;flex-shrink:0}
+.pause-btn{background:rgba(30,24,50,0.7);border:1px solid var(--glass-border);border-radius:6px;width:clamp(24px,3dvh,30px);height:clamp(24px,3dvh,30px);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--iris-light);font-size:clamp(11px,1.4dvh,14px);pointer-events:auto;flex-shrink:0}
 
 /* Placement ghost */
 .placement-range{position:fixed;z-index:5;pointer-events:none;border:2px dashed rgba(179,136,255,0.3);border-radius:50%;display:none}
@@ -97,21 +97,21 @@ html,body{overflow:hidden;position:fixed;inset:0;width:100%;height:100dvh;touch-
 </head>
 <body>
 <canvas id="game-canvas"></canvas>
-<a class="back-btn" href="../index.html">&#8592;</a>
-<div class="pause-btn" id="pauseBtn">&#9208;</div>
 
 <div class="hud" id="hud" style="display:none">
   <div class="hud-left">
+    <a class="back-btn" href="../index.html">&#8592;</a>
     <div class="hud-item"><span class="gold-icon">CR</span><span id="hudGold">650</span></div>
     <div class="hud-item"><span class="life-icon">&#128737;</span><span id="hudLives">150</span></div>
   </div>
   <div class="hud-center">
-    <div class="hud-item">Assault Wave <span id="hudWave">0/40</span></div>
+    <div class="hud-item">Wave <span id="hudWave">0/40</span></div>
   </div>
   <div class="hud-right">
     <div class="speed-btn active" data-speed="1">1x</div>
     <div class="speed-btn" data-speed="2">2x</div>
     <div class="speed-btn" data-speed="3">3x</div>
+    <div class="pause-btn" id="pauseBtn">&#9208;</div>
   </div>
 </div>
 
@@ -123,6 +123,7 @@ html,body{overflow:hidden;position:fixed;inset:0;width:100%;height:100dvh;touch-
 
 <!-- START MENU -->
 <div class="menu-overlay" id="startMenu">
+  <a class="back-btn" href="../index.html" style="position:absolute;top:calc(env(safe-area-inset-top) + 8px);left:8px">&#8592;</a>
   <div class="menu-title text-gradient">GALACTIC DEFENSE</div>
   <div class="menu-subtitle">A Star Wars Tower Defense</div>
   <div class="map-selector" id="mapSelector"></div>
@@ -196,8 +197,8 @@ let popCombo = 0, comboTimer = 0;
 let cellSize = 0, gridOffX = 0, gridOffY = 0;
 let grid = [];
 const MAX_PARTICLES = 300;
-const SHOP_HEIGHT = 66;
-const HUD_HEIGHT = 44;
+const SHOP_HEIGHT = 62;
+const HUD_HEIGHT = 34;
 
 // ── Starfield & Nebula ──
 const stars = [];
@@ -928,8 +929,8 @@ function initMap() {
   const m = MAPS[selectedMap];
   grid = m.generate();
   const W = C.width / DPR, H = C.height / DPR;
-  const availW = W - 10;
-  const availH = H - HUD_HEIGHT - SHOP_HEIGHT - 10;
+  const availW = W - 4;
+  const availH = H - HUD_HEIGHT - SHOP_HEIGHT - 4;
   cellSize = Math.floor(Math.min(availW / m.cols, availH / m.rows));
   gridOffX = Math.floor((W - cellSize * m.cols) / 2);
   gridOffY = HUD_HEIGHT + Math.floor((availH - cellSize * m.rows) / 2);
@@ -960,7 +961,7 @@ function resize() {
   if (STATE !== 'menu') {
     const m = MAPS[selectedMap];
     const W2 = C.width / DPR, H2 = C.height / DPR;
-    const aW = W2 - 10, aH = H2 - HUD_HEIGHT - SHOP_HEIGHT - 10;
+    const aW = W2 - 4, aH = H2 - HUD_HEIGHT - SHOP_HEIGHT - 4;
     cellSize = Math.floor(Math.min(aW / m.cols, aH / m.rows));
     gridOffX = Math.floor((W2 - cellSize * m.cols) / 2);
     gridOffY = HUD_HEIGHT + Math.floor((aH - cellSize * m.rows) / 2);
