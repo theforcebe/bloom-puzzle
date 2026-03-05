@@ -1,0 +1,2282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Void Defense — Iris Moon Arcade</title>
+<meta name="theme-color" content="#0d0a1a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="stylesheet" href="../shared.css">
+<style>
+:root{--game-accent:var(--neon-purple);--game-glow:rgba(179,136,255,0.3)}
+#game-canvas{display:block;margin:0 auto;touch-action:none;z-index:1;position:relative}
+.hud{position:fixed;top:0;left:0;right:0;z-index:10;display:flex;justify-content:space-between;align-items:center;padding:calc(env(safe-area-inset-top) + 4px) 10px 0;pointer-events:none}
+.hud-item{display:flex;align-items:center;gap:4px;font-family:var(--font-ui);font-size:clamp(11px,1.6dvh,14px);font-weight:500;color:var(--moon-glow);background:rgba(13,10,26,0.8);border:1px solid var(--glass-border);border-radius:8px;padding:3px 8px;pointer-events:auto;white-space:nowrap}
+.hud-left,.hud-center,.hud-right{display:flex;gap:6px;align-items:center}
+.speed-btn{font-family:var(--font-ui);font-size:clamp(10px,1.3dvh,12px);color:var(--iris-light);background:rgba(30,24,50,0.7);border:1px solid var(--glass-border);border-radius:6px;padding:2px 7px;cursor:pointer;pointer-events:auto;transition:all .2s}
+.speed-btn.active{color:var(--moon-glow);background:rgba(179,136,255,0.3);border-color:var(--neon-purple);box-shadow:0 0 8px var(--game-glow)}
+.ability-bar{position:fixed;bottom:0;left:0;right:0;z-index:10;display:flex;justify-content:center;gap:8px;padding:0 10px calc(env(safe-area-inset-bottom) + 6px);pointer-events:none}
+.ability-btn{position:relative;width:clamp(50px,12vw,64px);height:clamp(50px,12vw,64px);border-radius:12px;background:rgba(30,24,50,0.8);border:1px solid var(--glass-border);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;pointer-events:auto;color:var(--moon-glow);font-size:clamp(18px,3dvh,24px);transition:all .2s}
+.ability-btn.locked{opacity:0.35;pointer-events:none}
+.ability-btn.on-cooldown{opacity:0.6}
+.ability-btn .cd-overlay{position:absolute;bottom:0;left:0;right:0;background:rgba(13,10,26,0.7);border-radius:0 0 11px 11px;text-align:center;font-size:10px;color:var(--iris-light);padding:1px 0}
+.ability-btn .ab-label{font-size:clamp(7px,1dvh,9px);color:var(--iris-light);margin-top:1px}
+.send-wave-btn{position:fixed;z-index:10;bottom:calc(env(safe-area-inset-bottom) + 70px);left:50%;transform:translateX(-50%);font-family:var(--font-ui);font-size:clamp(12px,1.6dvh,14px);font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--moon-glow);background:linear-gradient(135deg,var(--iris-deep),var(--iris-mid));border:1px solid rgba(184,169,212,0.3);border-radius:20px;padding:8px 24px;cursor:pointer;pointer-events:auto;display:none;animation:neonPulse 1.5s infinite}
+.send-wave-btn.visible{display:block}
+.tower-info-panel{position:fixed;bottom:calc(env(safe-area-inset-bottom) + 70px);left:50%;transform:translateX(-50%);z-index:15;background:rgba(20,16,36,0.92);border:1px solid var(--glass-border);border-radius:14px;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);padding:10px 16px;display:none;min-width:220px;max-width:80vw;pointer-events:auto}
+.tower-info-panel.visible{display:block}
+.tower-info-panel .ti-name{font-family:var(--font-display);font-size:clamp(16px,2.5dvh,22px);font-weight:600;color:var(--moon-glow);margin-bottom:4px}
+.tower-info-panel .ti-stats{font-size:clamp(10px,1.3dvh,12px);color:var(--iris-light);line-height:1.5}
+.tower-info-panel .ti-btns{display:flex;gap:8px;margin-top:8px}
+.tower-info-panel .ti-btn{font-family:var(--font-ui);font-size:clamp(10px,1.3dvh,12px);font-weight:500;color:var(--moon-glow);border:1px solid var(--glass-border);border-radius:8px;padding:4px 12px;cursor:pointer;background:rgba(74,63,107,0.4);transition:all .2s}
+.tower-info-panel .ti-btn:hover{background:rgba(74,63,107,0.7)}
+.tower-info-panel .ti-btn.upgrade{border-color:rgba(118,255,3,0.4);color:#76ff03}
+.tower-info-panel .ti-btn.sell{border-color:rgba(255,107,157,0.4);color:#ff6b9d}
+.tower-info-panel .ti-btn.disabled{opacity:0.4;pointer-events:none}
+.radial-menu{position:fixed;z-index:20;pointer-events:none;display:none}
+.radial-menu.visible{display:block;pointer-events:auto}
+.radial-item{position:absolute;width:clamp(40px,9vw,52px);height:clamp(40px,9vw,52px);border-radius:50%;background:rgba(20,16,36,0.92);border:1px solid var(--glass-border);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transform:translate(-50%,-50%);transition:all .15s;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.radial-item:hover{transform:translate(-50%,-50%) scale(1.15)}
+.radial-item.cant-afford{opacity:0.35;pointer-events:none}
+.radial-item .ri-icon{font-size:clamp(16px,2.5dvh,22px)}
+.radial-item .ri-cost{font-size:clamp(7px,1dvh,9px);color:var(--neon-gold);font-weight:600}
+.wave-banner{position:fixed;top:35%;left:50%;transform:translate(-50%,-50%);z-index:25;font-family:var(--font-display);font-size:clamp(28px,5dvh,42px);font-weight:300;color:var(--moon-glow);text-shadow:0 0 30px var(--game-glow);opacity:0;pointer-events:none;transition:opacity .4s;letter-spacing:3px}
+.wave-banner.visible{opacity:1}
+.boss-warning{position:fixed;top:25%;left:50%;transform:translate(-50%,-50%);z-index:25;font-family:var(--font-display);font-size:clamp(22px,4dvh,36px);font-weight:600;color:#ff6b9d;text-shadow:0 0 30px rgba(255,107,157,0.5);opacity:0;pointer-events:none;letter-spacing:4px;text-transform:uppercase}
+.boss-warning.visible{opacity:1;animation:pulse 0.5s infinite}
+.menu-overlay{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(13,10,26,0.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+.menu-overlay.hidden{display:none}
+.menu-title{font-family:var(--font-display);font-size:clamp(32px,6dvh,48px);font-weight:300;letter-spacing:3px;margin-bottom:4px}
+.menu-subtitle{font-family:var(--font-display);font-size:clamp(10px,1.5dvh,13px);letter-spacing:4px;text-transform:uppercase;color:var(--iris-light);opacity:.6;margin-bottom:clamp(16px,3dvh,28px)}
+.map-selector{display:flex;gap:clamp(8px,2vw,14px);margin-bottom:clamp(12px,2dvh,20px);flex-wrap:wrap;justify-content:center}
+.map-card{width:clamp(90px,22vw,130px);background:rgba(30,24,50,0.7);border:2px solid var(--glass-border);border-radius:12px;padding:8px;cursor:pointer;transition:all .3s;text-align:center}
+.map-card.selected{border-color:var(--neon-purple);box-shadow:0 0 20px var(--game-glow)}
+.map-card canvas{width:100%;border-radius:6px;margin-bottom:4px}
+.map-card .mc-name{font-family:var(--font-display);font-size:clamp(12px,1.8dvh,16px);color:var(--moon-glow)}
+.map-card .mc-diff{font-size:clamp(8px,1.1dvh,10px);color:var(--iris-light);letter-spacing:1px;text-transform:uppercase}
+.pause-overlay{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(13,10,26,0.88);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.pause-overlay.hidden{display:none}
+.pause-overlay .po-title{font-family:var(--font-display);font-size:clamp(28px,5dvh,40px);font-weight:300;margin-bottom:16px;letter-spacing:2px}
+.pause-overlay .po-btn{font-family:var(--font-ui);font-size:clamp(12px,1.6dvh,15px);font-weight:500;letter-spacing:1px;color:var(--moon-glow);background:rgba(74,63,107,0.4);border:1px solid var(--glass-border);border-radius:20px;padding:10px 28px;cursor:pointer;margin:4px 0;min-width:160px;text-align:center;transition:all .2s}
+.pause-overlay .po-btn:hover{background:rgba(74,63,107,0.7);box-shadow:0 0 12px var(--game-glow)}
+.result-overlay{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(13,10,26,0.94);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+.result-overlay.hidden{display:none}
+.result-overlay .ro-title{font-family:var(--font-display);font-size:clamp(32px,6dvh,48px);font-weight:300;letter-spacing:3px;margin-bottom:8px}
+.result-overlay .ro-score{font-family:var(--font-display);font-size:clamp(40px,7dvh,56px);font-weight:600;color:var(--moon-glow);margin-bottom:4px}
+.result-overlay .ro-label{font-size:clamp(9px,1.3dvh,12px);letter-spacing:3px;text-transform:uppercase;color:var(--iris-light);opacity:.6;margin-bottom:12px}
+.result-overlay .ro-stats{font-size:clamp(11px,1.5dvh,14px);color:var(--iris-light);line-height:1.8;text-align:center;margin-bottom:16px}
+.result-overlay .ro-btns{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.back-btn{position:fixed;top:calc(env(safe-area-inset-top) + 6px);left:8px;z-index:30;background:rgba(30,24,50,0.7);border:1px solid var(--glass-border);border-radius:50%;width:clamp(30px,4.5dvh,40px);height:clamp(30px,4.5dvh,40px);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--iris-light);font-size:clamp(13px,1.8dvh,18px);text-decoration:none;pointer-events:auto}
+.pause-btn{position:fixed;top:calc(env(safe-area-inset-top) + 6px);right:8px;z-index:30;background:rgba(30,24,50,0.7);border:1px solid var(--glass-border);border-radius:50%;width:clamp(30px,4.5dvh,40px);height:clamp(30px,4.5dvh,40px);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--iris-light);font-size:clamp(13px,1.8dvh,18px);pointer-events:auto}
+</style>
+</head>
+<body>
+<canvas id="game-canvas"></canvas>
+
+<a class="back-btn" href="../index.html">&#8592;</a>
+<div class="pause-btn" id="pauseBtn">&#9208;</div>
+
+<div class="hud" id="hud" style="display:none">
+  <div class="hud-left">
+    <div class="hud-item"><span>&#x1F4B0;</span><span id="hudGold">250</span></div>
+    <div class="hud-item"><span>&#10084;&#65039;</span><span id="hudLives">25</span></div>
+  </div>
+  <div class="hud-center">
+    <div class="hud-item"><span>Wave</span><span id="hudWave">0/30</span></div>
+  </div>
+  <div class="hud-right">
+    <div class="speed-btn active" data-speed="1" id="speedBtn1">1x</div>
+    <div class="speed-btn" data-speed="2" id="speedBtn2">2x</div>
+    <div class="speed-btn" data-speed="3" id="speedBtn3">3x</div>
+  </div>
+</div>
+
+<div class="ability-bar" id="abilityBar" style="display:none">
+  <div class="ability-btn locked" id="ab0" data-ab="0"><span class="ri-icon">&#9732;&#65039;</span><span class="ab-label">Meteor</span></div>
+  <div class="ability-btn locked" id="ab1" data-ab="1"><span class="ri-icon">&#127793;</span><span class="ab-label">Root Wall</span></div>
+  <div class="ability-btn locked" id="ab2" data-ab="2"><span class="ri-icon">&#9889;</span><span class="ab-label">Surge</span></div>
+</div>
+
+<button class="send-wave-btn" id="sendWaveBtn">Send Wave (+25g)</button>
+
+<div class="tower-info-panel" id="towerInfo">
+  <div class="ti-name" id="tiName"></div>
+  <div class="ti-stats" id="tiStats"></div>
+  <div class="ti-btns">
+    <div class="ti-btn upgrade" id="tiUpgrade">Upgrade</div>
+    <div class="ti-btn sell" id="tiSell">Sell</div>
+  </div>
+</div>
+
+<div class="radial-menu" id="radialMenu"></div>
+
+<div class="wave-banner" id="waveBanner"></div>
+<div class="boss-warning" id="bossWarning">&#9888; BOSS INCOMING &#9888;</div>
+
+<!-- START MENU -->
+<div class="menu-overlay" id="startMenu">
+  <div class="menu-title text-gradient">Void Defense</div>
+  <div class="menu-subtitle">Bloom Tower Defense</div>
+  <div class="map-selector" id="mapSelector"></div>
+  <button class="btn-primary" id="startBtn">Start Game</button>
+</div>
+
+<!-- PAUSE -->
+<div class="pause-overlay hidden" id="pauseOverlay">
+  <div class="po-title text-gradient">Paused</div>
+  <div class="po-btn" id="resumeBtn">Resume</div>
+  <div class="po-btn" id="restartBtn">Restart</div>
+  <div class="po-btn" id="exitBtn">Exit to Hub</div>
+</div>
+
+<!-- RESULT -->
+<div class="result-overlay hidden" id="resultOverlay">
+  <div class="ro-title text-gradient" id="roTitle">Victory!</div>
+  <div class="ro-score" id="roScore">0</div>
+  <div class="ro-label">Score</div>
+  <div class="ro-stats" id="roStats"></div>
+  <div class="ro-btns">
+    <button class="btn-primary" id="roRetry">Play Again</button>
+    <button class="btn-secondary" id="roMenu">Menu</button>
+    <button class="btn-secondary" id="roExit">Exit</button>
+  </div>
+</div>
+
+<script src="../shared.js"></script>
+<script>
+'use strict';
+// =================================================================
+//  VOID DEFENSE — Bloons-style Bloom Tower Defense (complete rewrite)
+// =================================================================
+
+(() => {
+
+const C = document.getElementById('game-canvas');
+const ctx = C.getContext('2d');
+const DPR = Math.min(window.devicePixelRatio || 1, 3);
+
+// ── State ──
+let STATE = 'menu';
+let gameSpeed = 1;
+let selectedMap = 0;
+let mapData = null;
+let cellSize = 0;
+let gridOffX = 0, gridOffY = 0;
+let gold = 250;
+let lives = 25;
+let currentWave = 0;
+let totalPops = 0;
+let totalGoldEarned = 0;
+let totalTowersBuilt = 0;
+let score = 0;
+let waveCountdown = 15;
+let waveActive = false;
+let spawnQueue = [];
+let spawnTimer = 0;
+let towers = [];
+let enemies = [];
+let projectiles = [];
+let particles = [];
+let selectedTower = null;
+let radialCell = null;
+let abilityTargeting = -1;
+let shakeMagnitude = 0;
+let shakeTimer = 0;
+let lastTime = 0;
+let animFrame = 0;
+let loopRunning = false;
+let rootWallProgress = -1;
+let rootWallTimer = 0;
+let surgeDuration = 0;
+let popCombo = 0;
+let comboTimer = 0;
+
+const MAX_PARTICLES = 250;
+
+// ═══════════════════════════════════════
+//  BLOOM TYPE DEFINITIONS (THE CORE)
+// ═══════════════════════════════════════
+
+const BLOOM_TYPES = {
+  red:     { hp:1, speed:1.0, reward:1, color:'#ff4444', glow:'rgba(255,68,68,0.4)',   children:[], rbe:1, name:'Red' },
+  blue:    { hp:1, speed:1.2, reward:2, color:'#4488ff', glow:'rgba(68,136,255,0.4)',   children:['red'], rbe:2, name:'Blue' },
+  green:   { hp:1, speed:1.4, reward:3, color:'#44ff44', glow:'rgba(68,255,68,0.4)',    children:['blue'], rbe:3, name:'Green' },
+  yellow:  { hp:1, speed:1.6, reward:4, color:'#ffff00', glow:'rgba(255,255,0,0.4)',    children:['green'], rbe:4, name:'Yellow' },
+  pink:    { hp:1, speed:2.0, reward:5, color:'#ff88cc', glow:'rgba(255,136,204,0.4)',  children:['yellow'], rbe:5, name:'Pink' },
+  white:   { hp:1, speed:1.3, reward:8, color:'#ffffff', glow:'rgba(255,255,255,0.3)',  children:['pink','pink'], immuneFreeze:true, rbe:12, name:'White' },
+  black:   { hp:1, speed:1.3, reward:8, color:'#555555', glow:'rgba(100,100,100,0.4)', children:['pink','pink'], immuneExplosion:true, rbe:12, name:'Black' },
+  crystal: { hp:2, speed:1.0, reward:15, color:'#cc88ff', glow:'rgba(204,136,255,0.4)', children:['black','black','white','white'], rbe:51, name:'Crystal' }
+};
+
+// ═══════════════════════════════════════
+//  TOWER DEFINITIONS
+// ═══════════════════════════════════════
+
+const TOWER_DEFS = [
+  {
+    id:'thorn', name:'Thorn Shooter', icon:'\u{1F33F}',
+    costs:[50,75,120],
+    damage:[1,1,2], fireRate:[1.0,1.2,1.5], range:[100,110,130],
+    type:'projectile', targeting:'first',
+    desc:'Basic tower. Pops bloom layers.',
+    lv3:'20% chance to pop 2 extra layers',
+    projColor:'#88cc44', projSpeed:350
+  },
+  {
+    id:'frost', name:'Frost Bloom', icon:'\u2744\uFE0F',
+    costs:[75,110,170],
+    damage:[1,1,1], fireRate:[0.8,0.9,1.0], range:[90,100,120],
+    type:'projectile', targeting:'first',
+    desc:'Slows blooms on hit.',
+    slow:[0.3,0.4,0.5], slowDur:2.0,
+    lv3:'Chance to freeze (stop) for 1s',
+    projColor:'#88ddff', projSpeed:300,
+    cannotAffect:'immuneFreeze'
+  },
+  {
+    id:'solar', name:'Solar Flare', icon:'\u2600\uFE0F',
+    costs:[100,150,225],
+    damage:[1,1,1], fireRate:[0.5,0.6,0.7], range:[110,120,140],
+    type:'aoe', targeting:'most_children',
+    splash:[40,50,65],
+    desc:'Area damage to all nearby blooms.',
+    lv3:'Burn: 1 extra pop after 2s',
+    projColor:'#ffaa33', projSpeed:250,
+    cannotAffect:'immuneExplosion'
+  },
+  {
+    id:'void_laser', name:'Void Laser', icon:'\u{1F52E}',
+    costs:[150,225,350],
+    damage:[3,5,8], fireRate:[1,1,1], range:[130,150,180],
+    type:'beam', targeting:'strongest',
+    desc:'Continuous beam. Targets strongest.',
+    lv3:'Beam chains to 1 extra target',
+    beamColor:'#cc88ff'
+  },
+  {
+    id:'vine', name:'Vine Snare', icon:'\u{1F331}',
+    costs:[100,150,220],
+    damage:[0,0,0], fireRate:[0.25,0.25,0.25], range:[90,110,130],
+    type:'aoe_root', targeting:'first',
+    rootDur:[1.5,2.0,3.0], rootCooldown:4.0,
+    desc:'Roots blooms in place.',
+    lv3:'Rooted blooms take 25% more damage',
+    projColor:'#66aa44'
+  },
+  {
+    id:'storm', name:'Storm Spire', icon:'\u26A1',
+    costs:[200,300,450],
+    damage:[1,2,3], fireRate:[0.5,0.55,0.6], range:[120,140,160],
+    type:'chain', targeting:'first',
+    chains:[2,3,4],
+    desc:'Chain lightning hits multiple.',
+    lv3:'10% stun chance per chain hit',
+    projColor:'#aaddff'
+  }
+];
+
+// ═══════════════════════════════════════
+//  MAP DEFINITIONS
+// ═══════════════════════════════════════
+
+const MAPS = [
+  {
+    name:'Garden Path', difficulty:'Easy', cols:14, rows:8,
+    // 0=build, 1=path, 2=decor, 3=entry, 4=exit
+    generate() {
+      const g = [];
+      for (let r = 0; r < 8; r++) {
+        g[r] = [];
+        for (let c = 0; c < 14; c++) g[r][c] = 0;
+      }
+      // S-curve path
+      const pathCells = [];
+      // Row 1, cols 0-5
+      for (let c = 0; c <= 5; c++) { g[1][c] = 1; pathCells.push([1,c]); }
+      // Down cols 5, rows 1-3
+      for (let r = 2; r <= 3; r++) { g[r][5] = 1; pathCells.push([r,5]); }
+      // Row 3, cols 5-10
+      for (let c = 6; c <= 10; c++) { g[3][c] = 1; pathCells.push([3,c]); }
+      // Down col 10, rows 3-5
+      for (let r = 4; r <= 5; r++) { g[r][10] = 1; pathCells.push([r,10]); }
+      // Row 5, cols 3-10
+      for (let c = 9; c >= 3; c--) { g[5][c] = 1; pathCells.push([5,c]); }
+      // Down col 3, rows 5-6
+      g[6][3] = 1; pathCells.push([6,3]);
+      // Row 6, cols 3-13
+      for (let c = 4; c <= 13; c++) { g[6][c] = 1; pathCells.push([6,c]); }
+      // Mark borders as decor
+      for (let c = 0; c < 14; c++) { g[0][c] = 2; g[7][c] = 2; }
+      for (let r = 0; r < 8; r++) { g[r][13] = g[r][13] === 1 ? 1 : 2; }
+      g[1][0] = 3; // entry
+      g[6][13] = 4; // exit
+      return g;
+    },
+    getPath() {
+      const pts = [];
+      // S-curve waypoints (center of cells, computed later)
+      const wp = [
+        [1,0],[1,5],[3,5],[3,10],[5,10],[5,3],[6,3],[6,13]
+      ];
+      return wp;
+    }
+  },
+  {
+    name:'Forked Garden', difficulty:'Medium', cols:16, rows:10,
+    generate() {
+      const g = [];
+      for (let r = 0; r < 10; r++) {
+        g[r] = [];
+        for (let c = 0; c < 16; c++) g[r][c] = 0;
+      }
+      // Top border
+      for (let c = 0; c < 16; c++) { g[0][c] = 2; g[9][c] = 2; }
+      for (let r = 0; r < 10; r++) { g[r][0] = 2; g[r][15] = 2; }
+      // Path: enter left col 1, row 2
+      // Goes right to col 5, then splits up (row 1->col 10) and down (row 7->col 10), rejoin at col 10 row 4
+      // Entry
+      const path = [];
+      // Shared entry
+      for (let c = 1; c <= 4; c++) { g[4][c] = 1; }
+      g[4][1] = 3; // entry
+      // Top fork
+      g[3][4] = 1; g[2][4] = 1;
+      for (let c = 4; c <= 11; c++) g[2][c] = 1;
+      g[3][11] = 1; g[4][11] = 1;
+      // Bottom fork
+      g[5][4] = 1; g[6][4] = 1;
+      for (let c = 4; c <= 11; c++) g[6][c] = 1;
+      g[5][11] = 1;
+      // Shared exit
+      for (let c = 11; c <= 14; c++) g[4][c] = 1;
+      g[4][14] = 4; // exit
+      return g;
+    },
+    getPath() {
+      // Two paths: top fork and bottom fork
+      return {
+        fork: true,
+        shared_start: [[4,1],[4,2],[4,3],[4,4]],
+        top_fork: [[4,4],[3,4],[2,4],[2,5],[2,6],[2,7],[2,8],[2,9],[2,10],[2,11],[3,11],[4,11]],
+        bottom_fork: [[4,4],[5,4],[6,4],[6,5],[6,6],[6,7],[6,8],[6,9],[6,10],[6,11],[5,11],[4,11]],
+        shared_end: [[4,11],[4,12],[4,13],[4,14]]
+      };
+    }
+  },
+  {
+    name:'Spiral Grove', difficulty:'Hard', cols:14, rows:14,
+    generate() {
+      const g = [];
+      for (let r = 0; r < 14; r++) {
+        g[r] = [];
+        for (let c = 0; c < 14; c++) g[r][c] = 0;
+      }
+      // Borders
+      for (let c = 0; c < 14; c++) { g[0][c] = 2; g[13][c] = 2; }
+      for (let r = 0; r < 14; r++) { g[r][0] = 2; g[r][13] = 2; }
+      // Spiral path going inward
+      // Outer ring
+      for (let c = 1; c <= 12; c++) g[1][c] = 1;
+      for (let r = 2; r <= 11; r++) g[r][12] = 1;
+      for (let c = 11; c >= 2; c--) g[11][c] = 1;
+      for (let r = 10; r >= 3; r--) g[r][2] = 1;
+      // Inner ring
+      for (let c = 3; c <= 10; c++) g[3][c] = 1;
+      for (let r = 4; r <= 9; r++) g[r][10] = 1;
+      for (let c = 9; c >= 4; c--) g[9][c] = 1;
+      for (let r = 8; r >= 5; r--) g[r][4] = 1;
+      // Center
+      for (let c = 5; c <= 8; c++) g[5][c] = 1;
+      for (let r = 6; r <= 7; r++) g[r][8] = 1;
+      for (let c = 7; c >= 6; c--) g[7][c] = 1;
+      g[6][6] = 1; // center
+      g[1][1] = 3; // entry
+      g[6][6] = 4; // exit (center)
+      return g;
+    },
+    getPath() {
+      return [
+        [1,1],[1,12],[11,12],[11,2],[3,2],[3,10],[9,10],[9,4],[5,4],[5,8],[7,8],[7,6],[6,6]
+      ];
+    }
+  }
+];
+
+// ═══════════════════════════════════════
+//  WAVE DEFINITIONS
+// ═══════════════════════════════════════
+
+function generateWaves() {
+  const waves = [];
+  // Helper to create wave blooms array
+  function w(blooms, interval) {
+    return { blooms, interval: interval || 0.6 };
+  }
+  function rep(type, count) {
+    const arr = [];
+    for (let i = 0; i < count; i++) arr.push(type);
+    return arr;
+  }
+  function mix(...args) {
+    const arr = [];
+    for (let i = 0; i < args.length; i += 2) {
+      for (let j = 0; j < args[i+1]; j++) arr.push(args[i]);
+    }
+    // Shuffle
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  // Waves 1-5: Introduction
+  waves.push(w(rep('red', 20), 0.8));
+  waves.push(w(rep('red', 30), 0.7));
+  waves.push(w(mix('red',15, 'blue',10), 0.65));
+  waves.push(w(mix('blue',20, 'green',5), 0.6));
+  waves.push(w([...mix('green',10, 'blue',15, 'red',10), 'crystal'], 0.55));
+
+  // Waves 6-10: Ramp up
+  waves.push(w(mix('green',20, 'blue',15), 0.55));
+  waves.push(w(mix('green',15, 'yellow',10, 'blue',10), 0.5));
+  waves.push(w(mix('yellow',20, 'green',15), 0.5));
+  waves.push(w(mix('yellow',15, 'green',20, 'blue',10), 0.45));
+  waves.push(w([...mix('yellow',20, 'green',15, 'blue',10), 'crystal','crystal','crystal'], 0.45));
+
+  // Waves 11-15: Pink introduced
+  waves.push(w(mix('pink',10, 'yellow',15, 'green',10), 0.45));
+  waves.push(w(mix('pink',15, 'yellow',20), 0.4));
+  waves.push(w(mix('pink',20, 'yellow',15, 'green',15), 0.4));
+  waves.push(w(mix('pink',25, 'yellow',20, 'green',10), 0.35));
+  waves.push(w([...mix('pink',20, 'yellow',15, 'green',10), 'crystal','crystal','crystal','crystal','crystal'], 0.35));
+
+  // Waves 16-20: Special types
+  waves.push(w(mix('white',10, 'pink',15, 'yellow',10), 0.4));
+  waves.push(w(mix('black',10, 'pink',15, 'yellow',10), 0.4));
+  waves.push(w(mix('white',15, 'black',15, 'pink',10), 0.35));
+  waves.push(w(mix('white',20, 'black',20, 'pink',15), 0.3));
+  waves.push(w([...mix('white',20, 'black',20, 'pink',15), ...rep('crystal',8)], 0.3));
+
+  // Waves 21-25: Massive swarms
+  waves.push(w(mix('pink',40, 'yellow',30, 'green',20, 'white',10, 'black',10), 0.25));
+  waves.push(w(mix('white',25, 'black',25, 'pink',30, 'crystal',3), 0.25));
+  waves.push(w(mix('pink',50, 'white',20, 'black',20, 'crystal',5), 0.22));
+  waves.push(w(mix('white',30, 'black',30, 'pink',40, 'crystal',6), 0.2));
+  waves.push(w([...mix('white',35, 'black',35, 'pink',50), ...rep('crystal',10)], 0.2));
+
+  // Waves 26-30: Endgame
+  waves.push(w(mix('crystal',8, 'white',30, 'black',30, 'pink',40), 0.2));
+  waves.push(w(mix('crystal',10, 'white',35, 'black',35, 'pink',30), 0.18));
+  waves.push(w(mix('crystal',12, 'white',40, 'black',40, 'pink',40), 0.18));
+  waves.push(w(mix('crystal',15, 'white',40, 'black',40, 'pink',50), 0.15));
+  waves.push(w([...rep('crystal',20), ...mix('black',50, 'white',50, 'pink',100)], 0.12));
+
+  return waves;
+}
+
+const WAVES = generateWaves();
+
+// ═══════════════════════════════════════
+//  ABILITIES
+// ═══════════════════════════════════════
+
+let abilities = [
+  { name:'Meteor Strike', icon:'\u2604\uFE0F', unlockWave:5, cooldown:45, timer:0, ready:true },
+  { name:'Root Wall', icon:'\u{1F33F}', unlockWave:10, cooldown:60, timer:0, ready:true },
+  { name:'Growth Surge', icon:'\u26A1', unlockWave:15, cooldown:90, timer:0, ready:true }
+];
+
+// ═══════════════════════════════════════
+//  PATH SYSTEM
+// ═══════════════════════════════════════
+
+let pathPoints = [];    // Array of {x, y} pixel positions
+let pathLength = 0;     // Total path length in pixels
+let pathSegments = [];  // cumulative distances for each point
+
+// For forked maps
+let isForkMap = false;
+let pathPointsTop = [];
+let pathPointsBot = [];
+let pathLengthTop = 0;
+let pathLengthBot = 0;
+let pathSegmentsTop = [];
+let pathSegmentsBot = [];
+let sharedStartLen = 0;
+let sharedEndLen = 0;
+let sharedStartPts = [];
+let sharedEndPts = [];
+let sharedStartSegs = [];
+let sharedEndSegs = [];
+
+function cellCenter(row, col) {
+  return {
+    x: gridOffX + (col + 0.5) * cellSize,
+    y: gridOffY + (row + 0.5) * cellSize
+  };
+}
+
+function buildPath(waypoints) {
+  const pts = [];
+  for (const wp of waypoints) {
+    pts.push(cellCenter(wp[0], wp[1]));
+  }
+  // Subdivide: create many intermediate points for smooth movement
+  const detailed = [];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const a = pts[i], b = pts[i+1];
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    const steps = Math.max(Math.ceil(dist / 2), 1);
+    for (let s = 0; s < steps; s++) {
+      const t = s / steps;
+      detailed.push({ x: a.x + dx * t, y: a.y + dy * t });
+    }
+  }
+  detailed.push(pts[pts.length - 1]);
+  return detailed;
+}
+
+function calcSegments(pts) {
+  const segs = [0];
+  let total = 0;
+  for (let i = 1; i < pts.length; i++) {
+    const dx = pts[i].x - pts[i-1].x;
+    const dy = pts[i].y - pts[i-1].y;
+    total += Math.sqrt(dx*dx + dy*dy);
+    segs.push(total);
+  }
+  return { segs, total };
+}
+
+function getPositionOnPath(progress, pts, segs, totalLen) {
+  if (pts.length === 0) return { x: 0, y: 0 };
+  if (pts.length === 1 || totalLen <= 0) return { x: pts[0].x, y: pts[0].y };
+  const dist = Math.max(0, Math.min(progress, 1)) * totalLen;
+  // Binary search for segment
+  let lo = 0, hi = segs.length - 1;
+  while (lo < hi - 1) {
+    const mid = (lo + hi) >> 1;
+    if (segs[mid] <= dist) lo = mid; else hi = mid;
+  }
+  const segStart = segs[lo];
+  const segEnd = segs[hi] || segs[lo];
+  const segLen = segEnd - segStart;
+  const t = segLen > 0 ? (dist - segStart) / segLen : 0;
+  const a = pts[lo], b = pts[hi] || pts[lo];
+  return {
+    x: a.x + (b.x - a.x) * t,
+    y: a.y + (b.y - a.y) * t
+  };
+}
+
+function setupPaths() {
+  const rawPath = MAPS[selectedMap].getPath();
+
+  if (rawPath.fork) {
+    isForkMap = true;
+    sharedStartPts = buildPath(rawPath.shared_start);
+    pathPointsTop = buildPath(rawPath.top_fork);
+    pathPointsBot = buildPath(rawPath.bottom_fork);
+    sharedEndPts = buildPath(rawPath.shared_end);
+
+    const ss = calcSegments(sharedStartPts);
+    sharedStartSegs = ss.segs; sharedStartLen = ss.total;
+    const st = calcSegments(pathPointsTop);
+    pathSegmentsTop = st.segs; pathLengthTop = st.total;
+    const sb = calcSegments(pathPointsBot);
+    pathSegmentsBot = sb.segs; pathLengthBot = sb.total;
+    const se = calcSegments(sharedEndPts);
+    sharedEndSegs = se.segs; sharedEndLen = se.total;
+
+    pathLength = sharedStartLen + Math.max(pathLengthTop, pathLengthBot) + sharedEndLen;
+    pathPoints = [...sharedStartPts, ...pathPointsTop, ...sharedEndPts];
+    const ps = calcSegments(pathPoints);
+    pathSegments = ps.segs;
+  } else {
+    isForkMap = false;
+    pathPoints = buildPath(rawPath);
+    const ps = calcSegments(pathPoints);
+    pathSegments = ps.segs;
+    pathLength = ps.total;
+  }
+}
+
+function getBloomPosition(bloom) {
+  if (isForkMap) {
+    const totalLen = sharedStartLen + (bloom.topFork ? pathLengthTop : pathLengthBot) + sharedEndLen;
+    const dist = bloom.pathProgress * totalLen;
+
+    if (dist <= sharedStartLen && sharedStartLen > 0) {
+      return getPositionOnPath(dist / sharedStartLen, sharedStartPts, sharedStartSegs, sharedStartLen);
+    } else if (dist <= sharedStartLen + (bloom.topFork ? pathLengthTop : pathLengthBot)) {
+      const forkDist = dist - sharedStartLen;
+      const forkLen = bloom.topFork ? pathLengthTop : pathLengthBot;
+      const forkPts = bloom.topFork ? pathPointsTop : pathPointsBot;
+      const forkSegs = bloom.topFork ? pathSegmentsTop : pathSegmentsBot;
+      return getPositionOnPath(forkDist / forkLen, forkPts, forkSegs, forkLen);
+    } else {
+      const endDist = dist - sharedStartLen - (bloom.topFork ? pathLengthTop : pathLengthBot);
+      return getPositionOnPath(Math.min(endDist / sharedEndLen, 1), sharedEndPts, sharedEndSegs, sharedEndLen);
+    }
+  }
+  return getPositionOnPath(bloom.pathProgress, pathPoints, pathSegments, pathLength);
+}
+
+function getTotalPathLen(bloom) {
+  if (isForkMap) {
+    return sharedStartLen + (bloom.topFork ? pathLengthTop : pathLengthBot) + sharedEndLen;
+  }
+  return pathLength;
+}
+
+// ═══════════════════════════════════════
+//  BLOOM (ENEMY) MANAGEMENT
+// ═══════════════════════════════════════
+
+function createBloom(type, progress, topFork) {
+  const def = BLOOM_TYPES[type];
+  return {
+    type,
+    hp: def.hp,
+    maxHp: def.hp,
+    pathProgress: progress,
+    speed: def.speed,
+    dead: false,
+    topFork: topFork !== undefined ? topFork : Math.random() < 0.5,
+    slowFactor: 1.0,
+    slowTimer: 0,
+    frozen: false,
+    freezeTimer: 0,
+    rooted: false,
+    rootTimer: 0,
+    rootVulnerable: false,
+    burnTimer: 0,
+    stunTimer: 0,
+    x: 0, y: 0
+  };
+}
+
+function popBloom(bloom, popsFromExplosion, popsFromFreeze) {
+  if (bloom.dead) return;
+  const def = BLOOM_TYPES[bloom.type];
+  bloom.hp--;
+  if (bloom.hp <= 0) {
+    bloom.dead = true;
+    // Visual pop
+    spawnPopParticles(bloom.x, bloom.y, def.color, 5);
+    // Sound
+    playPopSound(bloom.type);
+    // Gold
+    gold += def.reward;
+    totalGoldEarned += def.reward;
+    totalPops++;
+    popCombo++;
+    comboTimer = 0.5;
+    // Spawn children at same path progress
+    for (const childType of def.children) {
+      const childDef = BLOOM_TYPES[childType];
+      // Skip if immune and this was from explosion/freeze
+      if (popsFromExplosion && childDef.immuneExplosion) {
+        // Still spawn, just don't pop them from explosion
+      }
+      if (popsFromFreeze && childDef.immuneFreeze) {
+        // Still spawn
+      }
+      const child = createBloom(childType, bloom.pathProgress, bloom.topFork);
+      // Slightly offset path progress so children spread
+      child.pathProgress += (Math.random() - 0.5) * 0.002;
+      child.pathProgress = Math.max(0, Math.min(child.pathProgress, 0.999));
+      enemies.push(child);
+    }
+  }
+}
+
+function damageBloom(bloom, pops, isExplosion, isFreeze) {
+  if (bloom.dead) return;
+  // If bloom is rooted with lv3 vine, take 25% more
+  let effectivePops = pops;
+  if (bloom.rootVulnerable) effectivePops = Math.ceil(pops * 1.25);
+
+  for (let i = 0; i < effectivePops; i++) {
+    if (bloom.dead) break;
+    popBloom(bloom, isExplosion, isFreeze);
+  }
+}
+
+// ═══════════════════════════════════════
+//  TOWER MANAGEMENT
+// ═══════════════════════════════════════
+
+function createTower(defIndex, row, col) {
+  const def = TOWER_DEFS[defIndex];
+  const pos = cellCenter(row, col);
+  return {
+    defIndex,
+    level: 0, // 0,1,2
+    row, col,
+    x: pos.x, y: pos.y,
+    fireTimer: 0,
+    rootCooldownTimer: 0,
+    target: null,
+    totalInvested: def.costs[0],
+    beamTarget: null,
+    chainTargets: []
+  };
+}
+
+function getTowerDef(tower) {
+  return TOWER_DEFS[tower.defIndex];
+}
+
+function getTowerStat(tower, stat) {
+  const def = TOWER_DEFS[tower.defIndex];
+  return def[stat][tower.level];
+}
+
+function findTarget(tower, targeting) {
+  const def = TOWER_DEFS[tower.defIndex];
+  const range = getTowerStat(tower, 'range') * (cellSize / 40);
+  const rangeSq = range * range;
+  let best = null;
+  let bestVal = -Infinity;
+
+  for (const e of enemies) {
+    if (e.dead) continue;
+    const dx = e.x - tower.x, dy = e.y - tower.y;
+    const distSq = dx*dx + dy*dy;
+    if (distSq > rangeSq) continue;
+
+    // Check immunity
+    if (def.cannotAffect) {
+      const eDef = BLOOM_TYPES[e.type];
+      if (eDef[def.cannotAffect]) continue;
+    }
+
+    let val = 0;
+    if (targeting === 'first') {
+      val = e.pathProgress;
+    } else if (targeting === 'strongest') {
+      val = BLOOM_TYPES[e.type].rbe;
+    } else if (targeting === 'most_children') {
+      val = BLOOM_TYPES[e.type].rbe;
+    }
+    if (val > bestVal) {
+      bestVal = val;
+      best = e;
+    }
+  }
+  return best;
+}
+
+function findTargetsInRange(tower, center, radius) {
+  const def = TOWER_DEFS[tower.defIndex];
+  const r = radius * (cellSize / 40);
+  const rSq = r * r;
+  const targets = [];
+  for (const e of enemies) {
+    if (e.dead) continue;
+    if (def.cannotAffect) {
+      const eDef = BLOOM_TYPES[e.type];
+      if (eDef[def.cannotAffect]) continue;
+    }
+    const dx = e.x - center.x, dy = e.y - center.y;
+    if (dx*dx + dy*dy <= rSq) targets.push(e);
+  }
+  return targets;
+}
+
+function findChainTargets(tower, start, count) {
+  const def = TOWER_DEFS[tower.defIndex];
+  const range = getTowerStat(tower, 'range') * (cellSize / 40) * 0.8;
+  const rangeSq = range * range;
+  const targets = [start];
+  const used = new Set([enemies.indexOf(start)]);
+
+  for (let c = 1; c < count; c++) {
+    const last = targets[targets.length - 1];
+    let closest = null;
+    let closestDist = Infinity;
+    for (let i = 0; i < enemies.length; i++) {
+      if (used.has(i) || enemies[i].dead) continue;
+      const e = enemies[i];
+      const dx = e.x - last.x, dy = e.y - last.y;
+      const d = dx*dx + dy*dy;
+      if (d < closestDist && d < rangeSq) {
+        closestDist = d;
+        closest = e;
+      }
+    }
+    if (closest) {
+      targets.push(closest);
+      used.add(enemies.indexOf(closest));
+    } else break;
+  }
+  return targets;
+}
+
+// ═══════════════════════════════════════
+//  PROJECTILES
+// ═══════════════════════════════════════
+
+function createProjectile(tower, target) {
+  const def = getTowerDef(tower);
+  return {
+    x: tower.x, y: tower.y,
+    tx: target.x, ty: target.y,
+    target,
+    tower,
+    speed: (def.projSpeed || 300) * (cellSize / 40),
+    color: def.projColor || '#ffffff',
+    dead: false,
+    isSplash: def.type === 'aoe',
+    splashRadius: def.splash ? def.splash[tower.level] : 0,
+    damage: getTowerStat(tower, 'damage'),
+    isFreeze: def.id === 'frost',
+    isBurn: def.id === 'solar' && tower.level >= 2,
+    slow: def.slow ? def.slow[tower.level] : 0,
+    slowDur: def.slowDur || 0,
+    lv3Bonus: tower.level >= 2
+  };
+}
+
+// ═══════════════════════════════════════
+//  PARTICLES
+// ═══════════════════════════════════════
+
+function spawnPopParticles(x, y, color, count) {
+  for (let i = 0; i < count && particles.length < MAX_PARTICLES; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 30 + Math.random() * 80;
+    particles.push({
+      x, y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      life: 0.4 + Math.random() * 0.3,
+      maxLife: 0.4 + Math.random() * 0.3,
+      size: 2 + Math.random() * 4,
+      color,
+      type: 'pop'
+    });
+  }
+}
+
+function spawnRingParticle(x, y, radius, color) {
+  if (particles.length < MAX_PARTICLES) {
+    particles.push({
+      x, y, vx: 0, vy: 0,
+      life: 0.3, maxLife: 0.3,
+      size: radius, color,
+      type: 'ring'
+    });
+  }
+}
+
+function spawnChainParticle(x1, y1, x2, y2, color) {
+  if (particles.length < MAX_PARTICLES) {
+    particles.push({
+      x: x1, y: y1,
+      tx: x2, ty: y2,
+      vx: 0, vy: 0,
+      life: 0.15, maxLife: 0.15,
+      size: 2, color,
+      type: 'chain'
+    });
+  }
+}
+
+function spawnBurnParticle(x, y) {
+  if (particles.length < MAX_PARTICLES) {
+    particles.push({
+      x: x + (Math.random()-0.5)*6,
+      y: y - Math.random()*4,
+      vx: (Math.random()-0.5)*10,
+      vy: -20 - Math.random()*20,
+      life: 0.4, maxLife: 0.4,
+      size: 2 + Math.random()*2,
+      color: Math.random() > 0.5 ? '#ff6633' : '#ffaa00',
+      type: 'pop'
+    });
+  }
+}
+
+function spawnFrostParticle(x, y) {
+  if (particles.length < MAX_PARTICLES) {
+    particles.push({
+      x: x + (Math.random()-0.5)*8,
+      y: y + (Math.random()-0.5)*8,
+      vx: (Math.random()-0.5)*15,
+      vy: -10 - Math.random()*10,
+      life: 0.5, maxLife: 0.5,
+      size: 1 + Math.random()*2,
+      color: '#aaeeff',
+      type: 'pop'
+    });
+  }
+}
+
+// ═══════════════════════════════════════
+//  AUDIO
+// ═══════════════════════════════════════
+
+function playPopSound(type) {
+  const freq = {
+    red:880, blue:784, green:698, yellow:622,
+    pink:988, white:1047, black:440, crystal:523
+  }[type] || 880;
+  AudioManager.playTone(freq, 0.06, 0.03);
+}
+
+// ═══════════════════════════════════════
+//  MAP / GRID SETUP
+// ═══════════════════════════════════════
+
+let grid = [];
+
+function initMap() {
+  const mapDef = MAPS[selectedMap];
+  grid = mapDef.generate();
+
+  // Calculate cell size to fit screen
+  const W = C.width / DPR;
+  const H = C.height / DPR;
+  const hudTop = 40;
+  const hudBot = 70;
+  const availW = W - 10;
+  const availH = H - hudTop - hudBot;
+
+  cellSize = Math.floor(Math.min(availW / mapDef.cols, availH / mapDef.rows));
+  gridOffX = Math.floor((W - cellSize * mapDef.cols) / 2);
+  gridOffY = hudTop + Math.floor((availH - cellSize * mapDef.rows) / 2);
+
+  setupPaths();
+}
+
+// ═══════════════════════════════════════
+//  RESIZE
+// ═══════════════════════════════════════
+
+function resize() {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  C.width = Math.round(w * DPR);
+  C.height = Math.round(h * DPR);
+  C.style.width = w + 'px';
+  C.style.height = h + 'px';
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+
+  if (STATE !== 'menu') {
+    // Recalc layout without regenerating grid (preserves tower placements)
+    const mapDef = MAPS[selectedMap];
+    const W = C.width / DPR;
+    const H = C.height / DPR;
+    const hudTop = 40;
+    const hudBot = 70;
+    const availW = W - 10;
+    const availH = H - hudTop - hudBot;
+    cellSize = Math.floor(Math.min(availW / mapDef.cols, availH / mapDef.rows));
+    gridOffX = Math.floor((W - cellSize * mapDef.cols) / 2);
+    gridOffY = hudTop + Math.floor((availH - cellSize * mapDef.rows) / 2);
+    setupPaths();
+    // Update tower positions
+    for (const t of towers) {
+      const pos = cellCenter(t.row, t.col);
+      t.x = pos.x;
+      t.y = pos.y;
+    }
+  }
+}
+
+window.addEventListener('resize', resize);
+resize();
+
+// ═══════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════
+
+function drawGrid() {
+  const mapDef = MAPS[selectedMap];
+  // Background
+  ctx.fillStyle = '#0d0a1a';
+  ctx.fillRect(0, 0, C.width / DPR, C.height / DPR);
+
+  // Grid cells
+  for (let r = 0; r < mapDef.rows; r++) {
+    for (let c = 0; c < mapDef.cols; c++) {
+      const x = gridOffX + c * cellSize;
+      const y = gridOffY + r * cellSize;
+      const cell = grid[r][c];
+
+      if (cell === 1 || cell === 3 || cell === 4) {
+        // Path
+        ctx.fillStyle = '#1a1232';
+        ctx.fillRect(x, y, cellSize, cellSize);
+        // Subtle path border
+        ctx.strokeStyle = 'rgba(179,136,255,0.08)';
+        ctx.lineWidth = 0.5;
+        ctx.strokeRect(x+0.5, y+0.5, cellSize-1, cellSize-1);
+      } else if (cell === 0 || cell === 5) {
+        // Build cell (5 = tower placed)
+        ctx.fillStyle = cell === 5 ? '#181230' : '#141024';
+        ctx.fillRect(x, y, cellSize, cellSize);
+        ctx.strokeStyle = 'rgba(184,169,212,0.06)';
+        ctx.lineWidth = 0.5;
+        ctx.strokeRect(x+0.5, y+0.5, cellSize-1, cellSize-1);
+      } else if (cell === 2) {
+        // Decor
+        ctx.fillStyle = '#0e0b1c';
+        ctx.fillRect(x, y, cellSize, cellSize);
+      }
+
+      // Entry/exit markers
+      if (cell === 3) {
+        ctx.fillStyle = 'rgba(68,255,68,0.15)';
+        ctx.fillRect(x, y, cellSize, cellSize);
+        ctx.fillStyle = '#44ff44';
+        ctx.font = `${Math.floor(cellSize*0.5)}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('\u25B6', x + cellSize/2, y + cellSize/2);
+      }
+      if (cell === 4) {
+        ctx.fillStyle = 'rgba(255,68,68,0.15)';
+        ctx.fillRect(x, y, cellSize, cellSize);
+        ctx.fillStyle = '#ff4444';
+        ctx.font = `${Math.floor(cellSize*0.5)}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('\u25A0', x + cellSize/2, y + cellSize/2);
+      }
+    }
+  }
+
+  // Draw path direction dots
+  const step = Math.max(Math.floor(pathPoints.length / 20), 1);
+  for (let i = 0; i < pathPoints.length - 1; i += step) {
+    const p = pathPoints[i];
+    ctx.fillStyle = 'rgba(179,136,255,0.12)';
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 1.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Root wall visualization
+  if (rootWallProgress >= 0 && rootWallTimer > 0) {
+    const pos = getPositionOnPath(rootWallProgress, pathPoints, pathSegments, pathLength);
+    ctx.save();
+    ctx.globalAlpha = Math.min(rootWallTimer / 1, 1) * 0.7;
+    ctx.fillStyle = '#66aa44';
+    ctx.beginPath();
+    ctx.arc(pos.x, pos.y, cellSize * 0.8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#88cc66';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+function drawTowers() {
+  for (const t of towers) {
+    const def = TOWER_DEFS[t.defIndex];
+    const size = cellSize * 0.8;
+
+    // Tower base
+    ctx.fillStyle = 'rgba(30,24,50,0.9)';
+    ctx.beginPath();
+    ctx.arc(t.x, t.y, size * 0.45, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Level indicator ring
+    const colors = ['rgba(179,136,255,0.3)', 'rgba(179,136,255,0.5)', 'rgba(179,136,255,0.8)'];
+    ctx.strokeStyle = colors[t.level];
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(t.x, t.y, size * 0.45, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Level pips
+    for (let i = 0; i <= t.level; i++) {
+      const angle = -Math.PI/2 + (i - t.level/2) * 0.5;
+      const px = t.x + Math.cos(angle) * size * 0.35;
+      const py = t.y - size * 0.52;
+      ctx.fillStyle = '#b388ff';
+      ctx.beginPath();
+      ctx.arc(px, py, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Icon
+    ctx.font = `${Math.floor(size * 0.5)}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(def.icon, t.x, t.y);
+
+    // Selected range circle
+    if (selectedTower === t) {
+      const range = getTowerStat(t, 'range') * (cellSize / 40);
+      ctx.strokeStyle = 'rgba(179,136,255,0.25)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.arc(t.x, t.y, range, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // Beam rendering
+    if (def.type === 'beam' && t.beamTarget && !t.beamTarget.dead) {
+      ctx.save();
+      ctx.strokeStyle = def.beamColor;
+      ctx.lineWidth = 2 + Math.sin(Date.now() * 0.01) * 0.5;
+      ctx.shadowColor = def.beamColor;
+      ctx.shadowBlur = 8;
+      ctx.beginPath();
+      ctx.moveTo(t.x, t.y);
+      ctx.lineTo(t.beamTarget.x, t.beamTarget.y);
+      ctx.stroke();
+
+      // Lv3 chain beam
+      if (t.level >= 2 && t.chainTargets.length > 0) {
+        ctx.lineWidth = 1.5;
+        ctx.globalAlpha = 0.6;
+        let prev = t.beamTarget;
+        for (const ct of t.chainTargets) {
+          if (!ct.dead) {
+            ctx.beginPath();
+            ctx.moveTo(prev.x, prev.y);
+            ctx.lineTo(ct.x, ct.y);
+            ctx.stroke();
+            prev = ct;
+          }
+        }
+      }
+      ctx.restore();
+    }
+
+    // Chain lightning rendering
+    if (def.type === 'chain' && t.chainTargets.length > 0) {
+      ctx.save();
+      ctx.strokeStyle = '#aaddff';
+      ctx.lineWidth = 1.5;
+      ctx.shadowColor = '#aaddff';
+      ctx.shadowBlur = 6;
+      let prev = { x: t.x, y: t.y };
+      for (const ct of t.chainTargets) {
+        if (!ct.dead) {
+          drawLightning(prev.x, prev.y, ct.x, ct.y);
+          prev = ct;
+        }
+      }
+      ctx.restore();
+    }
+  }
+}
+
+function drawLightning(x1, y1, x2, y2) {
+  const segments = 5;
+  const dx = (x2 - x1) / segments;
+  const dy = (y2 - y1) / segments;
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  for (let i = 1; i < segments; i++) {
+    const jitter = (Math.random() - 0.5) * 8;
+    ctx.lineTo(x1 + dx * i + jitter, y1 + dy * i + jitter);
+  }
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+}
+
+function drawBlooms() {
+  for (const e of enemies) {
+    if (e.dead) continue;
+    const def = BLOOM_TYPES[e.type];
+    const pos = getBloomPosition(e);
+    e.x = pos.x;
+    e.y = pos.y;
+
+    const size = cellSize * 0.3;
+
+    // Glow
+    ctx.save();
+    if (e.type === 'crystal') {
+      // Crystal sparkle
+      ctx.shadowColor = def.glow;
+      ctx.shadowBlur = 12 + Math.sin(Date.now() * 0.005 + e.pathProgress * 100) * 4;
+    } else if (e.type === 'black') {
+      ctx.shadowColor = 'rgba(0,0,0,0.8)';
+      ctx.shadowBlur = 10;
+    } else {
+      ctx.shadowColor = def.glow;
+      ctx.shadowBlur = 6;
+    }
+
+    // Main bloom circle
+    ctx.fillStyle = def.color;
+    ctx.beginPath();
+    ctx.arc(e.x, e.y, size, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Inner highlight
+    ctx.fillStyle = 'rgba(255,255,255,0.2)';
+    ctx.beginPath();
+    ctx.arc(e.x - size * 0.2, e.y - size * 0.2, size * 0.4, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+
+    // Crystal: extra HP indicator
+    if (e.type === 'crystal' && e.hp > 1) {
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(e.x, e.y, size + 3, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    // Status effects visualization
+    if (e.frozen || e.freezeTimer > 0) {
+      ctx.strokeStyle = 'rgba(136,221,255,0.8)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(e.x, e.y, size + 2, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    if (e.slowTimer > 0 && !e.frozen) {
+      ctx.strokeStyle = 'rgba(136,221,255,0.4)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([2, 2]);
+      ctx.beginPath();
+      ctx.arc(e.x, e.y, size + 2, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    if (e.rooted) {
+      ctx.strokeStyle = 'rgba(102,170,68,0.7)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(e.x, e.y, size + 2, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    if (e.burnTimer > 0) {
+      spawnBurnParticle(e.x, e.y);
+    }
+    if (e.stunTimer > 0) {
+      ctx.fillStyle = '#ffff00';
+      ctx.font = `${Math.floor(size)}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText('*', e.x, e.y - size - 2);
+    }
+  }
+}
+
+function drawProjectiles() {
+  for (const p of projectiles) {
+    if (p.dead) continue;
+    ctx.save();
+    ctx.fillStyle = p.color;
+    ctx.shadowColor = p.color;
+    ctx.shadowBlur = 4;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+function drawParticles() {
+  for (const p of particles) {
+    const alpha = p.life / p.maxLife;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+
+    if (p.type === 'ring') {
+      ctx.strokeStyle = p.color;
+      ctx.lineWidth = 2;
+      ctx.globalAlpha = alpha * 0.5;
+      const radius = p.size * (1 - alpha) * 3 + p.size;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+      ctx.stroke();
+    } else if (p.type === 'chain') {
+      ctx.strokeStyle = p.color;
+      ctx.lineWidth = 2 * alpha;
+      ctx.shadowColor = p.color;
+      ctx.shadowBlur = 4;
+      drawLightning(p.x, p.y, p.tx, p.ty);
+    } else {
+      // Pop particle
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size * alpha, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.restore();
+  }
+}
+
+function drawHUD() {
+  // Pop combo display
+  if (popCombo > 5 && comboTimer > 0) {
+    ctx.save();
+    ctx.globalAlpha = Math.min(comboTimer * 2, 1);
+    ctx.fillStyle = '#b388ff';
+    ctx.font = `bold ${Math.floor(cellSize * 0.6)}px ${getComputedStyle(document.body).getPropertyValue('--font-display')}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.shadowColor = 'rgba(179,136,255,0.6)';
+    ctx.shadowBlur = 15;
+    ctx.fillText(`${popCombo} POPS!`, C.width / DPR / 2, gridOffY - 10);
+    ctx.restore();
+  }
+}
+
+function render() {
+  ctx.save();
+  // Screen shake
+  if (shakeTimer > 0) {
+    const sx = (Math.random() - 0.5) * shakeMagnitude;
+    const sy = (Math.random() - 0.5) * shakeMagnitude;
+    ctx.translate(sx, sy);
+  }
+
+  drawGrid();
+  drawTowers();
+  drawBlooms();
+  drawProjectiles();
+  drawParticles();
+  drawHUD();
+
+  ctx.restore();
+}
+
+// ═══════════════════════════════════════
+//  UPDATE LOGIC
+// ═══════════════════════════════════════
+
+function update(dt) {
+  if (STATE !== 'playing' && STATE !== 'between_waves') return;
+
+  const sDt = dt * gameSpeed;
+
+  // Update combo timer
+  if (comboTimer > 0) {
+    comboTimer -= dt;
+    if (comboTimer <= 0) popCombo = 0;
+  }
+
+  // Screen shake decay
+  if (shakeTimer > 0) {
+    shakeTimer -= dt;
+    if (shakeTimer <= 0) { shakeMagnitude = 0; shakeTimer = 0; }
+  }
+
+  // Ability cooldowns
+  for (const ab of abilities) {
+    if (ab.timer > 0) {
+      ab.timer -= dt;
+      if (ab.timer <= 0) { ab.timer = 0; ab.ready = true; }
+    }
+  }
+
+  // Growth Surge duration
+  if (surgeDuration > 0) {
+    surgeDuration -= dt;
+    if (surgeDuration <= 0) surgeDuration = 0;
+  }
+
+  // Root wall
+  if (rootWallTimer > 0) {
+    rootWallTimer -= dt;
+    if (rootWallTimer <= 0) { rootWallProgress = -1; rootWallTimer = 0; }
+  }
+
+  // Wave countdown (between waves)
+  if (STATE === 'between_waves') {
+    waveCountdown -= dt;
+    const btn = document.getElementById('sendWaveBtn');
+    if (btn) btn.textContent = `Send Wave (+25g) [${Math.ceil(waveCountdown)}s]`;
+    if (waveCountdown <= 0) {
+      startWave();
+    }
+    // Still update towers/enemies during between_waves for lingering enemies
+  }
+
+  // Spawn blooms
+  if (waveActive && spawnQueue.length > 0) {
+    spawnTimer -= sDt;
+    if (spawnTimer <= 0) {
+      const type = spawnQueue.shift();
+      const bloom = createBloom(type, 0);
+      enemies.push(bloom);
+      spawnTimer = WAVES[currentWave - 1].interval;
+      // Crystal blooms have extra delay
+      if (type === 'crystal') spawnTimer += 0.5;
+    }
+  }
+
+  // Check if wave is complete
+  if (waveActive && spawnQueue.length === 0) {
+    const allDead = enemies.every(e => e.dead);
+    if (allDead) {
+      waveActive = false;
+      if (currentWave >= 30) {
+        victory();
+      } else {
+        enterBetweenWaves();
+      }
+    }
+  }
+
+  // Update blooms
+  for (const e of enemies) {
+    if (e.dead) continue;
+
+    // Status timers
+    if (e.slowTimer > 0) { e.slowTimer -= sDt; if (e.slowTimer <= 0) e.slowFactor = 1.0; }
+    if (e.freezeTimer > 0) { e.freezeTimer -= sDt; if (e.freezeTimer <= 0) e.frozen = false; }
+    if (e.rootTimer > 0) { e.rootTimer -= sDt; if (e.rootTimer <= 0) { e.rooted = false; e.rootVulnerable = false; } }
+    if (e.stunTimer > 0) { e.stunTimer -= sDt; }
+    if (e.burnTimer > 0) {
+      e.burnTimer -= sDt;
+      if (e.burnTimer <= 0) {
+        // Burn pops
+        damageBloom(e, 1, false, false);
+        e.burnTimer = 0;
+      }
+    }
+
+    // Move bloom
+    if (!e.frozen && !e.rooted && e.stunTimer <= 0) {
+      const totalLen = getTotalPathLen(e);
+      const moveSpeed = e.speed * e.slowFactor * (cellSize * 0.8) * sDt / totalLen;
+      e.pathProgress += moveSpeed;
+
+      // Root wall check
+      if (rootWallProgress >= 0 && rootWallTimer > 0) {
+        const wallDist = Math.abs(e.pathProgress - rootWallProgress);
+        if (wallDist < 0.02) {
+          e.pathProgress = Math.min(e.pathProgress, rootWallProgress - 0.02);
+        }
+      }
+    }
+
+    // Check if bloom reached end
+    if (e.pathProgress >= 1.0) {
+      e.dead = true;
+      const rbe = BLOOM_TYPES[e.type].rbe;
+      lives -= rbe;
+      shakeMagnitude = Math.min(rbe * 2, 10);
+      shakeTimer = 0.3;
+      if (lives <= 0) {
+        lives = 0;
+        gameOver();
+        return;
+      }
+    }
+  }
+
+  // Update towers
+  const surgeMultiplier = surgeDuration > 0 ? 2 : 1;
+
+  for (const t of towers) {
+    const def = TOWER_DEFS[t.defIndex];
+
+    if (def.type === 'beam') {
+      // Continuous beam DPS
+      t.beamTarget = findTarget(t, def.targeting);
+      t.chainTargets = [];
+      if (t.beamTarget && !t.beamTarget.dead) {
+        const dps = getTowerStat(t, 'damage') * surgeMultiplier;
+        const popsThisFrame = dps * sDt;
+        t.fireTimer += popsThisFrame;
+        while (t.fireTimer >= 1) {
+          t.fireTimer -= 1;
+          if (!t.beamTarget.dead) {
+            damageBloom(t.beamTarget, 1, false, false);
+          }
+        }
+        // Lv3 chain to second target
+        if (t.level >= 2) {
+          const range = getTowerStat(t, 'range') * (cellSize / 40);
+          const rangeSq = range * range;
+          let secondBest = null;
+          let secondVal = -Infinity;
+          for (const e2 of enemies) {
+            if (e2.dead || e2 === t.beamTarget) continue;
+            const ddx = e2.x - t.x, ddy = e2.y - t.y;
+            if (ddx*ddx + ddy*ddy > rangeSq) continue;
+            if (e2.pathProgress > secondVal) {
+              secondVal = e2.pathProgress;
+              secondBest = e2;
+            }
+          }
+          if (secondBest) {
+            t.chainTargets = [secondBest];
+            const chainDps = dps * 0.5;
+            // Apply half DPS to chain target
+            if (Math.random() < chainDps * sDt) {
+              damageBloom(secondBest, 1, false, false);
+            }
+          }
+        }
+      } else {
+        t.fireTimer = 0;
+      }
+
+    } else if (def.type === 'aoe_root') {
+      // Vine Snare
+      t.rootCooldownTimer -= sDt;
+      if (t.rootCooldownTimer <= 0) {
+        const range = getTowerStat(t, 'range') * (cellSize / 40);
+        const targets = findTargetsInRange(t, t, range);
+        if (targets.length > 0) {
+          const rootDur = def.rootDur[t.level];
+          for (const tgt of targets) {
+            tgt.rooted = true;
+            tgt.rootTimer = rootDur;
+            if (t.level >= 2) tgt.rootVulnerable = true;
+          }
+          spawnRingParticle(t.x, t.y, range * 0.3, '#66aa44');
+          t.rootCooldownTimer = def.rootCooldown;
+        }
+      }
+
+    } else if (def.type === 'chain') {
+      // Storm Spire
+      const fireRate = getTowerStat(t, 'fireRate') * surgeMultiplier;
+      t.fireTimer -= sDt;
+      t.chainTargets = [];
+      if (t.fireTimer <= 0) {
+        const target = findTarget(t, def.targeting);
+        if (target) {
+          const chainCount = def.chains[t.level];
+          const targets = findChainTargets(t, target, chainCount);
+          t.chainTargets = targets;
+          const dmg = getTowerStat(t, 'damage');
+          for (let i = 0; i < targets.length; i++) {
+            const ct = targets[i];
+            damageBloom(ct, dmg, false, false);
+            if (i > 0) {
+              spawnChainParticle(targets[i-1].x, targets[i-1].y, ct.x, ct.y, '#aaddff');
+            } else {
+              spawnChainParticle(t.x, t.y, ct.x, ct.y, '#aaddff');
+            }
+            // Lv3: stun chance
+            if (t.level >= 2 && Math.random() < 0.1) {
+              ct.stunTimer = 0.5;
+            }
+          }
+          t.fireTimer = 1 / fireRate;
+          // Clear chain visual after short delay
+          setTimeout(() => { if (t.chainTargets === targets) t.chainTargets = []; }, 150);
+        }
+      }
+
+    } else {
+      // Projectile / AoE type towers
+      const fireRate = getTowerStat(t, 'fireRate') * surgeMultiplier;
+      t.fireTimer -= sDt;
+      if (t.fireTimer <= 0) {
+        const target = findTarget(t, def.targeting);
+        if (target) {
+          projectiles.push(createProjectile(t, target));
+          t.fireTimer = 1 / fireRate;
+        }
+      }
+    }
+  }
+
+  // Update projectiles
+  for (const p of projectiles) {
+    if (p.dead) continue;
+    // Move toward target position (or current enemy position if alive)
+    const tx = (!p.target.dead) ? p.target.x : p.tx;
+    const ty = (!p.target.dead) ? p.target.y : p.ty;
+    p.tx = tx; p.ty = ty;
+
+    const dx = tx - p.x, dy = ty - p.y;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    const moveAmt = p.speed * sDt;
+
+    if (dist <= moveAmt || dist < 5) {
+      // Hit!
+      p.dead = true;
+
+      if (p.isSplash) {
+        // AoE damage
+        const splashR = p.splashRadius * (cellSize / 40);
+        const targets = findTargetsInRange(p.tower, { x: p.tx, y: p.ty }, p.splashRadius);
+        for (const tgt of targets) {
+          damageBloom(tgt, p.damage, true, false);
+          // Lv3 burn
+          if (p.isBurn && tgt.burnTimer <= 0) {
+            tgt.burnTimer = 2.0;
+          }
+        }
+        spawnRingParticle(p.tx, p.ty, splashR, p.color);
+      } else {
+        // Single target
+        if (!p.target.dead) {
+          // Thorn lv3: 20% chance extra 2 pops
+          let extraPops = 0;
+          if (p.lv3Bonus && p.tower && getTowerDef(p.tower).id === 'thorn') {
+            if (Math.random() < 0.2) extraPops = 2;
+          }
+          damageBloom(p.target, p.damage + extraPops, false, p.isFreeze);
+
+          // Frost effects
+          if (p.slow > 0 && !p.target.dead) {
+            const eDef = BLOOM_TYPES[p.target.type];
+            if (!eDef.immuneFreeze) {
+              p.target.slowFactor = 1 - p.slow;
+              p.target.slowTimer = p.slowDur;
+              spawnFrostParticle(p.target.x, p.target.y);
+
+              // Lv3 freeze chance
+              if (p.lv3Bonus && Math.random() < 0.15) {
+                p.target.frozen = true;
+                p.target.freezeTimer = 1.0;
+              }
+            }
+          }
+        }
+      }
+    } else {
+      // Move projectile
+      p.x += (dx / dist) * moveAmt;
+      p.y += (dy / dist) * moveAmt;
+    }
+  }
+
+  // Update particles
+  for (const p of particles) {
+    p.life -= dt;
+    if (p.type === 'pop') {
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vy += 100 * dt; // gravity
+    }
+  }
+
+  // Cleanup
+  enemies = enemies.filter(e => !e.dead);
+  projectiles = projectiles.filter(p => !p.dead);
+  particles = particles.filter(p => p.life > 0);
+
+  // Update HUD
+  updateHUD();
+}
+
+function updateHUD() {
+  const hudGold = document.getElementById('hudGold');
+  const hudLives = document.getElementById('hudLives');
+  const hudWave = document.getElementById('hudWave');
+  if (hudGold) hudGold.textContent = gold;
+  if (hudLives) hudLives.textContent = lives;
+  if (hudWave) hudWave.textContent = `${currentWave}/30`;
+
+  // Update ability buttons
+  for (let i = 0; i < 3; i++) {
+    const btn = document.getElementById('ab' + i);
+    if (!btn) continue;
+    const ab = abilities[i];
+    if (currentWave >= ab.unlockWave) {
+      btn.classList.remove('locked');
+      if (!ab.ready) {
+        btn.classList.add('on-cooldown');
+        let cd = btn.querySelector('.cd-overlay');
+        if (!cd) {
+          cd = document.createElement('div');
+          cd.className = 'cd-overlay';
+          btn.appendChild(cd);
+        }
+        cd.textContent = Math.ceil(ab.timer) + 's';
+      } else {
+        btn.classList.remove('on-cooldown');
+        const cd = btn.querySelector('.cd-overlay');
+        if (cd) cd.remove();
+      }
+    }
+  }
+}
+
+// ═══════════════════════════════════════
+//  WAVE MANAGEMENT
+// ═══════════════════════════════════════
+
+function startWave() {
+  if (currentWave >= 30) return;
+  currentWave++;
+  waveActive = true;
+  STATE = 'playing';
+  spawnQueue = [...WAVES[currentWave - 1].blooms];
+  spawnTimer = 0.3;
+
+  document.getElementById('sendWaveBtn').classList.remove('visible');
+  closeTowerInfo();
+  closeRadialMenu();
+
+  // Show wave banner
+  const banner = document.getElementById('waveBanner');
+  banner.textContent = `Wave ${currentWave}`;
+  banner.classList.add('visible');
+  setTimeout(() => banner.classList.remove('visible'), 1500);
+
+  // Boss warning
+  const bossWaves = [5, 10, 15, 20, 25, 30];
+  if (bossWaves.includes(currentWave)) {
+    const bw = document.getElementById('bossWarning');
+    bw.classList.add('visible');
+    setTimeout(() => bw.classList.remove('visible'), 2000);
+    shakeMagnitude = 3;
+    shakeTimer = 0.5;
+  }
+
+  AudioManager.playClick();
+}
+
+function enterBetweenWaves() {
+  STATE = 'between_waves';
+  waveCountdown = 15;
+
+  // Interest: 3% of gold, max 40
+  const interest = Math.min(Math.floor(gold * 0.03), 40);
+  gold += interest;
+
+  document.getElementById('sendWaveBtn').classList.add('visible');
+}
+
+function sendWaveEarly() {
+  if (STATE !== 'between_waves') return;
+  gold += 25;
+  totalGoldEarned += 25;
+  startWave();
+}
+
+// ═══════════════════════════════════════
+//  GAME FLOW
+// ═══════════════════════════════════════
+
+function startGame() {
+  gold = 250;
+  lives = 25;
+  currentWave = 0;
+  totalPops = 0;
+  totalGoldEarned = 0;
+  totalTowersBuilt = 0;
+  score = 0;
+  towers = [];
+  enemies = [];
+  projectiles = [];
+  particles = [];
+  selectedTower = null;
+  radialCell = null;
+  waveActive = false;
+  spawnQueue = [];
+  abilityTargeting = -1;
+  rootWallProgress = -1;
+  rootWallTimer = 0;
+  surgeDuration = 0;
+  popCombo = 0;
+  comboTimer = 0;
+  abilities = [
+    { name:'Meteor Strike', icon:'\u2604\uFE0F', unlockWave:5, cooldown:45, timer:0, ready:true },
+    { name:'Root Wall', icon:'\u{1F33F}', unlockWave:10, cooldown:60, timer:0, ready:true },
+    { name:'Growth Surge', icon:'\u26A1', unlockWave:15, cooldown:90, timer:0, ready:true }
+  ];
+
+  document.getElementById('startMenu').classList.add('hidden');
+  document.getElementById('resultOverlay').classList.add('hidden');
+  document.getElementById('pauseOverlay').classList.add('hidden');
+  document.getElementById('hud').style.display = '';
+  document.getElementById('abilityBar').style.display = '';
+
+  initMap();
+  STATE = 'between_waves';
+  waveCountdown = 5; // Shorter first time
+  document.getElementById('sendWaveBtn').classList.add('visible');
+
+  if (!loopRunning) {
+    loopRunning = true;
+    lastTime = performance.now();
+    requestAnimationFrame(gameLoop);
+  }
+}
+
+function gameOver() {
+  STATE = 'gameover';
+  score = Math.floor(currentWave * 100 + totalPops + gold / 10);
+  const isNewBest = ArcadeData.submitScore('void-defense', score);
+  ArcadeData.earnPetals(currentWave * 3);
+
+  document.getElementById('roTitle').textContent = 'Defeat';
+  document.getElementById('roTitle').style.color = '#ff6b9d';
+  document.getElementById('roScore').textContent = score;
+  document.getElementById('roStats').innerHTML =
+    `Waves: ${currentWave}/30<br>Pops: ${totalPops}<br>Gold Earned: ${totalGoldEarned}<br>Petals: +${currentWave * 3}` +
+    (isNewBest ? '<br><span style="color:#ffd740">New Best!</span>' : '');
+  document.getElementById('resultOverlay').classList.remove('hidden');
+  document.getElementById('sendWaveBtn').classList.remove('visible');
+  AudioManager.playFail();
+}
+
+function victory() {
+  STATE = 'victory';
+  score = Math.floor(30 * 100 + totalPops + gold / 10);
+  const isNewBest = ArcadeData.submitScore('void-defense', score);
+  ArcadeData.earnPetals(30 * 3);
+
+  document.getElementById('roTitle').textContent = 'Victory!';
+  document.getElementById('roTitle').style.color = '#b388ff';
+  document.getElementById('roScore').textContent = score;
+  document.getElementById('roStats').innerHTML =
+    `All 30 Waves Cleared!<br>Pops: ${totalPops}<br>Gold Earned: ${totalGoldEarned}<br>Petals: +${30 * 3}` +
+    (isNewBest ? '<br><span style="color:#ffd740">New Best!</span>' : '');
+  document.getElementById('resultOverlay').classList.remove('hidden');
+  document.getElementById('sendWaveBtn').classList.remove('visible');
+  AudioManager.playSuccess();
+}
+
+// ═══════════════════════════════════════
+//  GAME LOOP
+// ═══════════════════════════════════════
+
+function gameLoop(now) {
+  if (!loopRunning) return;
+  const dt = Math.min((now - lastTime) / 1000, 0.05);
+  lastTime = now;
+  animFrame++;
+
+  update(dt);
+  render();
+
+  requestAnimationFrame(gameLoop);
+}
+
+// ═══════════════════════════════════════
+//  UI INTERACTION
+// ═══════════════════════════════════════
+
+function getCellFromPixel(px, py) {
+  const mapDef = MAPS[selectedMap];
+  const col = Math.floor((px - gridOffX) / cellSize);
+  const row = Math.floor((py - gridOffY) / cellSize);
+  if (row < 0 || row >= mapDef.rows || col < 0 || col >= mapDef.cols) return null;
+  return { row, col };
+}
+
+function getTowerAt(row, col) {
+  return towers.find(t => t.row === row && t.col === col) || null;
+}
+
+function showRadialMenu(row, col, px, py) {
+  closeRadialMenu();
+  closeTowerInfo();
+  radialCell = { row, col };
+
+  const menu = document.getElementById('radialMenu');
+  menu.innerHTML = '';
+
+  const radius = Math.min(cellSize * 2.2, 70);
+  const cx = gridOffX + (col + 0.5) * cellSize;
+  const cy = gridOffY + (row + 0.5) * cellSize;
+
+  // Clamp to screen bounds
+  const screenW = C.width / DPR;
+  const screenH = C.height / DPR;
+
+  for (let i = 0; i < TOWER_DEFS.length; i++) {
+    const def = TOWER_DEFS[i];
+    const angle = (i / TOWER_DEFS.length) * Math.PI * 2 - Math.PI / 2;
+    let ix = cx + Math.cos(angle) * radius;
+    let iy = cy + Math.sin(angle) * radius;
+
+    // Clamp
+    ix = Math.max(30, Math.min(screenW - 30, ix));
+    iy = Math.max(30, Math.min(screenH - 30, iy));
+
+    const item = document.createElement('div');
+    item.className = 'radial-item';
+    if (gold < def.costs[0]) item.classList.add('cant-afford');
+    item.style.left = ix + 'px';
+    item.style.top = iy + 'px';
+    item.innerHTML = `<span class="ri-icon">${def.icon}</span><span class="ri-cost">${def.costs[0]}g</span>`;
+    item.dataset.tower = i;
+    item.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      buildTower(i, row, col);
+    });
+    menu.appendChild(item);
+  }
+
+  menu.classList.add('visible');
+}
+
+function closeRadialMenu() {
+  document.getElementById('radialMenu').classList.remove('visible');
+  document.getElementById('radialMenu').innerHTML = '';
+  radialCell = null;
+}
+
+function buildTower(defIndex, row, col) {
+  const def = TOWER_DEFS[defIndex];
+  if (gold < def.costs[0]) return;
+  gold -= def.costs[0];
+  const tower = createTower(defIndex, row, col);
+  towers.push(tower);
+  grid[row][col] = 5; // mark as tower
+  totalTowersBuilt++;
+  closeRadialMenu();
+  AudioManager.playPlace();
+  haptic('medium');
+
+  // Auto-select new tower
+  selectedTower = tower;
+  showTowerInfo(tower);
+}
+
+function showTowerInfo(tower) {
+  closeTowerInfo();
+  closeRadialMenu();
+  selectedTower = tower;
+  const def = TOWER_DEFS[tower.defIndex];
+  const panel = document.getElementById('towerInfo');
+  const nameEl = document.getElementById('tiName');
+  const statsEl = document.getElementById('tiStats');
+  const upgradeBtn = document.getElementById('tiUpgrade');
+
+  nameEl.textContent = `${def.icon} ${def.name} (Lv ${tower.level + 1})`;
+
+  let stats = '';
+  if (def.type === 'beam') {
+    stats += `DPS: ${getTowerStat(tower, 'damage')}<br>`;
+  } else if (def.type === 'aoe_root') {
+    stats += `Root: ${def.rootDur[tower.level]}s / ${def.rootCooldown}s CD<br>`;
+  } else {
+    stats += `Damage: ${getTowerStat(tower, 'damage')} pops<br>`;
+    stats += `Fire Rate: ${getTowerStat(tower, 'fireRate')}/s<br>`;
+  }
+  stats += `Range: ${getTowerStat(tower, 'range')}<br>`;
+  if (def.slow) stats += `Slow: ${Math.round(def.slow[tower.level]*100)}%<br>`;
+  if (def.splash) stats += `Splash: ${def.splash[tower.level]}px<br>`;
+  if (def.chains) stats += `Chains: ${def.chains[tower.level]} targets<br>`;
+  stats += `Sell: ${Math.floor(tower.totalInvested * 0.7)}g`;
+  if (tower.level >= 2) stats += '<br><em style="color:#b388ff">' + def.lv3 + '</em>';
+
+  statsEl.innerHTML = stats;
+
+  if (tower.level < 2) {
+    const upgCost = def.costs[tower.level + 1];
+    upgradeBtn.textContent = `Upgrade (${upgCost}g)`;
+    upgradeBtn.classList.toggle('disabled', gold < upgCost);
+  } else {
+    upgradeBtn.textContent = 'MAX';
+    upgradeBtn.classList.add('disabled');
+  }
+
+  panel.classList.add('visible');
+}
+
+function closeTowerInfo() {
+  document.getElementById('towerInfo').classList.remove('visible');
+  selectedTower = null;
+}
+
+function upgradeTower() {
+  if (!selectedTower || selectedTower.level >= 2) return;
+  const def = TOWER_DEFS[selectedTower.defIndex];
+  const cost = def.costs[selectedTower.level + 1];
+  if (gold < cost) return;
+  gold -= cost;
+  selectedTower.level++;
+  selectedTower.totalInvested += cost;
+  AudioManager.playPlace();
+  haptic('light');
+  showTowerInfo(selectedTower);
+}
+
+function sellTower() {
+  if (!selectedTower) return;
+  const refund = Math.floor(selectedTower.totalInvested * 0.7);
+  gold += refund;
+  grid[selectedTower.row][selectedTower.col] = 0;
+  towers = towers.filter(t => t !== selectedTower);
+  closeTowerInfo();
+  AudioManager.playClick();
+  haptic('medium');
+}
+
+// ═══════════════════════════════════════
+//  ABILITY USAGE
+// ═══════════════════════════════════════
+
+function useAbility(index) {
+  const ab = abilities[index];
+  if (!ab.ready || currentWave < ab.unlockWave) return;
+
+  if (index === 0) {
+    // Meteor Strike — targeting mode
+    abilityTargeting = 0;
+  } else if (index === 1) {
+    // Root Wall — targeting mode
+    abilityTargeting = 1;
+  } else if (index === 2) {
+    // Growth Surge — instant
+    surgeDuration = 10;
+    ab.ready = false;
+    ab.timer = ab.cooldown;
+    AudioManager.playClear();
+    haptic('heavy');
+    shakeMagnitude = 3;
+    shakeTimer = 0.3;
+  }
+}
+
+function activateAbilityAtPoint(px, py) {
+  if (abilityTargeting === 0) {
+    // Meteor Strike — 50 pops in large radius
+    const radius = cellSize * 2.5;
+    const targets = [];
+    for (const e of enemies) {
+      if (e.dead) continue;
+      const dx = e.x - px, dy = e.y - py;
+      if (dx*dx + dy*dy <= radius * radius) targets.push(e);
+    }
+    for (const t of targets) {
+      damageBloom(t, 50, true, false);
+    }
+    spawnRingParticle(px, py, radius, '#ff6633');
+    spawnPopParticles(px, py, '#ff6633', 15);
+    shakeMagnitude = 8;
+    shakeTimer = 0.4;
+    abilities[0].ready = false;
+    abilities[0].timer = abilities[0].cooldown;
+    AudioManager.playClear();
+    haptic('heavy');
+  } else if (abilityTargeting === 1) {
+    // Root Wall — find nearest path point
+    let closestDist = Infinity;
+    let closestProgress = 0;
+    for (let i = 0; i < pathPoints.length; i++) {
+      const dx = pathPoints[i].x - px;
+      const dy = pathPoints[i].y - py;
+      const d = dx*dx + dy*dy;
+      if (d < closestDist) {
+        closestDist = d;
+        closestProgress = pathSegments[i] / pathLength;
+      }
+    }
+    rootWallProgress = closestProgress;
+    rootWallTimer = 5;
+    abilities[1].ready = false;
+    abilities[1].timer = abilities[1].cooldown;
+    AudioManager.playPlace();
+    haptic('medium');
+  }
+  abilityTargeting = -1;
+}
+
+// ═══════════════════════════════════════
+//  INPUT HANDLING
+// ═══════════════════════════════════════
+
+C.addEventListener('pointerdown', (e) => {
+  e.preventDefault();
+  const rect = C.getBoundingClientRect();
+  const px = (e.clientX - rect.left);
+  const py = (e.clientY - rect.top);
+
+  if (STATE === 'gameover' || STATE === 'victory' || STATE === 'menu') return;
+
+  // Ability targeting
+  if (abilityTargeting >= 0) {
+    activateAbilityAtPoint(px, py);
+    return;
+  }
+
+  // Close menus on tap elsewhere
+  if (radialCell) {
+    closeRadialMenu();
+    return;
+  }
+
+  const cell = getCellFromPixel(px, py);
+  if (!cell) {
+    closeTowerInfo();
+    return;
+  }
+
+  const tower = getTowerAt(cell.row, cell.col);
+  if (tower) {
+    showTowerInfo(tower);
+    return;
+  }
+
+  const cellVal = grid[cell.row]?.[cell.col];
+  if (cellVal === 0) {
+    // Empty build cell — show radial menu
+    showRadialMenu(cell.row, cell.col, px, py);
+    return;
+  }
+
+  closeTowerInfo();
+});
+
+// Speed buttons
+document.querySelectorAll('.speed-btn').forEach(btn => {
+  btn.addEventListener('pointerdown', (e) => {
+    e.stopPropagation();
+    gameSpeed = parseInt(btn.dataset.speed);
+    document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    AudioManager.playClick();
+  });
+});
+
+// Send wave button
+document.getElementById('sendWaveBtn').addEventListener('pointerdown', (e) => {
+  e.stopPropagation();
+  sendWaveEarly();
+});
+
+// Upgrade / Sell
+document.getElementById('tiUpgrade').addEventListener('pointerdown', (e) => {
+  e.stopPropagation();
+  upgradeTower();
+});
+document.getElementById('tiSell').addEventListener('pointerdown', (e) => {
+  e.stopPropagation();
+  sellTower();
+});
+
+// Ability buttons
+for (let i = 0; i < 3; i++) {
+  document.getElementById('ab' + i).addEventListener('pointerdown', (e) => {
+    e.stopPropagation();
+    useAbility(i);
+  });
+}
+
+// Pause
+document.getElementById('pauseBtn').addEventListener('pointerdown', () => {
+  if (STATE === 'playing' || STATE === 'between_waves') {
+    STATE = 'paused';
+    document.getElementById('pauseOverlay').classList.remove('hidden');
+  }
+});
+
+document.getElementById('resumeBtn').addEventListener('pointerdown', () => {
+  document.getElementById('pauseOverlay').classList.add('hidden');
+  STATE = waveActive ? 'playing' : 'between_waves';
+  lastTime = performance.now();
+});
+
+document.getElementById('restartBtn').addEventListener('pointerdown', () => {
+  document.getElementById('pauseOverlay').classList.add('hidden');
+  startGame();
+});
+
+document.getElementById('exitBtn').addEventListener('pointerdown', () => {
+  window.location.href = '../index.html';
+});
+
+// Result overlay buttons
+document.getElementById('roRetry').addEventListener('pointerdown', () => {
+  startGame();
+});
+document.getElementById('roMenu').addEventListener('pointerdown', () => {
+  document.getElementById('resultOverlay').classList.add('hidden');
+  document.getElementById('hud').style.display = 'none';
+  document.getElementById('abilityBar').style.display = 'none';
+  document.getElementById('sendWaveBtn').classList.remove('visible');
+  document.getElementById('startMenu').classList.remove('hidden');
+  STATE = 'menu';
+});
+document.getElementById('roExit').addEventListener('pointerdown', () => {
+  window.location.href = '../index.html';
+});
+
+// Start button
+document.getElementById('startBtn').addEventListener('pointerdown', () => {
+  startGame();
+});
+
+// ═══════════════════════════════════════
+//  MAP SELECTOR
+// ═══════════════════════════════════════
+
+function initMapSelector() {
+  const container = document.getElementById('mapSelector');
+  container.innerHTML = '';
+
+  for (let i = 0; i < MAPS.length; i++) {
+    const mapDef = MAPS[i];
+    const card = document.createElement('div');
+    card.className = 'map-card' + (i === selectedMap ? ' selected' : '');
+
+    // Mini preview canvas
+    const preview = document.createElement('canvas');
+    preview.width = 120;
+    preview.height = Math.round(120 * (mapDef.rows / mapDef.cols));
+    const pCtx = preview.getContext('2d');
+    const tempGrid = mapDef.generate();
+    const pCellW = preview.width / mapDef.cols;
+    const pCellH = preview.height / mapDef.rows;
+
+    for (let r = 0; r < mapDef.rows; r++) {
+      for (let c = 0; c < mapDef.cols; c++) {
+        const cellVal = tempGrid[r][c];
+        if (cellVal === 1 || cellVal === 3 || cellVal === 4) {
+          pCtx.fillStyle = '#2a2048';
+        } else if (cellVal === 0) {
+          pCtx.fillStyle = '#1a1530';
+        } else {
+          pCtx.fillStyle = '#100e1e';
+        }
+        pCtx.fillRect(c * pCellW, r * pCellH, pCellW, pCellH);
+        if (cellVal === 3) {
+          pCtx.fillStyle = 'rgba(68,255,68,0.3)';
+          pCtx.fillRect(c * pCellW, r * pCellH, pCellW, pCellH);
+        }
+        if (cellVal === 4) {
+          pCtx.fillStyle = 'rgba(255,68,68,0.3)';
+          pCtx.fillRect(c * pCellW, r * pCellH, pCellW, pCellH);
+        }
+      }
+    }
+
+    card.appendChild(preview);
+    card.innerHTML += `<div class="mc-name">${mapDef.name}</div><div class="mc-diff">${mapDef.difficulty}</div>`;
+    card.addEventListener('pointerdown', () => {
+      selectedMap = i;
+      document.querySelectorAll('.map-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      AudioManager.playClick();
+    });
+    container.appendChild(card);
+  }
+}
+
+// ═══════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════
+
+initMapSelector();
+
+// Draw menu background
+function drawMenuBG() {
+  if (STATE !== 'menu') return;
+  ctx.fillStyle = '#0d0a1a';
+  ctx.fillRect(0, 0, C.width / DPR, C.height / DPR);
+  requestAnimationFrame(drawMenuBG);
+}
+drawMenuBG();
+
+})();
+</script>
+</body>
+</html>

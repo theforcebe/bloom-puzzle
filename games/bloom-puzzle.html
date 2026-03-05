@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Bloom Puzzle — Iris Moon Arcade</title>
+<meta name="theme-color" content="#0d0a1a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="format-detection" content="telephone=no">
+<link rel="stylesheet" href="../shared.css">
+<style>
+  :root {
+    --game-accent: var(--neon-rose);
+    --game-glow: rgba(255, 107, 157, 0.3);
+    --grid-size: min(92vw, 52dvh, 420px);
+    --cell-size: calc(var(--grid-size) / 8);
+    --cell-gap: 1px;
+    --tray-piece-cell: clamp(14px, 3.5vw, 22px);
+  }
+
+  /* ── Board ── */
+  .board-wrap {
+    position: relative;
+    width: var(--grid-size);
+    height: var(--grid-size);
+    flex-shrink: 0;
+  }
+
+  .board {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    grid-template-rows: repeat(8, 1fr);
+    gap: var(--cell-gap);
+    width: 100%;
+    height: 100%;
+    background: rgba(74, 63, 107, 0.15);
+    border: 1px solid var(--glass-border);
+    border-radius: clamp(6px, 1.2vw, 12px);
+    overflow: hidden;
+    touch-action: none;
+  }
+
+  .cell {
+    background: var(--grid-cell);
+    border-radius: 2px;
+    position: relative;
+    transition: background 0.15s ease;
+  }
+
+  .cell.filled .petal-inner {
+    position: absolute;
+    inset: 1px;
+    border-radius: 3px;
+    animation: bloomIn 0.3s ease forwards;
+  }
+
+  .cell.clearing .petal-inner {
+    animation: petalBurst 0.4s ease forwards;
+  }
+
+  .cell.ghost {
+    background: rgba(255, 107, 157, 0.15);
+  }
+
+  .cell.ghost-invalid {
+    background: rgba(255, 60, 60, 0.12);
+  }
+
+  /* ── Piece Tray ── */
+  .tray-area {
+    width: var(--grid-size);
+    display: flex;
+    align-items: center;
+    justify-content: space-evenly;
+    gap: clamp(4px, 1vw, 12px);
+    padding: var(--spacing-xs) 0;
+    min-height: clamp(60px, 12dvh, 100px);
+    flex-shrink: 0;
+  }
+
+  .tray-piece {
+    display: grid;
+    gap: 1px;
+    padding: clamp(4px, 0.8vw, 8px);
+    background: rgba(74, 63, 107, 0.2);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    cursor: grab;
+    touch-action: none;
+    transition: transform 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease;
+    position: relative;
+  }
+
+  .tray-piece:active {
+    cursor: grabbing;
+  }
+
+  .tray-piece.placed {
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(0.5);
+  }
+
+  .tray-piece.cant-place {
+    opacity: 0.35;
+  }
+
+  .tray-piece .tray-cell {
+    width: var(--tray-piece-cell);
+    height: var(--tray-piece-cell);
+    border-radius: 2px;
+  }
+
+  .tray-piece .tray-cell.on .petal-inner {
+    position: absolute;
+    inset: 0;
+    border-radius: 2px;
+  }
+
+  .tray-piece .tray-cell.on {
+    position: relative;
+  }
+
+  .tray-piece .tray-cell.off {
+    background: transparent;
+  }
+
+  /* ── Drag Ghost ── */
+  .drag-ghost {
+    position: fixed;
+    z-index: 100;
+    pointer-events: none;
+    display: grid;
+    gap: var(--cell-gap);
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    will-change: transform;
+  }
+
+  .drag-ghost.active {
+    opacity: 0.85;
+  }
+
+  .drag-ghost .ghost-cell {
+    border-radius: 3px;
+  }
+
+  .drag-ghost .ghost-cell.on .petal-inner {
+    position: absolute;
+    inset: 1px;
+    border-radius: 3px;
+  }
+
+  .drag-ghost .ghost-cell.on {
+    position: relative;
+  }
+
+  .drag-ghost .ghost-cell.off {
+    background: transparent;
+  }
+
+  /* ── Petal Earned Float ── */
+  .petal-earned {
+    position: fixed;
+    z-index: 60;
+    font-family: var(--font-display);
+    font-size: clamp(16px, 2.5dvh, 22px);
+    font-weight: 600;
+    color: var(--neon-rose);
+    pointer-events: none;
+    opacity: 0;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .petal-earned.show {
+    animation: comboFloat 1.2s ease forwards;
+  }
+
+  /* ── Game Over Extras ── */
+  .overlay-best-label {
+    font-size: clamp(10px, 1.4dvh, 13px);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--iris-light);
+    opacity: 0.5;
+    margin-bottom: var(--spacing-xs);
+  }
+
+  .overlay-best-value {
+    font-family: var(--font-display);
+    font-size: clamp(24px, 4dvh, 36px);
+    font-weight: 600;
+    color: var(--iris-light);
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .overlay-petals {
+    font-size: clamp(14px, 2dvh, 18px);
+    color: var(--neon-rose);
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .overlay-buttons {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-sm);
+    animation: fadeInUp 0.8s ease 0.3s both;
+  }
+
+  .new-best {
+    color: var(--neon-rose);
+    font-size: clamp(12px, 1.6dvh, 15px);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    animation: pulse 1.5s ease infinite;
+    margin-bottom: var(--spacing-xs);
+  }
+
+  /* ── Responsive ── */
+  @media (max-height: 650px) {
+    :root {
+      --grid-size: min(92vw, 56dvh, 380px);
+      --tray-piece-cell: clamp(12px, 3vw, 18px);
+    }
+    .tray-area { min-height: clamp(50px, 10dvh, 80px); }
+  }
+
+  @media (max-height: 550px) {
+    :root {
+      --grid-size: min(88vw, 58dvh, 340px);
+      --tray-piece-cell: clamp(10px, 2.8vw, 16px);
+    }
+  }
+
+  @media (min-height: 900px) {
+    :root {
+      --grid-size: min(90vw, 48dvh, 440px);
+      --tray-piece-cell: clamp(16px, 3.8vw, 24px);
+    }
+  }
+
+  @media (min-width: 768px) {
+    :root {
+      --tray-piece-cell: clamp(18px, 2.5vw, 26px);
+    }
+  }
+</style>
+</head>
+<body>
+
+<canvas class="bg-canvas" id="bg-canvas"></canvas>
+<canvas class="particle-canvas" id="particle-canvas"></canvas>
+
+<div class="game-page">
+  <!-- Header -->
+  <div class="game-header">
+    <a class="btn-back" href="../index.html">&#8592;</a>
+    <div style="text-align:center;">
+      <div class="game-subtitle">Iris Moon Arcade</div>
+      <div class="game-title text-gradient">Bloom Puzzle</div>
+    </div>
+  </div>
+
+  <!-- Score Bar -->
+  <div class="score-bar">
+    <div class="score-box">
+      <div class="score-label">Score</div>
+      <div class="score-value" id="score-display">0</div>
+    </div>
+    <div class="score-box">
+      <div class="score-label">Best</div>
+      <div class="score-value" id="best-display">0</div>
+    </div>
+  </div>
+
+  <!-- Board -->
+  <div class="board-wrap">
+    <div class="board" id="board"></div>
+  </div>
+
+  <!-- Piece Tray -->
+  <div class="tray-area" id="tray"></div>
+</div>
+
+<!-- Drag Ghost (floats under finger) -->
+<div class="drag-ghost" id="drag-ghost"></div>
+
+<!-- Game Over Overlay -->
+<div class="overlay" id="game-over-overlay">
+  <div class="overlay-title text-gradient">Game Over</div>
+  <div class="overlay-label">SCORE</div>
+  <div class="overlay-score" id="overlay-score">0</div>
+  <div class="new-best" id="new-best" style="display:none;">New Best!</div>
+  <div class="overlay-best-label">BEST</div>
+  <div class="overlay-best-value" id="overlay-best">0</div>
+  <div class="overlay-petals" id="overlay-petals"></div>
+  <div class="overlay-buttons">
+    <button class="btn-primary" id="btn-restart">Plant Again</button>
+    <a class="btn-secondary" href="../index.html">Back to Arcade</a>
+  </div>
+</div>
+
+<!-- Combo Float -->
+<div class="combo-text" id="combo-text"></div>
+
+<script src="../shared.js"></script>
+<script>
+(() => {
+  'use strict';
+
+  // ═══════════════════════════════════════════
+  //  Constants & Piece Definitions
+  // ═══════════════════════════════════════════
+
+  const GRID = 8;
+  const COLORS = ['rose', 'blush', 'peach', 'lavender', 'sage', 'sky', 'iris'];
+
+  // Piece shapes — each is an array of [row, col] offsets
+  const PIECES = {
+    // Singles
+    dot: [[0,0]],
+
+    // 2-blocks
+    h2: [[0,0],[0,1]],
+    v2: [[0,0],[1,0]],
+
+    // 3-blocks
+    h3: [[0,0],[0,1],[0,2]],
+    v3: [[0,0],[1,0],[2,0]],
+    L3_a: [[0,0],[1,0],[1,1]],
+    L3_b: [[0,0],[0,1],[1,0]],
+    L3_c: [[0,0],[0,1],[1,1]],
+    L3_d: [[0,1],[1,0],[1,1]],
+
+    // 4-blocks — lines
+    h4: [[0,0],[0,1],[0,2],[0,3]],
+    v4: [[0,0],[1,0],[2,0],[3,0]],
+
+    // 4-blocks — square
+    sq4: [[0,0],[0,1],[1,0],[1,1]],
+
+    // 4-blocks — T-shapes
+    T_up: [[0,0],[0,1],[0,2],[1,1]],
+    T_down: [[0,1],[1,0],[1,1],[1,2]],
+    T_left: [[0,0],[1,0],[1,1],[2,0]],
+    T_right: [[0,1],[1,0],[1,1],[2,1]],
+
+    // 4-blocks — S/Z shapes
+    S4: [[0,1],[0,2],[1,0],[1,1]],
+    Z4: [[0,0],[0,1],[1,1],[1,2]],
+    S4v: [[0,0],[1,0],[1,1],[2,1]],
+    Z4v: [[0,1],[1,0],[1,1],[2,0]],
+
+    // 5-blocks — lines
+    h5: [[0,0],[0,1],[0,2],[0,3],[0,4]],
+    v5: [[0,0],[1,0],[2,0],[3,0],[4,0]],
+
+    // 5-blocks — L shapes
+    L5_a: [[0,0],[1,0],[2,0],[2,1],[2,2]],
+    L5_b: [[0,0],[0,1],[0,2],[1,0],[2,0]],
+    L5_c: [[0,0],[0,1],[0,2],[1,2],[2,2]],
+    L5_d: [[0,2],[1,2],[2,0],[2,1],[2,2]],
+
+    // 5-blocks — T shapes
+    T5_up: [[0,0],[0,1],[0,2],[0,3],[1,1]],
+    T5_right: [[0,0],[1,0],[1,1],[2,0],[3,0]],
+
+    // 5-blocks — plus / cross
+    plus: [[0,1],[1,0],[1,1],[1,2],[2,1]],
+
+    // Corners (large L)
+    corner_a: [[0,0],[0,1],[0,2],[1,0],[2,0]],
+    corner_b: [[0,0],[0,1],[0,2],[1,2],[2,2]],
+    corner_c: [[0,0],[1,0],[2,0],[2,1],[2,2]],
+    corner_d: [[0,2],[1,2],[2,0],[2,1],[2,2]],
+
+    // Big blocks
+    sq9: [[0,0],[0,1],[0,2],[1,0],[1,1],[1,2],[2,0],[2,1],[2,2]],
+  };
+
+  // Difficulty tiers
+  const TIER_EASY = ['dot','h2','v2','h3','v3','L3_a','L3_b','L3_c','L3_d','sq4'];
+  const TIER_MID = ['h4','v4','T_up','T_down','T_left','T_right','S4','Z4','S4v','Z4v'];
+  const TIER_HARD = ['h5','v5','L5_a','L5_b','L5_c','L5_d','T5_up','T5_right','plus','corner_a','corner_b','corner_c','corner_d','sq9'];
+
+  // ═══════════════════════════════════════════
+  //  Game State
+  // ═══════════════════════════════════════════
+
+  let board = []; // 8x8, each cell: null or color string
+  let score = 0;
+  let best = 0;
+  let combo = 0;
+  let dealCount = 0; // how many deals of 3 have been made
+  let trayPieces = []; // up to 3 pieces: { key, shape, color, placed }
+  let gameOver = false;
+
+  // DOM refs
+  const boardEl = document.getElementById('board');
+  const trayEl = document.getElementById('tray');
+  const scoreEl = document.getElementById('score-display');
+  const bestEl = document.getElementById('best-display');
+  const ghostEl = document.getElementById('drag-ghost');
+  const overlayEl = document.getElementById('game-over-overlay');
+  const comboEl = document.getElementById('combo-text');
+
+  // Systems
+  let particles, ambient;
+
+  // ═══════════════════════════════════════════
+  //  Init
+  // ═══════════════════════════════════════════
+
+  function init() {
+    // Ambient background
+    ambient = new AmbientBackground(document.getElementById('bg-canvas'));
+    ambient.start();
+
+    // Particle system
+    particles = new ParticleSystem(document.getElementById('particle-canvas'));
+    particles.start();
+
+    // Load best
+    best = ArcadeData.getBest('bloom-puzzle');
+    bestEl.textContent = best;
+
+    newGame();
+  }
+
+  function newGame() {
+    board = [];
+    for (let r = 0; r < GRID; r++) {
+      board[r] = [];
+      for (let c = 0; c < GRID; c++) {
+        board[r][c] = null;
+      }
+    }
+    score = 0;
+    combo = 0;
+    dealCount = 0;
+    gameOver = false;
+    scoreEl.textContent = '0';
+    overlayEl.classList.remove('visible');
+    renderBoard();
+    dealPieces();
+  }
+
+  // ═══════════════════════════════════════════
+  //  Board Rendering
+  // ═══════════════════════════════════════════
+
+  function renderBoard() {
+    boardEl.innerHTML = '';
+    for (let r = 0; r < GRID; r++) {
+      for (let c = 0; c < GRID; c++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.dataset.row = r;
+        cell.dataset.col = c;
+        if (board[r][c]) {
+          cell.classList.add('filled', 'color-' + board[r][c]);
+          const inner = document.createElement('div');
+          inner.className = 'petal-inner';
+          cell.appendChild(inner);
+        }
+        boardEl.appendChild(cell);
+      }
+    }
+  }
+
+  function updateCell(r, c) {
+    const idx = r * GRID + c;
+    const cell = boardEl.children[idx];
+    if (!cell) return;
+    cell.className = 'cell';
+    cell.innerHTML = '';
+    if (board[r][c]) {
+      cell.classList.add('filled', 'color-' + board[r][c]);
+      const inner = document.createElement('div');
+      inner.className = 'petal-inner';
+      cell.appendChild(inner);
+    }
+  }
+
+  // ═══════════════════════════════════════════
+  //  Ghost Overlay on Board
+  // ═══════════════════════════════════════════
+
+  function showBoardGhost(shape, anchorRow, anchorCol, valid) {
+    clearBoardGhost();
+    for (const [dr, dc] of shape) {
+      const r = anchorRow + dr;
+      const c = anchorCol + dc;
+      if (r < 0 || r >= GRID || c < 0 || c >= GRID) continue;
+      const idx = r * GRID + c;
+      const cell = boardEl.children[idx];
+      if (cell) {
+        cell.classList.add(valid ? 'ghost' : 'ghost-invalid');
+      }
+    }
+  }
+
+  function clearBoardGhost() {
+    const cells = boardEl.querySelectorAll('.ghost, .ghost-invalid');
+    cells.forEach(c => {
+      c.classList.remove('ghost', 'ghost-invalid');
+    });
+  }
+
+  // ═══════════════════════════════════════════
+  //  Piece Dealing & Difficulty
+  // ═══════════════════════════════════════════
+
+  function getDifficultyPool() {
+    // Every 3 deals, shift towards harder pieces
+    const tier = Math.floor(dealCount / 3);
+    if (tier < 2) {
+      // Early: mostly easy, some mid
+      return [...TIER_EASY, ...TIER_EASY, ...TIER_MID];
+    } else if (tier < 5) {
+      // Mid: balanced
+      return [...TIER_EASY, ...TIER_MID, ...TIER_MID, ...TIER_HARD];
+    } else if (tier < 8) {
+      // Hard: fewer easy, more hard
+      return [...TIER_MID, ...TIER_HARD, ...TIER_HARD];
+    } else {
+      // Very hard: mostly awkward shapes
+      return [...TIER_MID, ...TIER_HARD, ...TIER_HARD, ...TIER_HARD];
+    }
+  }
+
+  function randomPiece() {
+    const pool = getDifficultyPool();
+    const key = pool[Math.floor(Math.random() * pool.length)];
+    const color = COLORS[Math.floor(Math.random() * COLORS.length)];
+    return { key, shape: PIECES[key], color, placed: false };
+  }
+
+  function dealPieces() {
+    trayPieces = [];
+    for (let i = 0; i < 3; i++) {
+      trayPieces.push(randomPiece());
+    }
+    dealCount++;
+    renderTray();
+    markUnplaceable();
+    checkGameOver();
+  }
+
+  // ═══════════════════════════════════════════
+  //  Tray Rendering
+  // ═══════════════════════════════════════════
+
+  function getShapeBounds(shape) {
+    let maxR = 0, maxC = 0;
+    for (const [r, c] of shape) {
+      if (r > maxR) maxR = r;
+      if (c > maxC) maxC = c;
+    }
+    return { rows: maxR + 1, cols: maxC + 1 };
+  }
+
+  function renderTray() {
+    trayEl.innerHTML = '';
+    trayPieces.forEach((piece, idx) => {
+      const wrap = document.createElement('div');
+      wrap.className = 'tray-piece';
+      wrap.dataset.idx = idx;
+
+      if (piece.placed) {
+        wrap.classList.add('placed');
+      }
+
+      const bounds = getShapeBounds(piece.shape);
+      wrap.style.gridTemplateColumns = `repeat(${bounds.cols}, var(--tray-piece-cell))`;
+      wrap.style.gridTemplateRows = `repeat(${bounds.rows}, var(--tray-piece-cell))`;
+
+      // Build set for quick lookup
+      const filled = new Set(piece.shape.map(([r, c]) => `${r},${c}`));
+
+      for (let r = 0; r < bounds.rows; r++) {
+        for (let c = 0; c < bounds.cols; c++) {
+          const cell = document.createElement('div');
+          cell.className = 'tray-cell';
+          if (filled.has(`${r},${c}`)) {
+            cell.classList.add('on', 'color-' + piece.color);
+            const inner = document.createElement('div');
+            inner.className = 'petal-inner';
+            cell.appendChild(inner);
+          } else {
+            cell.classList.add('off');
+          }
+          wrap.appendChild(cell);
+        }
+      }
+
+      trayEl.appendChild(wrap);
+    });
+  }
+
+  // ═══════════════════════════════════════════
+  //  Placement Logic
+  // ═══════════════════════════════════════════
+
+  function canPlace(shape, anchorRow, anchorCol) {
+    for (const [dr, dc] of shape) {
+      const r = anchorRow + dr;
+      const c = anchorCol + dc;
+      if (r < 0 || r >= GRID || c < 0 || c >= GRID) return false;
+      if (board[r][c] !== null) return false;
+    }
+    return true;
+  }
+
+  function canPlaceAnywhere(shape) {
+    for (let r = 0; r < GRID; r++) {
+      for (let c = 0; c < GRID; c++) {
+        if (canPlace(shape, r, c)) return true;
+      }
+    }
+    return false;
+  }
+
+  function placePiece(pieceIdx, anchorRow, anchorCol) {
+    const piece = trayPieces[pieceIdx];
+    if (!piece || piece.placed) return false;
+    if (!canPlace(piece.shape, anchorRow, anchorCol)) return false;
+
+    // Place blocks
+    for (const [dr, dc] of piece.shape) {
+      board[anchorRow + dr][anchorCol + dc] = piece.color;
+    }
+
+    // Score for placement
+    score += piece.shape.length;
+    piece.placed = true;
+
+    AudioManager.playPlace();
+    haptic('light');
+
+    // Update board cells
+    for (const [dr, dc] of piece.shape) {
+      updateCell(anchorRow + dr, anchorCol + dc);
+    }
+
+    // Mark piece as placed in tray
+    const trayEl_ = trayEl.children[pieceIdx];
+    if (trayEl_) trayEl_.classList.add('placed');
+
+    // Check for line clears
+    checkClears();
+
+    // Update score display
+    updateScoreDisplay();
+
+    // Check if all 3 placed -> deal new (wait for line clear animation)
+    if (trayPieces.every(p => p.placed)) {
+      setTimeout(() => dealPieces(), 400);
+    } else {
+      // Delay markUnplaceable/checkGameOver to run after line clears complete
+      setTimeout(() => {
+        markUnplaceable();
+        checkGameOver();
+      }, 360);
+    }
+
+    return true;
+  }
+
+  // ═══════════════════════════════════════════
+  //  Line Clear Logic
+  // ═══════════════════════════════════════════
+
+  function checkClears() {
+    const rowsToClear = [];
+    const colsToClear = [];
+
+    // Check rows
+    for (let r = 0; r < GRID; r++) {
+      let full = true;
+      for (let c = 0; c < GRID; c++) {
+        if (!board[r][c]) { full = false; break; }
+      }
+      if (full) rowsToClear.push(r);
+    }
+
+    // Check columns
+    for (let c = 0; c < GRID; c++) {
+      let full = true;
+      for (let r = 0; r < GRID; r++) {
+        if (!board[r][c]) { full = false; break; }
+      }
+      if (full) colsToClear.push(c);
+    }
+
+    const totalLines = rowsToClear.length + colsToClear.length;
+    if (totalLines === 0) {
+      combo = 0;
+      return;
+    }
+
+    combo++;
+
+    // Scoring: 10 per block in cleared lines + combo multiplier
+    const blocksCleared = totalLines * GRID;
+    // Remove double-counted intersections from block count for score
+    // but keep the line multiplier generous
+    const lineScore = blocksCleared * 10;
+    const comboMultiplier = combo;
+    const clearScore = lineScore * comboMultiplier;
+    score += clearScore;
+
+    AudioManager.playClear();
+    haptic('medium');
+
+    // Animate clearing
+    const cellsToClear = new Set();
+    for (const r of rowsToClear) {
+      for (let c = 0; c < GRID; c++) cellsToClear.add(`${r},${c}`);
+    }
+    for (const c of colsToClear) {
+      for (let r = 0; r < GRID; r++) cellsToClear.add(`${r},${c}`);
+    }
+
+    // Clearing animation + particles
+    for (const key of cellsToClear) {
+      const [r, c] = key.split(',').map(Number);
+      const idx = r * GRID + c;
+      const cellEl = boardEl.children[idx];
+      if (cellEl) {
+        cellEl.classList.add('clearing');
+        // Spawn particles at cell center
+        const rect = cellEl.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const color = PETAL_COLOR_MAP[board[r][c]] || '#d4728c';
+        particles.spawn(cx, cy, color, 4);
+      }
+    }
+
+    // Show combo text
+    if (combo > 1 || totalLines > 1) {
+      showCombo(combo, totalLines);
+    }
+
+    // Actually clear after animation
+    setTimeout(() => {
+      for (const key of cellsToClear) {
+        const [r, c] = key.split(',').map(Number);
+        board[r][c] = null;
+        updateCell(r, c);
+      }
+    }, 350);
+
+    updateScoreDisplay();
+  }
+
+  function showCombo(comboCount, lines) {
+    let text = '';
+    if (lines >= 4) text = 'QUAD CLEAR!';
+    else if (lines >= 3) text = 'TRIPLE!';
+    else if (lines >= 2) text = 'DOUBLE!';
+    else if (comboCount >= 4) text = 'MEGA COMBO x' + comboCount;
+    else if (comboCount >= 3) text = 'COMBO x' + comboCount;
+    else if (comboCount >= 2) text = 'COMBO x' + comboCount;
+    else text = 'CLEAR!';
+
+    comboEl.textContent = text;
+    comboEl.style.color = 'var(--neon-rose)';
+    comboEl.style.top = '35%';
+    comboEl.classList.remove('show');
+    void comboEl.offsetWidth; // force reflow
+    comboEl.classList.add('show');
+
+    setTimeout(() => comboEl.classList.remove('show'), 1300);
+  }
+
+  // ═══════════════════════════════════════════
+  //  Score Display
+  // ═══════════════════════════════════════════
+
+  function updateScoreDisplay() {
+    scoreEl.textContent = score;
+    scoreEl.classList.remove('pop');
+    void scoreEl.offsetWidth;
+    scoreEl.classList.add('pop');
+
+    if (score > best) {
+      best = score;
+      bestEl.textContent = best;
+      bestEl.classList.remove('pop');
+      void bestEl.offsetWidth;
+      bestEl.classList.add('pop');
+    }
+  }
+
+  // ═══════════════════════════════════════════
+  //  Game Over Check
+  // ═══════════════════════════════════════════
+
+  function markUnplaceable() {
+    trayPieces.forEach((piece, idx) => {
+      if (piece.placed) return;
+      const el = trayEl.children[idx];
+      if (!el) return;
+      if (!canPlaceAnywhere(piece.shape)) {
+        el.classList.add('cant-place');
+      } else {
+        el.classList.remove('cant-place');
+      }
+    });
+  }
+
+  function checkGameOver() {
+    if (gameOver) return;
+
+    const remaining = trayPieces.filter(p => !p.placed);
+    if (remaining.length === 0) return;
+
+    const anyCanPlace = remaining.some(p => canPlaceAnywhere(p.shape));
+    if (!anyCanPlace) {
+      endGame();
+    }
+  }
+
+  function endGame() {
+    gameOver = true;
+
+    // Submit score
+    const isNewBest = ArcadeData.submitScore('bloom-puzzle', score);
+
+    // Earn petals
+    const petalsEarned = Math.floor(score / 100);
+    if (petalsEarned > 0) {
+      ArcadeData.earnPetals(petalsEarned);
+    }
+
+    // Update best from storage (in case it was already higher)
+    best = ArcadeData.getBest('bloom-puzzle');
+
+    // Show overlay
+    setTimeout(() => {
+      document.getElementById('overlay-score').textContent = score;
+      document.getElementById('overlay-best').textContent = best;
+      document.getElementById('new-best').style.display = isNewBest ? 'block' : 'none';
+      document.getElementById('overlay-petals').textContent =
+        petalsEarned > 0 ? `+${petalsEarned} petals earned` : '';
+      overlayEl.classList.add('visible');
+
+      AudioManager.playFail();
+    }, 600);
+  }
+
+  // ═══════════════════════════════════════════
+  //  Drag & Drop via TouchManager
+  // ═══════════════════════════════════════════
+
+  let dragPieceIdx = -1;
+  let dragPieceData = null;
+  let lastGridRow = -1;
+  let lastGridCol = -1;
+
+  // Build drag ghost element for a piece
+  function buildDragGhost(piece) {
+    ghostEl.innerHTML = '';
+    const bounds = getShapeBounds(piece.shape);
+    const cellSize = getCellPixelSize();
+    ghostEl.style.gridTemplateColumns = `repeat(${bounds.cols}, ${cellSize}px)`;
+    ghostEl.style.gridTemplateRows = `repeat(${bounds.rows}, ${cellSize}px)`;
+    ghostEl.style.gap = 'var(--cell-gap)';
+
+    const filled = new Set(piece.shape.map(([r, c]) => `${r},${c}`));
+    for (let r = 0; r < bounds.rows; r++) {
+      for (let c = 0; c < bounds.cols; c++) {
+        const cell = document.createElement('div');
+        cell.className = 'ghost-cell';
+        if (filled.has(`${r},${c}`)) {
+          cell.classList.add('on', 'color-' + piece.color);
+          const inner = document.createElement('div');
+          inner.className = 'petal-inner';
+          cell.appendChild(inner);
+        } else {
+          cell.classList.add('off');
+        }
+        ghostEl.appendChild(cell);
+      }
+    }
+  }
+
+  function getCellPixelSize() {
+    // Get actual rendered cell size from board
+    const firstCell = boardEl.children[0];
+    if (firstCell) return firstCell.getBoundingClientRect().width;
+    // Fallback
+    return boardEl.getBoundingClientRect().width / GRID;
+  }
+
+  function getBoardPosition() {
+    return boardEl.getBoundingClientRect();
+  }
+
+  function screenToGrid(clientX, clientY, shape) {
+    const rect = getBoardPosition();
+    const cellSize = rect.width / GRID;
+    // Convert screen coords to grid, centering on the piece's center of mass
+    let sumR = 0, sumC = 0;
+    for (const [r, c] of shape) { sumR += r; sumC += c; }
+    const centerR = sumR / shape.length;
+    const centerC = sumC / shape.length;
+
+    const gridCol = Math.round((clientX - rect.left) / cellSize - centerC - 0.5);
+    const gridRow = Math.round((clientY - rect.top) / cellSize - centerR - 0.5);
+    return { row: gridRow, col: gridCol };
+  }
+
+  function positionGhost(clientX, clientY) {
+    if (!dragPieceData) return;
+    const cellSize = getCellPixelSize();
+    const bounds = getShapeBounds(dragPieceData.shape);
+
+    // Offset so piece center follows finger, shifted up so visible
+    const offsetX = -(bounds.cols * cellSize) / 2;
+    const offsetY = -(bounds.rows * cellSize) - 30; // above finger
+
+    const x = clientX + offsetX;
+    const y = clientY + offsetY;
+
+    ghostEl.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+  }
+
+  // Determine which tray piece was touched
+  function findTrayPiece(target) {
+    let el = target;
+    while (el && el !== trayEl) {
+      if (el.classList && el.classList.contains('tray-piece')) {
+        return parseInt(el.dataset.idx);
+      }
+      el = el.parentElement;
+    }
+    return -1;
+  }
+
+  // Set up touch handling on the tray
+  const touchMgr = new TouchManager(document.body, {
+    dragThreshold: 8,
+
+    onDragStart(info) {
+      if (gameOver) return;
+      const idx = findTrayPiece(info.target);
+      if (idx < 0) return;
+      const piece = trayPieces[idx];
+      if (!piece || piece.placed) return;
+
+      dragPieceIdx = idx;
+      dragPieceData = piece;
+      lastGridRow = -1;
+      lastGridCol = -1;
+
+      // Hide tray piece
+      const trayItem = trayEl.children[idx];
+      if (trayItem) trayItem.style.opacity = '0.3';
+
+      // Build and show ghost
+      buildDragGhost(piece);
+      positionGhost(info.x, info.y);
+      ghostEl.classList.add('active');
+    },
+
+    onDrag(info) {
+      if (dragPieceIdx < 0 || !dragPieceData) return;
+
+      // Position ghost with hardware acceleration
+      positionGhost(info.x, info.y);
+
+      // Calculate grid snap position (using a point above the finger to match ghost)
+      const cellSize = getCellPixelSize();
+      const bounds = getShapeBounds(dragPieceData.shape);
+      const snapY = info.y - (bounds.rows * cellSize) - 30 + (bounds.rows * cellSize) / 2;
+      const snapX = info.x;
+
+      const { row, col } = screenToGrid(snapX, snapY, dragPieceData.shape);
+
+      // Only update ghost highlight if grid position changed
+      if (row !== lastGridRow || col !== lastGridCol) {
+        lastGridRow = row;
+        lastGridCol = col;
+        const valid = canPlace(dragPieceData.shape, row, col);
+        showBoardGhost(dragPieceData.shape, row, col, valid);
+      }
+    },
+
+    onDragEnd(info) {
+      if (dragPieceIdx < 0 || !dragPieceData) {
+        cleanupDrag();
+        return;
+      }
+
+      // Try to place
+      const cellSize = getCellPixelSize();
+      const bounds = getShapeBounds(dragPieceData.shape);
+      const snapY = info.y - (bounds.rows * cellSize) - 30 + (bounds.rows * cellSize) / 2;
+      const snapX = info.x;
+
+      const { row, col } = screenToGrid(snapX, snapY, dragPieceData.shape);
+      const placed = placePiece(dragPieceIdx, row, col);
+
+      if (!placed) {
+        // Return piece to tray
+        const trayItem = trayEl.children[dragPieceIdx];
+        if (trayItem) trayItem.style.opacity = '';
+        AudioManager.playClick();
+      }
+
+      cleanupDrag();
+    },
+
+    onTap(info) {
+      // No tap action needed for this game
+    }
+  });
+
+  function cleanupDrag() {
+    clearBoardGhost();
+    ghostEl.classList.remove('active');
+    ghostEl.innerHTML = '';
+    if (dragPieceIdx >= 0) {
+      const trayItem = trayEl.children[dragPieceIdx];
+      if (trayItem && !trayPieces[dragPieceIdx]?.placed) {
+        trayItem.style.opacity = '';
+      }
+    }
+    dragPieceIdx = -1;
+    dragPieceData = null;
+    lastGridRow = -1;
+    lastGridCol = -1;
+  }
+
+  // ═══════════════════════════════════════════
+  //  Restart
+  // ═══════════════════════════════════════════
+
+  document.getElementById('btn-restart').addEventListener('click', () => {
+    AudioManager.playClick();
+    haptic('light');
+    newGame();
+  });
+
+  // ═══════════════════════════════════════════
+  //  Start
+  // ═══════════════════════════════════════════
+
+  init();
+
+})();
+</script>
+</body>
+</html>

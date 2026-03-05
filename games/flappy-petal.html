@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Flappy Petal — Iris Moon Arcade</title>
+<meta name="theme-color" content="#0d0a1a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="stylesheet" href="../shared.css">
+<style>
+  :root {
+    --game-accent: var(--neon-rose);
+    --game-glow: rgba(255,107,157,0.3);
+  }
+
+  /* ── Canvas ── */
+  #game-canvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw;
+    height: 100dvh;
+    z-index: 1;
+    display: block;
+  }
+
+  /* ── HUD Overlay ── */
+  .hud {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 10;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: calc(env(safe-area-inset-top) + var(--spacing-sm)) var(--spacing-md) 0;
+    pointer-events: none;
+  }
+
+  .hud-score {
+    font-family: var(--font-display);
+    font-size: clamp(36px, 7dvh, 56px);
+    font-weight: 600;
+    color: var(--moon-glow);
+    text-shadow: 0 0 20px var(--game-glow), 0 2px 8px rgba(0,0,0,0.5);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .hud-score.visible { opacity: 1; }
+
+  .hud-best {
+    position: fixed;
+    top: calc(env(safe-area-inset-top) + var(--spacing-sm));
+    right: var(--spacing-md);
+    z-index: 10;
+    text-align: right;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .hud-best.visible { opacity: 1; }
+
+  .hud-best-label {
+    font-size: clamp(8px, 1.2dvh, 11px);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--iris-light);
+    opacity: 0.6;
+  }
+
+  .hud-best-value {
+    font-family: var(--font-display);
+    font-size: clamp(16px, 2.5dvh, 24px);
+    font-weight: 600;
+    color: var(--moon-glow);
+    text-shadow: 0 0 10px var(--game-glow);
+  }
+
+  /* ── Back Button ── */
+  .btn-back {
+    position: fixed;
+    left: var(--spacing-sm);
+    top: calc(env(safe-area-inset-top) + var(--spacing-sm));
+    z-index: 20;
+  }
+
+  /* ── Start Screen Overlay ── */
+  #start-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(13, 10, 26, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transition: opacity 0.4s ease;
+  }
+
+  #start-screen.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .start-icon {
+    width: 80px;
+    height: 80px;
+    margin-bottom: var(--spacing-lg);
+    animation: petalFloat 2.5s ease-in-out infinite;
+  }
+
+  @keyframes petalFloat {
+    0%, 100% { transform: translateY(0) rotate(-10deg); }
+    50% { transform: translateY(-12px) rotate(10deg); }
+  }
+
+  .start-title {
+    font-family: var(--font-display);
+    font-size: clamp(32px, 6dvh, 48px);
+    font-weight: 300;
+    letter-spacing: 2px;
+    margin-bottom: var(--spacing-xs);
+    background: linear-gradient(135deg, var(--neon-rose), var(--petal-blush), var(--moon-gold));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .start-subtitle {
+    font-family: var(--font-display);
+    font-size: clamp(10px, 1.5dvh, 14px);
+    font-weight: 300;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--iris-light);
+    opacity: 0.7;
+    margin-bottom: var(--spacing-xl);
+  }
+
+  .start-prompt {
+    font-family: var(--font-ui);
+    font-size: clamp(14px, 2dvh, 18px);
+    font-weight: 400;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--moon-glow);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  /* ── Game Over Overlay ── */
+  #game-over {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(13, 10, 26, 0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s ease;
+  }
+
+  #game-over.visible {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .go-title {
+    font-family: var(--font-display);
+    font-size: clamp(36px, 6dvh, 52px);
+    font-weight: 300;
+    margin-bottom: var(--spacing-sm);
+    animation: fadeInDown 0.8s ease;
+    background: linear-gradient(135deg, var(--neon-rose), var(--petal-blush));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .go-score-value {
+    font-family: var(--font-display);
+    font-size: clamp(48px, 8dvh, 72px);
+    font-weight: 600;
+    color: var(--moon-glow);
+    margin-bottom: var(--spacing-xs);
+    animation: fadeInDown 0.8s ease 0.1s both;
+  }
+
+  .go-label {
+    font-size: clamp(10px, 1.5dvh, 13px);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--iris-light);
+    opacity: 0.6;
+    margin-bottom: var(--spacing-md);
+    animation: fadeInDown 0.8s ease 0.15s both;
+  }
+
+  .go-best {
+    font-family: var(--font-display);
+    font-size: clamp(14px, 2dvh, 18px);
+    color: var(--iris-light);
+    margin-bottom: var(--spacing-xs);
+    animation: fadeInDown 0.8s ease 0.2s both;
+  }
+
+  .go-new-best {
+    font-family: var(--font-ui);
+    font-size: clamp(12px, 1.8dvh, 16px);
+    font-weight: 500;
+    letter-spacing: 2px;
+    color: var(--neon-rose);
+    text-shadow: 0 0 12px var(--game-glow);
+    margin-bottom: var(--spacing-md);
+    animation: fadeInDown 0.8s ease 0.25s both;
+  }
+
+  .go-petals {
+    font-family: var(--font-ui);
+    font-size: clamp(12px, 1.8dvh, 15px);
+    color: var(--petal-peach);
+    margin-bottom: var(--spacing-lg);
+    animation: fadeInDown 0.8s ease 0.3s both;
+  }
+
+  .go-buttons {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-sm);
+    animation: fadeInUp 0.8s ease 0.4s both;
+  }
+</style>
+</head>
+<body>
+
+<!-- Back Button -->
+<a class="btn-back" href="../index.html">&#8592;</a>
+
+<!-- Game Canvas -->
+<canvas id="game-canvas"></canvas>
+
+<!-- HUD -->
+<div class="hud">
+  <div class="hud-score" id="hud-score">0</div>
+</div>
+<div class="hud-best" id="hud-best">
+  <div class="hud-best-label">Best</div>
+  <div class="hud-best-value" id="hud-best-value">0</div>
+</div>
+
+<!-- Start Screen -->
+<div id="start-screen">
+  <svg class="start-icon" viewBox="0 0 80 80">
+    <defs>
+      <radialGradient id="petal-grad-start" cx="40%" cy="30%">
+        <stop offset="0%" stop-color="#ff8fbf"/>
+        <stop offset="100%" stop-color="#ff6b9d"/>
+      </radialGradient>
+    </defs>
+    <ellipse cx="40" cy="30" rx="18" ry="28" fill="url(#petal-grad-start)" opacity="0.9" transform="rotate(-15,40,40)"/>
+    <ellipse cx="40" cy="30" rx="14" ry="22" fill="rgba(255,255,255,0.15)" transform="rotate(-15,40,40)"/>
+    <circle cx="40" cy="48" r="5" fill="#ffd740" opacity="0.8"/>
+  </svg>
+  <div class="start-title">Flappy Petal</div>
+  <div class="start-subtitle">Iris Moon Arcade</div>
+  <div class="start-prompt">Tap to Play</div>
+</div>
+
+<!-- Game Over Overlay -->
+<div id="game-over">
+  <div class="go-title">Game Over</div>
+  <div class="go-score-value" id="go-score">0</div>
+  <div class="go-label">Score</div>
+  <div class="go-best" id="go-best">Best: 0</div>
+  <div class="go-new-best" id="go-new-best" style="display:none;">New Best!</div>
+  <div class="go-petals" id="go-petals"></div>
+  <div class="go-buttons">
+    <button class="btn-primary" id="btn-retry">Try Again</button>
+    <button class="btn-secondary" id="btn-hub">Back to Arcade</button>
+  </div>
+</div>
+
+<script src="../shared.js"></script>
+<script>
+(() => {
+  'use strict';
+
+  // ══════════════════════════════════════════
+  //  Constants
+  // ══════════════════════════════════════════
+  const GAME_ID = 'flappy-petal';
+  const GRAVITY = 0.35;
+  const JUMP_FORCE = -7;
+  const BASE_SCROLL_SPEED = 2.5;
+  const SPEED_INCREMENT = 0.1;
+  const SPEED_INTERVAL = 10; // every 10 obstacles
+  const GAP_START = 140;
+  const GAP_MIN = 100;
+  const GAP_SHRINK_PER = 1; // px shrink per obstacle passed
+  const OSCILLATE_AFTER = 30;
+  const WIND_AFTER = 50;
+  const PETAL_WIDTH = 30;
+  const PETAL_HEIGHT = 22;
+  const OBSTACLE_WIDTH = 52;
+  const OBSTACLE_SPACING = 200; // horizontal distance between obstacles
+
+  // Virtual coordinate system
+  const V_WIDTH = 400;
+  const V_HEIGHT = 700;
+
+  // ══════════════════════════════════════════
+  //  DOM
+  // ══════════════════════════════════════════
+  const canvas = document.getElementById('game-canvas');
+  const ctx = canvas.getContext('2d');
+  const hudScore = document.getElementById('hud-score');
+  const hudBest = document.getElementById('hud-best');
+  const hudBestValue = document.getElementById('hud-best-value');
+  const startScreen = document.getElementById('start-screen');
+  const gameOverScreen = document.getElementById('game-over');
+  const goScore = document.getElementById('go-score');
+  const goBest = document.getElementById('go-best');
+  const goNewBest = document.getElementById('go-new-best');
+  const goPetals = document.getElementById('go-petals');
+  const btnRetry = document.getElementById('btn-retry');
+  const btnHub = document.getElementById('btn-hub');
+
+  // ══════════════════════════════════════════
+  //  State
+  // ══════════════════════════════════════════
+  let state = 'start'; // start | playing | dead
+  let score = 0;
+  let bestScore = ArcadeData.getBest(GAME_ID);
+  let frameCount = 0;
+
+  // Petal (player)
+  let petalX, petalY, petalVY, petalRotation;
+
+  // Obstacles
+  let obstacles = []; // { x, gapY, gapSize, passed, oscillatePhase, oscillateAmp }
+
+  // Parallax layers
+  let bgLayers = [];
+
+  // Wind
+  let windForce = 0;
+  let windTimer = 0;
+  let windDisplay = 0; // for visual indicator
+
+  // Scaling
+  let scaleX, scaleY, offsetX, offsetY;
+
+  // Dawn/dusk cycle
+  let colorCycleT = 0;
+
+  // ══════════════════════════════════════════
+  //  Resize
+  // ══════════════════════════════════════════
+  function resize() {
+    canvas.width = window.innerWidth * (window.devicePixelRatio || 1);
+    canvas.height = window.innerHeight * (window.devicePixelRatio || 1);
+    canvas.style.width = window.innerWidth + 'px';
+    canvas.style.height = window.innerHeight + 'px';
+
+    // Compute scale to fit virtual coords into canvas
+    const cw = canvas.width;
+    const ch = canvas.height;
+    const vAspect = V_WIDTH / V_HEIGHT;
+    const cAspect = cw / ch;
+
+    if (cAspect > vAspect) {
+      // Canvas is wider — fit height, center horizontally
+      scaleY = ch / V_HEIGHT;
+      scaleX = scaleY; // uniform scale
+      offsetX = (cw - V_WIDTH * scaleX) / 2;
+      offsetY = 0;
+    } else {
+      // Canvas is taller — fit width, center vertically
+      scaleX = cw / V_WIDTH;
+      scaleY = scaleX;
+      offsetX = 0;
+      offsetY = (ch - V_HEIGHT * scaleY) / 2;
+    }
+  }
+
+  window.addEventListener('resize', resize);
+  resize();
+
+  // ══════════════════════════════════════════
+  //  Parallax Background Initialization
+  // ══════════════════════════════════════════
+  function initBackground() {
+    bgLayers = [];
+    // Layer 0: far stars (slow)
+    const layer0 = [];
+    for (let i = 0; i < 40; i++) {
+      layer0.push({
+        x: Math.random() * V_WIDTH,
+        y: Math.random() * V_HEIGHT,
+        size: 0.5 + Math.random() * 1.5,
+        brightness: 0.2 + Math.random() * 0.4,
+        twinklePhase: Math.random() * Math.PI * 2
+      });
+    }
+    bgLayers.push({ particles: layer0, speed: 0.2 });
+
+    // Layer 1: mid particles
+    const layer1 = [];
+    for (let i = 0; i < 25; i++) {
+      layer1.push({
+        x: Math.random() * V_WIDTH,
+        y: Math.random() * V_HEIGHT,
+        size: 1 + Math.random() * 2,
+        brightness: 0.3 + Math.random() * 0.3,
+        twinklePhase: Math.random() * Math.PI * 2
+      });
+    }
+    bgLayers.push({ particles: layer1, speed: 0.6 });
+
+    // Layer 2: near floating motes
+    const layer2 = [];
+    for (let i = 0; i < 15; i++) {
+      layer2.push({
+        x: Math.random() * V_WIDTH,
+        y: Math.random() * V_HEIGHT,
+        size: 1.5 + Math.random() * 2.5,
+        brightness: 0.15 + Math.random() * 0.25,
+        twinklePhase: Math.random() * Math.PI * 2
+      });
+    }
+    bgLayers.push({ particles: layer2, speed: 1.2 });
+  }
+
+  // ══════════════════════════════════════════
+  //  Game Init / Reset
+  // ══════════════════════════════════════════
+  function resetGame() {
+    petalX = V_WIDTH * 0.25;
+    petalY = V_HEIGHT * 0.45;
+    petalVY = 0;
+    petalRotation = 0;
+    score = 0;
+    frameCount = 0;
+    obstacles = [];
+    windForce = 0;
+    windTimer = 0;
+    windDisplay = 0;
+    colorCycleT = 0;
+
+    // Seed first few obstacles
+    for (let i = 0; i < 4; i++) {
+      spawnObstacle(V_WIDTH + 120 + i * OBSTACLE_SPACING);
+    }
+
+    hudScore.textContent = '0';
+    hudBestValue.textContent = bestScore;
+  }
+
+  function spawnObstacle(x) {
+    const gapSize = Math.max(GAP_MIN, GAP_START - score * GAP_SHRINK_PER);
+    const minGapY = gapSize / 2 + 40;
+    const maxGapY = V_HEIGHT - gapSize / 2 - 40;
+    const gapY = minGapY + Math.random() * (maxGapY - minGapY);
+
+    const shouldOscillate = score >= OSCILLATE_AFTER;
+
+    obstacles.push({
+      x: x,
+      gapY: gapY,
+      gapSize: gapSize,
+      passed: false,
+      oscillatePhase: Math.random() * Math.PI * 2,
+      oscillateAmp: shouldOscillate ? 20 + Math.random() * 25 : 0,
+      oscillateSpeed: 0.02 + Math.random() * 0.015
+    });
+  }
+
+  // ══════════════════════════════════════════
+  //  Drawing Helpers
+  // ══════════════════════════════════════════
+
+  // Transform virtual coords to canvas coords
+  function vx(x) { return x * scaleX + offsetX; }
+  function vy(y) { return y * scaleY + offsetY; }
+  function vs(s) { return s * scaleX; } // scale a size
+
+  // Dawn/dusk sky gradient
+  function getSkyColors(t) {
+    // t cycles 0..1 representing dawn->day->dusk->night
+    const cycle = (Math.sin(t) + 1) / 2; // 0..1
+
+    // Interpolate between night and day
+    const nightTop = [13, 10, 26];
+    const nightBot = [26, 20, 50];
+    const dawnTop = [45, 20, 60];
+    const dawnBot = [80, 40, 50];
+    const dayTop = [20, 15, 45];
+    const dayBot = [40, 25, 60];
+    const duskTop = [50, 15, 40];
+    const duskBot = [70, 25, 45];
+
+    // Use sin for smooth cycling through phases
+    const phase = t % (Math.PI * 2);
+    let top, bot;
+
+    if (phase < Math.PI * 0.5) {
+      // Night -> Dawn
+      const p = phase / (Math.PI * 0.5);
+      top = lerpColor(nightTop, dawnTop, p);
+      bot = lerpColor(nightBot, dawnBot, p);
+    } else if (phase < Math.PI) {
+      // Dawn -> Day
+      const p = (phase - Math.PI * 0.5) / (Math.PI * 0.5);
+      top = lerpColor(dawnTop, dayTop, p);
+      bot = lerpColor(dawnBot, dayBot, p);
+    } else if (phase < Math.PI * 1.5) {
+      // Day -> Dusk
+      const p = (phase - Math.PI) / (Math.PI * 0.5);
+      top = lerpColor(dayTop, duskTop, p);
+      bot = lerpColor(dayBot, duskBot, p);
+    } else {
+      // Dusk -> Night
+      const p = (phase - Math.PI * 1.5) / (Math.PI * 0.5);
+      top = lerpColor(duskTop, nightTop, p);
+      bot = lerpColor(duskBot, nightBot, p);
+    }
+
+    return {
+      top: `rgb(${top[0]|0},${top[1]|0},${top[2]|0})`,
+      bot: `rgb(${bot[0]|0},${bot[1]|0},${bot[2]|0})`
+    };
+  }
+
+  function lerpColor(a, b, t) {
+    return [
+      a[0] + (b[0] - a[0]) * t,
+      a[1] + (b[1] - a[1]) * t,
+      a[2] + (b[2] - a[2]) * t
+    ];
+  }
+
+  // Draw the petal character
+  function drawPetal(x, y, rotation) {
+    ctx.save();
+    ctx.translate(vx(x), vy(y));
+    ctx.rotate(rotation);
+    const s = vs(1);
+
+    // Outer petal shape (rounded ellipse)
+    ctx.beginPath();
+    const pw = PETAL_WIDTH * s * 0.5;
+    const ph = PETAL_HEIGHT * s * 0.5;
+
+    // Draw a rounded petal using bezier curves
+    ctx.moveTo(pw, 0);
+    ctx.bezierCurveTo(pw, -ph * 0.6, pw * 0.4, -ph, 0, -ph);
+    ctx.bezierCurveTo(-pw * 0.4, -ph, -pw, -ph * 0.6, -pw, 0);
+    ctx.bezierCurveTo(-pw, ph * 0.6, -pw * 0.4, ph, 0, ph);
+    ctx.bezierCurveTo(pw * 0.4, ph, pw, ph * 0.6, pw, 0);
+    ctx.closePath();
+
+    // Gradient fill
+    const grad = ctx.createRadialGradient(
+      -pw * 0.2, -ph * 0.2, 0,
+      0, 0, pw * 1.2
+    );
+    grad.addColorStop(0, '#ffb3d0');
+    grad.addColorStop(0.5, '#ff6b9d');
+    grad.addColorStop(1, '#d4507a');
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // Subtle inner highlight
+    ctx.beginPath();
+    ctx.moveTo(pw * 0.6, 0);
+    ctx.bezierCurveTo(pw * 0.6, -ph * 0.35, pw * 0.25, -ph * 0.6, 0, -ph * 0.6);
+    ctx.bezierCurveTo(-pw * 0.25, -ph * 0.6, -pw * 0.6, -ph * 0.35, -pw * 0.6, 0);
+    ctx.bezierCurveTo(-pw * 0.6, ph * 0.35, -pw * 0.25, ph * 0.6, 0, ph * 0.6);
+    ctx.bezierCurveTo(pw * 0.25, ph * 0.6, pw * 0.6, ph * 0.35, pw * 0.6, 0);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(255, 200, 220, 0.25)';
+    ctx.fill();
+
+    // Vein line down center
+    ctx.beginPath();
+    ctx.moveTo(0, -ph * 0.7);
+    ctx.quadraticCurveTo(pw * 0.1, 0, 0, ph * 0.7);
+    ctx.strokeStyle = 'rgba(255, 180, 200, 0.4)';
+    ctx.lineWidth = s * 1.2;
+    ctx.stroke();
+
+    // Glow
+    ctx.shadowColor = 'rgba(255,107,157,0.5)';
+    ctx.shadowBlur = vs(10);
+    ctx.beginPath();
+    ctx.arc(0, 0, vs(2), 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,107,157,0.3)';
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    ctx.restore();
+  }
+
+  // Draw a vine obstacle column
+  function drawVine(x, gapY, gapSize) {
+    const topBottom = gapY - gapSize / 2;
+    const botTop = gapY + gapSize / 2;
+    const w = OBSTACLE_WIDTH;
+    const halfW = w / 2;
+
+    // Top vine (from ceiling to gap)
+    drawVineColumn(x, 0, topBottom, w, false);
+
+    // Bottom vine (from gap to floor)
+    drawVineColumn(x, botTop, V_HEIGHT, w, true);
+  }
+
+  function drawVineColumn(cx, top, bottom, w, fromBottom) {
+    const x1 = vx(cx - w / 2);
+    const x2 = vx(cx + w / 2);
+    const y1 = vy(top);
+    const y2 = vy(bottom);
+    const vw = x2 - x1;
+    const vh = y2 - y1;
+
+    if (vh <= 0) return;
+
+    // Main vine body
+    const bodyGrad = ctx.createLinearGradient(x1, y1, x2, y1);
+    bodyGrad.addColorStop(0, '#1a5c2a');
+    bodyGrad.addColorStop(0.15, '#2d8a42');
+    bodyGrad.addColorStop(0.5, '#3da855');
+    bodyGrad.addColorStop(0.85, '#2d8a42');
+    bodyGrad.addColorStop(1, '#1a5c2a');
+    ctx.fillStyle = bodyGrad;
+    ctx.fillRect(x1, y1, vw, vh);
+
+    // Dark edge lines
+    ctx.strokeStyle = '#145020';
+    ctx.lineWidth = vs(2);
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x1, y2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x2, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+
+    // Vine texture: horizontal bands
+    ctx.strokeStyle = 'rgba(20, 80, 30, 0.3)';
+    ctx.lineWidth = vs(1);
+    const bandSpacing = vs(18);
+    const startBand = fromBottom ? y2 : y1;
+    const endBand = fromBottom ? y1 : y2;
+    const dir = fromBottom ? -1 : 1;
+    for (let by = startBand; (dir > 0 ? by < endBand : by > endBand); by += dir * bandSpacing) {
+      ctx.beginPath();
+      ctx.moveTo(x1, by);
+      ctx.lineTo(x2, by);
+      ctx.stroke();
+    }
+
+    // Lip at the gap opening
+    const lipY = fromBottom ? y1 : y2;
+    const lipH = vs(8);
+    const lipGrad = ctx.createLinearGradient(x1 - vs(4), lipY, x2 + vs(4), lipY);
+    lipGrad.addColorStop(0, '#145020');
+    lipGrad.addColorStop(0.2, '#2d8a42');
+    lipGrad.addColorStop(0.5, '#4bc46a');
+    lipGrad.addColorStop(0.8, '#2d8a42');
+    lipGrad.addColorStop(1, '#145020');
+    ctx.fillStyle = lipGrad;
+
+    if (fromBottom) {
+      ctx.beginPath();
+      ctx.ellipse((x1 + x2) / 2, lipY, vw / 2 + vs(5), lipH, 0, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      ctx.beginPath();
+      ctx.ellipse((x1 + x2) / 2, lipY, vw / 2 + vs(5), lipH, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Small leaves on edges
+    const leafCount = Math.floor(vh / vs(50));
+    for (let i = 0; i < leafCount; i++) {
+      const ly = y1 + (i + 0.5) * (vh / leafCount);
+      const side = i % 2 === 0 ? -1 : 1;
+      const lx = side > 0 ? x2 : x1;
+      drawLeaf(lx, ly, side, vs(1));
+    }
+  }
+
+  function drawLeaf(x, y, side, s) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(side, 1);
+
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.quadraticCurveTo(8 * s, -6 * s, 14 * s, -2 * s);
+    ctx.quadraticCurveTo(8 * s, 2 * s, 0, 0);
+    ctx.fillStyle = '#3da855';
+    ctx.fill();
+    ctx.strokeStyle = '#2d8a42';
+    ctx.lineWidth = 0.5 * s;
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  // ══════════════════════════════════════════
+  //  Draw Background
+  // ══════════════════════════════════════════
+  function drawBackground(scrollSpeed) {
+    const skyColors = getSkyColors(colorCycleT);
+
+    // Sky gradient
+    const skyGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    skyGrad.addColorStop(0, skyColors.top);
+    skyGrad.addColorStop(1, skyColors.bot);
+    ctx.fillStyle = skyGrad;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Parallax star/particle layers
+    const time = frameCount * 0.02;
+    for (let li = 0; li < bgLayers.length; li++) {
+      const layer = bgLayers[li];
+      for (const p of layer.particles) {
+        // Move left with parallax
+        p.x -= layer.speed * scrollSpeed * 0.3;
+        if (p.x < -5) {
+          p.x = V_WIDTH + 5;
+          p.y = Math.random() * V_HEIGHT;
+        }
+
+        const twinkle = 0.5 + 0.5 * Math.sin(time + p.twinklePhase);
+        const alpha = p.brightness * twinkle;
+
+        ctx.save();
+        ctx.globalAlpha = alpha;
+
+        if (li === 2) {
+          // Near layer: soft glowing motes
+          const grd = ctx.createRadialGradient(vx(p.x), vy(p.y), 0, vx(p.x), vy(p.y), vs(p.size * 2));
+          grd.addColorStop(0, 'rgba(184,169,212,0.6)');
+          grd.addColorStop(1, 'rgba(184,169,212,0)');
+          ctx.fillStyle = grd;
+          ctx.beginPath();
+          ctx.arc(vx(p.x), vy(p.y), vs(p.size * 2), 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          // Stars
+          ctx.fillStyle = li === 0 ? '#e8e0f0' : '#b8a9d4';
+          ctx.beginPath();
+          ctx.arc(vx(p.x), vy(p.y), vs(p.size), 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.restore();
+      }
+    }
+
+    // Subtle ground line
+    ctx.fillStyle = 'rgba(30, 24, 50, 0.5)';
+    ctx.fillRect(0, vy(V_HEIGHT - 2), canvas.width, vs(4));
+  }
+
+  // ══════════════════════════════════════════
+  //  Wind indicator
+  // ══════════════════════════════════════════
+  function drawWindIndicator() {
+    if (windDisplay <= 0.01) return;
+
+    ctx.save();
+    ctx.globalAlpha = Math.min(windDisplay * 2, 0.6);
+
+    // Draw wind streaks
+    const dir = windForce > 0 ? 1 : -1;
+    const streaks = 5;
+    for (let i = 0; i < streaks; i++) {
+      const sy = vy(100 + i * 120);
+      const sx = vx(dir > 0 ? 20 : V_WIDTH - 20);
+      const len = vs(30 + Math.abs(windForce) * 15);
+
+      ctx.strokeStyle = 'rgba(184, 169, 212, 0.4)';
+      ctx.lineWidth = vs(1.5);
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      ctx.lineTo(sx + dir * len, sy);
+      // Arrow tip
+      ctx.lineTo(sx + dir * (len - vs(6)), sy - vs(4));
+      ctx.moveTo(sx + dir * len, sy);
+      ctx.lineTo(sx + dir * (len - vs(6)), sy + vs(4));
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  }
+
+  // ══════════════════════════════════════════
+  //  Collision Detection
+  // ══════════════════════════════════════════
+  function checkCollision() {
+    // Petal hitbox (slightly smaller than visual)
+    const px1 = petalX - PETAL_WIDTH * 0.35;
+    const py1 = petalY - PETAL_HEIGHT * 0.35;
+    const px2 = petalX + PETAL_WIDTH * 0.35;
+    const py2 = petalY + PETAL_HEIGHT * 0.35;
+
+    // Ceiling and ground
+    if (py1 <= 0 || py2 >= V_HEIGHT) return true;
+
+    // Obstacles
+    for (const obs of obstacles) {
+      const ox1 = obs.x - OBSTACLE_WIDTH / 2;
+      const ox2 = obs.x + OBSTACLE_WIDTH / 2;
+
+      // Get current gap position (may oscillate)
+      const currentGapY = obs.gapY + Math.sin(frameCount * obs.oscillateSpeed + obs.oscillatePhase) * obs.oscillateAmp;
+      const topBottom = currentGapY - obs.gapSize / 2;
+      const botTop = currentGapY + obs.gapSize / 2;
+
+      // Check top column
+      if (rectsOverlap(px1, py1, px2, py2, ox1, 0, ox2, topBottom)) return true;
+      // Check bottom column
+      if (rectsOverlap(px1, py1, px2, py2, ox1, botTop, ox2, V_HEIGHT)) return true;
+    }
+
+    return false;
+  }
+
+  function rectsOverlap(ax1, ay1, ax2, ay2, bx1, by1, bx2, by2) {
+    return ax1 < bx2 && ax2 > bx1 && ay1 < by2 && ay2 > by1;
+  }
+
+  // ══════════════════════════════════════════
+  //  Game Loop
+  // ══════════════════════════════════════════
+  let lastTime = 0;
+  let accumulator = 0;
+  const FIXED_DT = 1000 / 60; // 60 FPS target
+
+  function gameLoop(timestamp) {
+    if (!lastTime) lastTime = timestamp;
+    const delta = Math.min(timestamp - lastTime, 50); // cap at 50ms
+    lastTime = timestamp;
+
+    if (state === 'playing') {
+      accumulator += delta;
+      while (accumulator >= FIXED_DT) {
+        update();
+        accumulator -= FIXED_DT;
+      }
+    }
+
+    draw();
+    requestAnimationFrame(gameLoop);
+  }
+
+  function update() {
+    frameCount++;
+    colorCycleT += 0.002;
+
+    // Current scroll speed
+    const speedLevel = Math.floor(score / SPEED_INTERVAL);
+    const scrollSpeed = BASE_SCROLL_SPEED + speedLevel * SPEED_INCREMENT;
+
+    // ── Wind gusts ──
+    if (score >= WIND_AFTER) {
+      windTimer--;
+      if (windTimer <= 0) {
+        // New gust
+        windForce = (Math.random() - 0.5) * 1.5;
+        windTimer = 120 + Math.random() * 180; // 2-5 seconds
+        windDisplay = 1;
+      }
+    } else {
+      windForce = 0;
+    }
+    windDisplay *= 0.995;
+
+    // ── Petal physics ──
+    petalVY += GRAVITY;
+    petalVY += windForce * 0.02; // subtle wind effect on vertical
+    petalY += petalVY;
+    petalX += windForce * 0.3; // horizontal wind drift
+
+    // Keep petal within horizontal bounds
+    petalX = Math.max(PETAL_WIDTH, Math.min(V_WIDTH - PETAL_WIDTH, petalX));
+
+    // Rotation follows velocity
+    const targetRot = Math.max(-0.5, Math.min(0.8, petalVY * 0.06));
+    petalRotation += (targetRot - petalRotation) * 0.12;
+
+    // ── Move obstacles ──
+    for (const obs of obstacles) {
+      obs.x -= scrollSpeed;
+
+      // Score counting
+      if (!obs.passed && obs.x + OBSTACLE_WIDTH / 2 < petalX) {
+        obs.passed = true;
+        score++;
+        hudScore.textContent = score;
+
+        // Apply oscillation to new obstacles when threshold reached
+        AudioManager.playTone(660 + score * 5, 0.08, 0.04);
+        haptic('light');
+      }
+    }
+
+    // Remove off-screen obstacles and spawn new ones
+    if (obstacles.length > 0 && obstacles[0].x < -OBSTACLE_WIDTH) {
+      obstacles.shift();
+      const lastObs = obstacles[obstacles.length - 1];
+      spawnObstacle(lastObs.x + OBSTACLE_SPACING);
+    }
+
+    // ── Collision ──
+    if (checkCollision()) {
+      die();
+    }
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const speedLevel = Math.floor(score / SPEED_INTERVAL);
+    const scrollSpeed = BASE_SCROLL_SPEED + speedLevel * SPEED_INCREMENT;
+
+    // Background
+    drawBackground(state === 'playing' ? scrollSpeed : 0.5);
+
+    if (state === 'start') {
+      // Draw a gently bobbing petal in center
+      const bobY = V_HEIGHT * 0.45 + Math.sin(Date.now() * 0.003) * 10;
+      const bobRot = Math.sin(Date.now() * 0.002) * 0.2;
+      drawPetal(V_WIDTH * 0.5, bobY, bobRot);
+      return;
+    }
+
+    // ── Obstacles ──
+    for (const obs of obstacles) {
+      const currentGapY = obs.gapY + Math.sin(frameCount * obs.oscillateSpeed + obs.oscillatePhase) * obs.oscillateAmp;
+      drawVine(obs.x, currentGapY, obs.gapSize);
+    }
+
+    // ── Wind indicator ──
+    drawWindIndicator();
+
+    // ── Petal ──
+    drawPetal(petalX, petalY, petalRotation);
+  }
+
+  // ══════════════════════════════════════════
+  //  State Transitions
+  // ══════════════════════════════════════════
+  function startGame() {
+    if (state === 'playing') return; // prevent double-start
+    resetGame();
+    state = 'playing';
+    startScreen.classList.add('hidden');
+    hudScore.classList.add('visible');
+    hudBest.classList.add('visible');
+    AudioManager.init();
+    AudioManager.playClick();
+    haptic('medium');
+  }
+
+  function die() {
+    state = 'dead';
+    AudioManager.playFail();
+    haptic('heavy');
+
+    // Submit score
+    const isNewBest = ArcadeData.submitScore(GAME_ID, score);
+    bestScore = ArcadeData.getBest(GAME_ID);
+
+    // Earn petals (1 per 5 score)
+    const petalsEarned = Math.floor(score / 5);
+    if (petalsEarned > 0) {
+      ArcadeData.earnPetals(petalsEarned);
+    }
+
+    // Update game over screen
+    goScore.textContent = score;
+    goBest.textContent = 'Best: ' + bestScore;
+    goNewBest.style.display = isNewBest && score > 0 ? 'block' : 'none';
+    goPetals.textContent = petalsEarned > 0 ? '+' + petalsEarned + ' petals earned' : '';
+
+    // Show overlay after a small delay
+    setTimeout(() => {
+      gameOverScreen.classList.add('visible');
+      hudScore.classList.remove('visible');
+      hudBest.classList.remove('visible');
+    }, 400);
+  }
+
+  function retry() {
+    gameOverScreen.classList.remove('visible');
+    hudScore.classList.add('visible');
+    hudBest.classList.add('visible');
+    resetGame();
+    state = 'playing';
+    AudioManager.playClick();
+    haptic('medium');
+  }
+
+  // ══════════════════════════════════════════
+  //  Input
+  // ══════════════════════════════════════════
+  function flap() {
+    if (state === 'playing') {
+      petalVY = JUMP_FORCE;
+      AudioManager.playTone(520, 0.06, 0.04);
+      haptic('light');
+    }
+  }
+
+  // Tap to play / flap
+  canvas.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    if (state === 'start') {
+      startGame();
+    } else if (state === 'playing') {
+      flap();
+    }
+  });
+
+  // Start screen tap — use stopPropagation to prevent canvas handler also firing
+  startScreen.addEventListener('pointerdown', (e) => {
+    // Don't trigger if clicking the back button
+    if (e.target.closest('.btn-back')) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (state === 'start') {
+      startGame();
+    }
+  });
+
+  // Keyboard support
+  document.addEventListener('keydown', (e) => {
+    if (e.code === 'Space' || e.code === 'ArrowUp') {
+      e.preventDefault();
+      if (state === 'start') {
+        startGame();
+      } else if (state === 'playing') {
+        flap();
+      } else if (state === 'dead' && gameOverScreen.classList.contains('visible')) {
+        retry();
+      }
+    }
+  });
+
+  // Buttons
+  btnRetry.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    retry();
+  });
+
+  btnHub.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    goToHub();
+  });
+
+  // ══════════════════════════════════════════
+  //  Boot
+  // ══════════════════════════════════════════
+  hudBestValue.textContent = bestScore;
+  initBackground();
+  requestAnimationFrame(gameLoop);
+
+})();
+</script>
+</body>
+</html>

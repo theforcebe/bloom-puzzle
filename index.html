@@ -3,1422 +3,278 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Bloom Puzzle — Iris Moon Design Co.</title>
-
-<!-- PWA & iOS Meta Tags -->
+<title>Iris Moon Arcade</title>
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#4a3f6b">
+<meta name="theme-color" content="#0d0a1a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Bloom Puzzle">
+<meta name="apple-mobile-web-app-title" content="Iris Moon Arcade">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="apple-touch-icon" sizes="180x180" href="icon-192.png">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="application-name" content="Bloom Puzzle">
-<!-- Prevent text selection and callouts on iOS -->
 <meta name="format-detection" content="telephone=no">
-
+<link rel="stylesheet" href="shared.css">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Quicksand:wght@300;400;500;600&display=swap');
+  /* Hub page overrides — this page scrolls */
+  html { position: static; overflow-y: auto; overflow-x: hidden; height: auto; }
+  body { position: static; overflow-y: auto; overflow-x: hidden; height: auto; min-height: 100dvh; touch-action: pan-y; }
 
-  :root {
-    --iris-deep: #4a3f6b;
-    --iris-mid: #7b6fa0;
-    --iris-light: #b8a9d4;
-    --iris-pale: #e8e0f0;
-    --moon-glow: #f5f0e8;
-    --moon-gold: #d4a86a;
-    --petal-rose: #d4728c;
-    --petal-blush: #e8a0b0;
-    --petal-peach: #e8b87a;
-    --petal-lavender: #9b8ec4;
-    --petal-sage: #8fb89a;
-    --petal-sky: #7aaec4;
-    --leaf-green: #6a9a6e;
-    --bg-dark: #1a1528;
-    --bg-mid: #241e38;
-    --bg-light: #2e2648;
-    --grid-line: rgba(184, 169, 212, 0.12);
-    --grid-cell: rgba(30, 24, 50, 0.6);
+  .hub-bg {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background:
+      radial-gradient(ellipse 60% 40% at 30% 20%, rgba(74,63,107,0.15) 0%, transparent 70%),
+      radial-gradient(ellipse 50% 50% at 70% 80%, rgba(212,114,140,0.08) 0%, transparent 70%),
+      var(--void);
   }
 
-  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-
-  html, body {
-    overflow: hidden;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    width: 100%;
-    height: 100%;
-    height: 100dvh;
-    touch-action: none;
-    -ms-touch-action: none;
-    overscroll-behavior: none;
-    -webkit-overflow-scrolling: auto;
+  .hub-container {
+    position: relative; z-index: 1;
+    max-width: 500px; margin: 0 auto;
+    padding: env(safe-area-inset-top) 16px calc(24px + env(safe-area-inset-bottom));
+    min-height: 100dvh;
   }
 
-  body {
-    font-family: 'Quicksand', sans-serif;
-    background: var(--bg-dark);
-    color: var(--moon-glow);
-    user-select: none;
-    -webkit-user-select: none;
-    -webkit-touch-callout: none;
-    -webkit-tap-highlight-color: transparent;
-    /* Safe area padding for iPhone notch/home indicator */
-    padding-top: env(safe-area-inset-top);
-    padding-bottom: env(safe-area-inset-bottom);
-    padding-left: env(safe-area-inset-left);
-    padding-right: env(safe-area-inset-right);
-  }
-
-  /* ── Background Canvas ── */
-  #bg-canvas {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    z-index: 0;
-    pointer-events: none;
-  }
-
-  /* ── Main Layout ── */
-  .game-container {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: space-evenly;
-    height: 100vh;
-    height: 100dvh;
-    padding: 10px 10px calc(10px + env(safe-area-inset-bottom)) 10px;
-    gap: 0;
-  }
-
-  /* ── Header ── */
-  .header {
+  /* Header */
+  .hub-header {
     text-align: center;
-    animation: fadeInDown 1s ease;
+    padding: clamp(16px, 3dvh, 32px) 0 clamp(8px, 1.5dvh, 16px);
   }
 
-  .brand {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 14px;
-    font-weight: 300;
-    letter-spacing: 4px;
-    text-transform: uppercase;
-    color: var(--iris-light);
-    opacity: 0.7;
+  .hub-brand {
+    font-family: var(--font-display); font-size: clamp(10px, 1.4dvh, 13px);
+    font-weight: 300; letter-spacing: 5px; text-transform: uppercase;
+    color: var(--iris-light); opacity: 0.6;
   }
 
-  .title {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 36px;
-    font-weight: 300;
-    letter-spacing: 2px;
-    background: linear-gradient(135deg, var(--iris-light), var(--petal-rose), var(--moon-gold));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    margin: 2px 0;
+  .hub-title {
+    font-family: var(--font-display); font-size: clamp(28px, 5dvh, 42px);
+    font-weight: 300; letter-spacing: 3px; margin: 4px 0 8px;
+    background: linear-gradient(135deg, var(--iris-light), var(--neon-rose), var(--moon-gold), var(--neon-cyan));
+    background-size: 300% 300%;
+    animation: gradientShift 8s ease infinite;
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
   }
 
-  /* ── Score Area ── */
-  .score-bar {
-    display: flex;
-    gap: 30px;
-    align-items: center;
-    justify-content: center;
+  @keyframes gradientShift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
   }
 
-  .score-box {
-    text-align: center;
-    background: rgba(74, 63, 107, 0.3);
-    border: 1px solid rgba(184, 169, 212, 0.15);
-    border-radius: 12px;
-    padding: 6px 20px;
-    backdrop-filter: blur(10px);
-    min-width: 100px;
+  .hub-currency {
+    display: flex; gap: 16px; justify-content: center; align-items: center;
+    padding: 8px 0;
   }
 
-  .score-label {
-    font-size: 10px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: var(--iris-light);
-    opacity: 0.6;
-  }
-
-  .score-value {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 28px;
-    font-weight: 600;
+  .currency-chip {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--glass-bg); border: 1px solid var(--glass-border);
+    border-radius: 20px; padding: 5px 14px;
+    font-family: var(--font-ui); font-size: 14px; font-weight: 500;
     color: var(--moon-glow);
   }
 
-  .score-value.pop {
-    animation: scorePop 0.4s ease;
+  .currency-chip .icon { font-size: 16px; }
+
+  /* Art Nouveau divider */
+  .ornament {
+    text-align: center; padding: 8px 0; opacity: 0.3;
+    font-size: 18px; letter-spacing: 8px; color: var(--iris-light);
   }
 
-  /* ── Grid ── */
-  .grid-wrapper {
-    position: relative;
-    padding: 8px;
-    background: linear-gradient(135deg, rgba(74,63,107,0.3), rgba(30,24,50,0.5));
-    border: 1px solid rgba(184,169,212,0.12);
-    border-radius: 16px;
-    backdrop-filter: blur(20px);
-    box-shadow:
-      0 0 40px rgba(123, 111, 160, 0.1),
-      inset 0 0 30px rgba(74, 63, 107, 0.1);
-  }
-
-  .grid {
+  /* Game Grid */
+  .game-grid {
     display: grid;
-    grid-template-columns: repeat(8, 1fr);
-    grid-template-rows: repeat(8, 1fr);
-    gap: 3px;
-    --grid-size: min(90vw, 52dvh, 420px);
-    width: var(--grid-size);
-    height: var(--grid-size);
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    padding-bottom: 16px;
   }
 
-  .cell {
-    border-radius: 6px;
-    background: var(--grid-cell);
-    border: 1px solid var(--grid-line);
+  .game-card {
     position: relative;
-    overflow: hidden;
-    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
-  }
-
-  .cell.highlight-valid {
-    background: rgba(184, 169, 212, 0.15);
-    border-color: rgba(184, 169, 212, 0.3);
-    transform: scale(1.02);
-  }
-
-  .cell.highlight-invalid {
-    background: rgba(212, 114, 140, 0.1);
-    border-color: rgba(212, 114, 140, 0.2);
-  }
-
-  .cell.filled {
-    border-color: rgba(255,255,255,0.15);
-    box-shadow: inset 0 0 10px rgba(255,255,255,0.05);
-  }
-
-  .cell .petal-inner {
-    position: absolute;
-    inset: 3px;
-    border-radius: 4px;
-    transition: all 0.3s ease;
-  }
-
-  .cell.filled .petal-inner {
-    opacity: 1;
-  }
-
-  /* Flower colors */
-  .color-rose .petal-inner { background: linear-gradient(135deg, var(--petal-rose), #c45a78); box-shadow: 0 0 8px rgba(212,114,140,0.3); }
-  .color-blush .petal-inner { background: linear-gradient(135deg, var(--petal-blush), #d4889a); box-shadow: 0 0 8px rgba(232,160,176,0.3); }
-  .color-peach .petal-inner { background: linear-gradient(135deg, var(--petal-peach), #d4a060); box-shadow: 0 0 8px rgba(232,184,122,0.3); }
-  .color-lavender .petal-inner { background: linear-gradient(135deg, var(--petal-lavender), #8478b0); box-shadow: 0 0 8px rgba(155,142,196,0.3); }
-  .color-sage .petal-inner { background: linear-gradient(135deg, var(--petal-sage), #78a482); box-shadow: 0 0 8px rgba(143,184,154,0.3); }
-  .color-sky .petal-inner { background: linear-gradient(135deg, var(--petal-sky), #6498b0); box-shadow: 0 0 8px rgba(122,174,196,0.3); }
-  .color-iris .petal-inner { background: linear-gradient(135deg, var(--iris-mid), #6a5e94); box-shadow: 0 0 8px rgba(123,111,160,0.3); }
-
-  /* Cell bloom animation */
-  .cell.bloom-in .petal-inner {
-    animation: bloomIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-  }
-
-  .cell.clearing .petal-inner {
-    animation: petalBurst 0.6s cubic-bezier(0.55, 0, 0.1, 1) forwards;
-  }
-
-  /* Piece flower decoration */
-  .cell.filled .petal-inner::before {
-    content: '';
-    position: absolute;
-    top: 50%; left: 50%;
-    width: 60%;
-    height: 60%;
-    transform: translate(-50%, -50%);
-    background: radial-gradient(circle, rgba(255,255,255,0.25) 0%, transparent 70%);
-    border-radius: 50%;
-  }
-
-  .cell.filled .petal-inner::after {
-    content: '';
-    position: absolute;
-    top: 2px; left: 2px;
-    width: 40%;
-    height: 40%;
-    background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 70%);
-    border-radius: 50%;
-  }
-
-  /* ── Row/Column highlight guide ── */
-  .cell.row-complete-preview,
-  .cell.col-complete-preview {
-    box-shadow: inset 0 0 12px rgba(212, 166, 106, 0.25);
-  }
-
-  /* ── Piece Tray ── */
-  .tray {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    justify-content: center;
-    padding: 10px 14px;
-    background: linear-gradient(135deg, rgba(74,63,107,0.2), rgba(30,24,50,0.4));
-    border: 1px solid rgba(184,169,212,0.1);
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
     border-radius: 16px;
-    backdrop-filter: blur(10px);
-    min-height: 90px;
-    width: min(95vw, 440px);
-  }
-
-  .piece-slot {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex: 1;
-    min-width: 70px;
-    min-height: 80px;
-    cursor: grab;
-    transition: transform 0.2s ease, opacity 0.2s ease;
-    position: relative;
-    /* Generous touch target */
-    padding: 8px;
-  }
-
-  .piece-slot:active { cursor: grabbing; }
-
-  .piece-slot:hover:not(.used) {
-    transform: scale(1.08);
-  }
-
-  .piece-slot.used {
-    opacity: 0;
-    pointer-events: none;
-    transform: scale(0.5);
-  }
-
-  .piece-slot.no-fit {
-    opacity: 0.35;
-    filter: grayscale(0.5);
-  }
-
-  .piece-grid {
-    display: grid;
-    gap: 2px;
-    pointer-events: none;
-  }
-
-  .piece-cell {
-    width: 18px;
-    height: 18px;
-    border-radius: 4px;
-    position: relative;
-  }
-
-  .piece-cell.filled {
-    border: 1px solid rgba(255,255,255,0.15);
-    box-shadow: inset 0 0 6px rgba(255,255,255,0.05);
-  }
-
-  .piece-cell.filled .petal-inner {
-    position: absolute;
-    inset: 2px;
-    border-radius: 3px;
-    opacity: 1;
-  }
-
-  .piece-cell.filled .petal-inner::before {
-    content: '';
-    position: absolute;
-    top: 50%; left: 50%;
-    width: 50%;
-    height: 50%;
-    transform: translate(-50%, -50%);
-    background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
-    border-radius: 50%;
-  }
-
-  .piece-cell.empty {
-    background: transparent;
-  }
-
-  /* ── Dragging Piece (Ghost) ── */
-  .drag-ghost {
-    position: fixed;
-    pointer-events: none;
-    z-index: 100;
-    opacity: 0.85;
-    transition: none;
-    filter: drop-shadow(0 4px 12px rgba(0,0,0,0.4));
-  }
-
-  .drag-ghost .piece-cell {
-    width: calc(var(--grid-size, min(90vw, 52dvh, 420px)) / 8 - 3px);
-    height: calc(var(--grid-size, min(90vw, 52dvh, 420px)) / 8 - 3px);
-  }
-
-  .drag-ghost .petal-inner {
-    inset: 3px;
-  }
-
-  /* ── Particle Layer ── */
-  #particle-canvas {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    z-index: 50;
-    pointer-events: none;
-  }
-
-  /* ── Game Over Overlay ── */
-  .game-over-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 200;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    background: rgba(26, 21, 40, 0.92);
-    backdrop-filter: blur(20px);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.8s ease;
-  }
-
-  .game-over-overlay.visible {
-    opacity: 1;
-    pointer-events: all;
-  }
-
-  .game-over-title {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 48px;
-    font-weight: 300;
-    background: linear-gradient(135deg, var(--iris-light), var(--petal-rose), var(--moon-gold));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    margin-bottom: 10px;
-    animation: fadeInDown 0.8s ease;
-  }
-
-  .game-over-score {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 64px;
-    font-weight: 600;
-    color: var(--moon-glow);
-    margin-bottom: 5px;
-  }
-
-  .game-over-label {
-    font-size: 12px;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    color: var(--iris-light);
-    opacity: 0.6;
-    margin-bottom: 30px;
-  }
-
-  .game-over-best {
-    font-size: 14px;
-    color: var(--iris-light);
-    margin-bottom: 30px;
-  }
-
-  .btn-restart {
-    font-family: 'Quicksand', sans-serif;
-    font-size: 14px;
-    font-weight: 500;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: var(--moon-glow);
-    background: linear-gradient(135deg, var(--iris-deep), var(--iris-mid));
-    border: 1px solid rgba(184,169,212,0.3);
-    border-radius: 30px;
-    padding: 12px 40px;
+    padding: clamp(14px, 2.5dvh, 22px) 12px clamp(12px, 2dvh, 18px);
     cursor: pointer;
     transition: all 0.3s ease;
+    text-decoration: none;
+    color: inherit;
+    display: flex; flex-direction: column; align-items: center;
+    text-align: center;
+    overflow: hidden;
   }
 
-  .btn-restart:hover {
-    background: linear-gradient(135deg, var(--iris-mid), var(--petal-lavender));
-    transform: scale(1.05);
-    box-shadow: 0 0 20px rgba(123, 111, 160, 0.3);
+  .game-card::before {
+    content: '';
+    position: absolute; inset: 0;
+    border-radius: 16px;
+    background: radial-gradient(ellipse at 50% 0%, var(--card-glow, rgba(184,169,212,0.08)) 0%, transparent 70%);
+    pointer-events: none;
   }
 
-  /* ── Combo Text ── */
-  .combo-text {
-    position: fixed;
-    z-index: 60;
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 36px;
+  .game-card:active {
+    transform: scale(0.97);
+    border-color: var(--card-accent, var(--iris-light));
+    box-shadow: 0 0 20px var(--card-glow, rgba(184,169,212,0.15));
+  }
+
+  .card-icon {
+    font-size: clamp(28px, 4.5dvh, 40px);
+    margin-bottom: 6px;
+    filter: drop-shadow(0 0 8px var(--card-glow, rgba(184,169,212,0.3)));
+  }
+
+  .card-title {
+    font-family: var(--font-display);
+    font-size: clamp(16px, 2.5dvh, 22px);
+    font-weight: 400;
+    margin-bottom: 2px;
+    color: var(--moon-glow);
+  }
+
+  .card-desc {
+    font-size: clamp(9px, 1.2dvh, 11px);
+    color: var(--iris-light); opacity: 0.7;
+    margin-bottom: 6px;
+  }
+
+  .card-score {
+    font-family: var(--font-display);
+    font-size: clamp(12px, 1.8dvh, 16px);
+    color: var(--card-accent, var(--iris-light));
     font-weight: 600;
-    pointer-events: none;
-    opacity: 0;
-    background: linear-gradient(135deg, var(--moon-gold), var(--petal-rose));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
   }
 
-  .combo-text.show {
-    animation: comboFloat 1.2s ease forwards;
+  /* Card accent colors */
+  .game-card[data-game="bloom-puzzle"] { --card-accent: var(--neon-rose); --card-glow: rgba(255,107,157,0.12); }
+  .game-card[data-game="neon-2048"] { --card-accent: var(--neon-cyan); --card-glow: rgba(0,229,255,0.12); }
+  .game-card[data-game="hex-crush"] { --card-accent: var(--neon-magenta); --card-glow: rgba(224,64,251,0.12); }
+  .game-card[data-game="snake-flux"] { --card-accent: var(--neon-green); --card-glow: rgba(118,255,3,0.12); }
+  .game-card[data-game="void-defense"] { --card-accent: var(--neon-purple); --card-glow: rgba(179,136,255,0.12); }
+  .game-card[data-game="memory-matrix"] { --card-accent: var(--neon-gold); --card-glow: rgba(255,215,64,0.12); }
+  .game-card[data-game="garden-maze"] { --card-accent: var(--neon-lime); --card-glow: rgba(198,255,0,0.12); }
+  .game-card[data-game="flappy-petal"] { --card-accent: var(--neon-rose); --card-glow: rgba(255,107,157,0.12); }
+  .game-card[data-game="sudoku-noir"] { --card-accent: var(--neon-gold); --card-glow: rgba(255,215,64,0.12); }
+  .game-card[data-game="minesweeper"] { --card-accent: var(--neon-cyan); --card-glow: rgba(0,229,255,0.12); }
+
+  /* Footer */
+  .hub-footer {
+    text-align: center; padding: 16px 0 8px;
+    font-family: var(--font-display);
+    font-size: 11px; letter-spacing: 3px;
+    color: var(--iris-light); opacity: 0.3;
   }
 
-  /* ── Line flash ── */
-  .line-flash {
-    position: absolute;
-    z-index: 10;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-    pointer-events: none;
-    animation: flashSweep 0.4s ease forwards;
+  /* Settings toggle */
+  .settings-row {
+    display: flex; justify-content: center; gap: 12px; padding: 8px 0 16px;
   }
-
-  /* ── Animations ── */
-  @keyframes fadeInDown {
-    from { opacity: 0; transform: translateY(-20px); }
-    to { opacity: 1; transform: translateY(0); }
+  .setting-btn {
+    background: var(--glass-bg); border: 1px solid var(--glass-border);
+    border-radius: 20px; padding: 6px 14px; cursor: pointer;
+    font-family: var(--font-ui); font-size: 12px; color: var(--iris-light);
+    transition: all 0.3s ease;
   }
+  .setting-btn.active { border-color: var(--iris-light); color: var(--moon-glow); }
 
-  @keyframes bloomIn {
-    0% { transform: scale(0) rotate(-45deg); opacity: 0; }
-    60% { transform: scale(1.15) rotate(5deg); opacity: 1; }
-    100% { transform: scale(1) rotate(0deg); opacity: 1; }
-  }
-
-  @keyframes petalBurst {
-    0% { transform: scale(1); opacity: 1; }
-    40% { transform: scale(1.2); opacity: 1; }
-    100% { transform: scale(0) rotate(90deg); opacity: 0; }
-  }
-
-  @keyframes scorePop {
-    0% { transform: scale(1); }
-    40% { transform: scale(1.3); }
-    100% { transform: scale(1); }
-  }
-
-  @keyframes comboFloat {
-    0% { opacity: 0; transform: translateY(0) scale(0.5); }
-    20% { opacity: 1; transform: translateY(-10px) scale(1.1); }
-    80% { opacity: 1; transform: translateY(-40px) scale(1); }
-    100% { opacity: 0; transform: translateY(-60px) scale(0.8); }
-  }
-
-  @keyframes flashSweep {
-    0% { opacity: 0; }
-    30% { opacity: 1; }
-    100% { opacity: 0; }
-  }
-
-  /* ── Responsive — iPhone SE (375px) through Pro Max (430px) ── */
-  @media (max-width: 600px) {
-    .header { margin-top: 4px; }
-    .brand { font-size: 11px; letter-spacing: 3px; }
-    .title { font-size: 24px; }
-    .score-bar { gap: 16px; }
-    .score-box { padding: 4px 14px; min-width: 80px; }
-    .score-label { font-size: 9px; }
-    .score-value { font-size: 24px; }
-    .grid-wrapper { padding: 6px; }
-    .grid {
-      --grid-size: min(92vw, 52dvh, 400px);
-      gap: 2.5px;
-    }
-    .cell { border-radius: 5px; }
-    .piece-cell { width: 16px; height: 16px; }
-    .tray { gap: 6px; padding: 8px 10px; min-height: 80px; width: 95vw; }
-    .piece-slot { min-width: 60px; min-height: 70px; padding: 6px; }
-    .drag-ghost .piece-cell {
-      width: calc(min(92vw, 52dvh, 400px) / 8 - 2.5px);
-      height: calc(min(92vw, 52dvh, 400px) / 8 - 2.5px);
-    }
-    .drag-ghost .petal-inner { inset: 2px; }
-  }
-
-  /* iPhone SE / smaller screens */
-  @media (max-width: 375px) {
-    .title { font-size: 20px; }
-    .grid { --grid-size: min(94vw, 48dvh); }
-    .piece-cell { width: 14px; height: 14px; }
-    .tray { min-height: 70px; }
-  }
-
-  /* Tall phones (iPhone Pro Max, etc.) — use extra height */
-  @media (min-height: 800px) and (max-width: 600px) {
-    .grid { --grid-size: min(90vw, 55dvh, 420px); }
+  @media (max-width: 360px) {
+    .hub-container { padding-left: 10px; padding-right: 10px; }
+    .game-grid { gap: 8px; }
   }
 </style>
 </head>
-<body>
+<body class="hub-page">
 
-<canvas id="bg-canvas"></canvas>
-<canvas id="particle-canvas"></canvas>
+<div class="hub-bg"></div>
 
-<div class="game-container">
-  <div class="header">
-    <div class="brand">Iris Moon Design Co.</div>
-    <div class="title">Bloom Puzzle</div>
-  </div>
-
-  <div class="score-bar">
-    <div class="score-box">
-      <div class="score-label">Score</div>
-      <div class="score-value" id="score">0</div>
-    </div>
-    <div class="score-box">
-      <div class="score-label">Best</div>
-      <div class="score-value" id="best">0</div>
+<div class="hub-container">
+  <div class="hub-header">
+    <div class="hub-brand">Iris Moon Design Co.</div>
+    <div class="hub-title">Iris Moon Arcade</div>
+    <div class="hub-currency">
+      <div class="currency-chip"><span class="icon">&#127801;</span> <span id="petals">0</span></div>
+      <div class="currency-chip"><span class="icon">&#127804;</span> <span id="blooms">0</span></div>
     </div>
   </div>
 
-  <div class="grid-wrapper">
-    <div class="grid" id="grid"></div>
+  <div class="ornament">&#9753; &#9753; &#9753;</div>
+
+  <div class="game-grid" id="game-grid"></div>
+
+  <div class="settings-row">
+    <button class="setting-btn active" id="btn-sound">Sound: On</button>
+    <button class="setting-btn active" id="btn-haptics">Haptics: On</button>
   </div>
 
-  <div class="tray" id="tray"></div>
+  <div class="hub-footer">IRIS MOON DESIGN CO.</div>
 </div>
 
-<div class="game-over-overlay" id="game-over">
-  <div class="game-over-title">Garden Complete</div>
-  <div class="game-over-score" id="go-score">0</div>
-  <div class="game-over-label">Petals Placed</div>
-  <div class="game-over-best" id="go-best"></div>
-  <button class="btn-restart" id="btn-restart">Plant Again</button>
-</div>
-
+<script src="shared.js"></script>
 <script>
-// ═══════════════════════════════════════════
-//  BLOOM PUZZLE — Iris Moon Design Co.
-// ═══════════════════════════════════════════
-
-const GRID_SIZE = 8;
-const COLORS = ['rose', 'blush', 'peach', 'lavender', 'sage', 'sky', 'iris'];
-
-// ── Piece Definitions (classic Block Puzzle shapes) ──
-const PIECE_DEFS = [
-  // Single
-  { shape: [[1]], name: '1x1' },
-  // 2-blocks
-  { shape: [[1,1]], name: '1x2' },
-  { shape: [[1],[1]], name: '2x1' },
-  // 3-blocks L-shapes
-  { shape: [[1,1,1]], name: '1x3' },
-  { shape: [[1],[1],[1]], name: '3x1' },
-  { shape: [[1,1],[1,0]], name: 'L-2x2a' },
-  { shape: [[1,1],[0,1]], name: 'L-2x2b' },
-  { shape: [[1,0],[1,1]], name: 'L-2x2c' },
-  { shape: [[0,1],[1,1]], name: 'L-2x2d' },
-  // 4-blocks
-  { shape: [[1,1,1,1]], name: '1x4' },
-  { shape: [[1],[1],[1],[1]], name: '4x1' },
-  { shape: [[1,1],[1,1]], name: '2x2' },
-  // T-shapes
-  { shape: [[1,1,1],[0,1,0]], name: 'T-down' },
-  { shape: [[0,1,0],[1,1,1]], name: 'T-up' },
-  { shape: [[1,0],[1,1],[1,0]], name: 'T-right' },
-  { shape: [[0,1],[1,1],[0,1]], name: 'T-left' },
-  // 5-blocks
-  { shape: [[1,1,1,1,1]], name: '1x5' },
-  { shape: [[1],[1],[1],[1],[1]], name: '5x1' },
-  // L-3x3 corners
-  { shape: [[1,1,1],[1,0,0],[1,0,0]], name: 'L-3a' },
-  { shape: [[1,1,1],[0,0,1],[0,0,1]], name: 'L-3b' },
-  { shape: [[1,0,0],[1,0,0],[1,1,1]], name: 'L-3c' },
-  { shape: [[0,0,1],[0,0,1],[1,1,1]], name: 'L-3d' },
-  // S/Z shapes
-  { shape: [[0,1,1],[1,1,0]], name: 'S' },
-  { shape: [[1,1,0],[0,1,1]], name: 'Z' },
-  { shape: [[1,0],[1,1],[0,1]], name: 'S-v' },
-  { shape: [[0,1],[1,1],[1,0]], name: 'Z-v' },
-  // 3x3 big block
-  { shape: [[1,1,1],[1,1,1],[1,1,1]], name: '3x3' },
-  // 2x3 and 3x2
-  { shape: [[1,1],[1,1],[1,1]], name: '2x3' },
-  { shape: [[1,1,1],[1,1,1]], name: '3x2' },
+const GAMES = [
+  { id: 'bloom-puzzle', icon: '\u{1F338}', name: 'Bloom Puzzle', desc: 'Block puzzle — fill rows & columns' },
+  { id: 'neon-2048', icon: '\u{1F4A0}', name: 'Neon 2048', desc: 'Swipe & merge to reach 2048' },
+  { id: 'hex-crush', icon: '\u{2B21}', name: 'Hex Crush', desc: 'Match-3 on a hexagonal grid' },
+  { id: 'snake-flux', icon: '\u{1F40D}', name: 'Snake Flux', desc: 'Classic snake with power-ups' },
+  { id: 'void-defense', icon: '\u{1F5FC}', name: 'Void Defense', desc: 'Tower defense — 6 towers, 8 enemies' },
+  { id: 'memory-matrix', icon: '\u{1F0CF}', name: 'Memory Matrix', desc: 'Flip & match card pairs' },
+  { id: 'garden-maze', icon: '\u{1F331}', name: 'Garden Maze', desc: 'Tron meets gardening — claim territory' },
+  { id: 'flappy-petal', icon: '\u{1F33A}', name: 'Flappy Petal', desc: 'Tap to fly through vine gaps' },
+  { id: 'sudoku-noir', icon: '\u{1F522}', name: 'Sudoku Noir', desc: 'Classic number puzzle' },
+  { id: 'minesweeper', icon: '\u{1F4A3}', name: 'Minesweeper', desc: 'Classic mine avoidance' },
 ];
 
-// ── State ──
-let grid = [];        // 8x8, null or color string
-let score = 0;
-let best = parseInt(localStorage.getItem('bloom_puzzle_best') || '0');
-let pieces = [null, null, null]; // current 3 pieces
-let dragPiece = null;
-let dragSlotIdx = -1;
-let dragOffset = { x: 0, y: 0 };
-let ghostEl = null;
-let gameOver = false;
-let combo = 0;
+function renderHub() {
+  const data = ArcadeData.get();
+  document.getElementById('petals').textContent = data.currency.petals;
+  document.getElementById('blooms').textContent = data.currency.blooms;
 
-// ── DOM ──
-const gridEl = document.getElementById('grid');
-const trayEl = document.getElementById('tray');
-const scoreEl = document.getElementById('score');
-const bestEl = document.getElementById('best');
-const goOverlay = document.getElementById('game-over');
-const goScoreEl = document.getElementById('go-score');
-const goBestEl = document.getElementById('go-best');
-const btnRestart = document.getElementById('btn-restart');
-const particleCanvas = document.getElementById('particle-canvas');
-const pCtx = particleCanvas.getContext('2d');
-const bgCanvas = document.getElementById('bg-canvas');
-const bgCtx = bgCanvas.getContext('2d');
+  const grid = document.getElementById('game-grid');
+  grid.innerHTML = '';
+  GAMES.forEach(g => {
+    const best = data.scores[g.id]?.best || 0;
+    const card = document.createElement('a');
+    card.className = 'game-card';
+    card.dataset.game = g.id;
+    card.href = 'games/' + g.id + '.html';
+    card.innerHTML = `
+      <div class="card-icon">${g.icon}</div>
+      <div class="card-title">${g.name}</div>
+      <div class="card-desc">${g.desc}</div>
+      ${best > 0 ? `<div class="card-score">Best: ${best}</div>` : ''}
+    `;
+    grid.appendChild(card);
+  });
 
-// ── Particles ──
-let particles = [];
+  // Settings
+  const soundBtn = document.getElementById('btn-sound');
+  const hapBtn = document.getElementById('btn-haptics');
+  const soundOn = data.settings.sound !== false;
+  const hapOn = data.settings.haptics !== false;
+  soundBtn.textContent = 'Sound: ' + (soundOn ? 'On' : 'Off');
+  soundBtn.classList.toggle('active', soundOn);
+  hapBtn.textContent = 'Haptics: ' + (hapOn ? 'On' : 'Off');
+  hapBtn.classList.toggle('active', hapOn);
 
-class Particle {
-  constructor(x, y, color) {
-    this.x = x;
-    this.y = y;
-    this.vx = (Math.random() - 0.5) * 4;
-    this.vy = (Math.random() - 0.5) * 4 - 2;
-    this.life = 1;
-    this.decay = 0.015 + Math.random() * 0.02;
-    this.size = 3 + Math.random() * 5;
-    this.color = color;
-    this.rotation = Math.random() * Math.PI * 2;
-    this.rotSpeed = (Math.random() - 0.5) * 0.15;
-    this.type = Math.random() > 0.5 ? 'petal' : 'dot';
-  }
-
-  update() {
-    this.x += this.vx;
-    this.y += this.vy;
-    this.vy += 0.05;
-    this.life -= this.decay;
-    this.rotation += this.rotSpeed;
-    this.size *= 0.998;
-  }
-
-  draw(ctx) {
-    if (this.life <= 0) return;
-    ctx.save();
-    ctx.translate(this.x, this.y);
-    ctx.rotate(this.rotation);
-    ctx.globalAlpha = this.life * 0.8;
-    if (this.type === 'petal') {
-      ctx.fillStyle = this.color;
-      ctx.beginPath();
-      ctx.ellipse(0, 0, this.size, this.size * 0.5, 0, 0, Math.PI * 2);
-      ctx.fill();
-    } else {
-      ctx.fillStyle = this.color;
-      ctx.beginPath();
-      ctx.arc(0, 0, this.size * 0.4, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.restore();
-  }
-}
-
-function spawnParticles(x, y, color, count = 12) {
-  const colorMap = {
-    rose: '#d4728c', blush: '#e8a0b0', peach: '#e8b87a',
-    lavender: '#9b8ec4', sage: '#8fb89a', sky: '#7aaec4', iris: '#7b6fa0'
+  soundBtn.onclick = () => {
+    const cur = ArcadeData.getSetting('sound') !== false;
+    ArcadeData.setSetting('sound', !cur);
+    renderHub();
   };
-  const c = colorMap[color] || '#b8a9d4';
-  for (let i = 0; i < count; i++) {
-    particles.push(new Particle(x, y, c));
-  }
+  hapBtn.onclick = () => {
+    const cur = ArcadeData.getSetting('haptics') !== false;
+    ArcadeData.setSetting('haptics', !cur);
+    renderHub();
+  };
 }
 
-function animateParticles() {
-  pCtx.clearRect(0, 0, particleCanvas.width, particleCanvas.height);
-  particles = particles.filter(p => p.life > 0);
-  for (const p of particles) {
-    p.update();
-    p.draw(pCtx);
-  }
-  requestAnimationFrame(animateParticles);
-}
+renderHub();
 
-// ── Background Ambiance ──
-let bgFloaters = [];
-
-function initBg() {
-  bgCanvas.width = window.innerWidth;
-  bgCanvas.height = window.innerHeight;
-  bgFloaters = [];
-  for (let i = 0; i < 30; i++) {
-    bgFloaters.push({
-      x: Math.random() * bgCanvas.width,
-      y: Math.random() * bgCanvas.height,
-      size: 1 + Math.random() * 3,
-      speed: 0.1 + Math.random() * 0.3,
-      opacity: 0.1 + Math.random() * 0.2,
-      phase: Math.random() * Math.PI * 2,
-    });
-  }
-}
-
-function animateBg() {
-  bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
-
-  // Subtle gradient background
-  const grad = bgCtx.createRadialGradient(
-    bgCanvas.width * 0.5, bgCanvas.height * 0.3, 0,
-    bgCanvas.width * 0.5, bgCanvas.height * 0.3, bgCanvas.width * 0.7
-  );
-  grad.addColorStop(0, 'rgba(74, 63, 107, 0.08)');
-  grad.addColorStop(1, 'transparent');
-  bgCtx.fillStyle = grad;
-  bgCtx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
-
-  const t = Date.now() * 0.001;
-  for (const f of bgFloaters) {
-    f.y -= f.speed;
-    if (f.y < -10) {
-      f.y = bgCanvas.height + 10;
-      f.x = Math.random() * bgCanvas.width;
-    }
-    const wobble = Math.sin(t + f.phase) * 15;
-    bgCtx.save();
-    bgCtx.globalAlpha = f.opacity;
-    bgCtx.fillStyle = '#b8a9d4';
-    bgCtx.beginPath();
-    bgCtx.arc(f.x + wobble, f.y, f.size, 0, Math.PI * 2);
-    bgCtx.fill();
-    bgCtx.restore();
-  }
-
-  requestAnimationFrame(animateBg);
-}
-
-// ── Grid Setup ──
-function initGrid() {
-  grid = Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(null));
-  gridEl.innerHTML = '';
-  for (let r = 0; r < GRID_SIZE; r++) {
-    for (let c = 0; c < GRID_SIZE; c++) {
-      const cell = document.createElement('div');
-      cell.className = 'cell';
-      cell.dataset.row = r;
-      cell.dataset.col = c;
-      const inner = document.createElement('div');
-      inner.className = 'petal-inner';
-      cell.appendChild(inner);
-      gridEl.appendChild(cell);
-    }
-  }
-}
-
-function getCellEl(r, c) {
-  return gridEl.children[r * GRID_SIZE + c];
-}
-
-function renderGrid() {
-  for (let r = 0; r < GRID_SIZE; r++) {
-    for (let c = 0; c < GRID_SIZE; c++) {
-      const el = getCellEl(r, c);
-      const color = grid[r][c];
-      // Remove all color classes
-      COLORS.forEach(cl => el.classList.remove(`color-${cl}`));
-      if (color) {
-        el.classList.add('filled', `color-${color}`);
-      } else {
-        el.classList.remove('filled');
-      }
-    }
-  }
-}
-
-// ── Pieces ──
-function randomPiece() {
-  const def = PIECE_DEFS[Math.floor(Math.random() * PIECE_DEFS.length)];
-  const color = COLORS[Math.floor(Math.random() * COLORS.length)];
-  return { shape: def.shape, color, name: def.name };
-}
-
-function dealPieces() {
-  pieces = [randomPiece(), randomPiece(), randomPiece()];
-  renderTray();
-}
-
-function renderTray() {
-  trayEl.innerHTML = '';
-  pieces.forEach((piece, idx) => {
-    const slot = document.createElement('div');
-    slot.className = 'piece-slot' + (piece === null ? ' used' : '');
-    slot.dataset.index = idx;
-
-    if (piece) {
-      // Check if piece can fit anywhere
-      if (!canPieceFitAnywhere(piece)) {
-        slot.classList.add('no-fit');
-      }
-
-      const rows = piece.shape.length;
-      const cols = piece.shape[0].length;
-      const pg = document.createElement('div');
-      pg.className = 'piece-grid';
-      pg.style.gridTemplateColumns = `repeat(${cols}, 18px)`;
-      pg.style.gridTemplateRows = `repeat(${rows}, 18px)`;
-
-      for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-          const cell = document.createElement('div');
-          cell.className = 'piece-cell ' + (piece.shape[r][c] ? 'filled' : 'empty');
-          if (piece.shape[r][c]) {
-            cell.classList.add(`color-${piece.color}`);
-            const inner = document.createElement('div');
-            inner.className = 'petal-inner';
-            cell.appendChild(inner);
-          }
-          pg.appendChild(cell);
-        }
-      }
-      slot.appendChild(pg);
-    }
-
-    trayEl.appendChild(slot);
-  });
-  updateNoFitState();
-}
-
-function updateNoFitState() {
-  const slots = trayEl.querySelectorAll('.piece-slot');
-  slots.forEach((slot, idx) => {
-    if (pieces[idx]) {
-      if (canPieceFitAnywhere(pieces[idx])) {
-        slot.classList.remove('no-fit');
-      } else {
-        slot.classList.add('no-fit');
-      }
-    }
-  });
-}
-
-// ── Placement Logic ──
-function canPlace(piece, startRow, startCol) {
-  for (let r = 0; r < piece.shape.length; r++) {
-    for (let c = 0; c < piece.shape[0].length; c++) {
-      if (piece.shape[r][c]) {
-        const gr = startRow + r;
-        const gc = startCol + c;
-        if (gr < 0 || gr >= GRID_SIZE || gc < 0 || gc >= GRID_SIZE) return false;
-        if (grid[gr][gc] !== null) return false;
-      }
-    }
-  }
-  return true;
-}
-
-function canPieceFitAnywhere(piece) {
-  for (let r = 0; r < GRID_SIZE; r++) {
-    for (let c = 0; c < GRID_SIZE; c++) {
-      if (canPlace(piece, r, c)) return true;
-    }
-  }
-  return false;
-}
-
-function placePiece(piece, startRow, startCol) {
-  const placed = [];
-  for (let r = 0; r < piece.shape.length; r++) {
-    for (let c = 0; c < piece.shape[0].length; c++) {
-      if (piece.shape[r][c]) {
-        grid[startRow + r][startCol + c] = piece.color;
-        placed.push({ r: startRow + r, c: startCol + c });
-      }
-    }
-  }
-  return placed;
-}
-
-function clearLines() {
-  let rowsToClear = [];
-  let colsToClear = [];
-
-  for (let r = 0; r < GRID_SIZE; r++) {
-    if (grid[r].every(c => c !== null)) rowsToClear.push(r);
-  }
-  for (let c = 0; c < GRID_SIZE; c++) {
-    let full = true;
-    for (let r = 0; r < GRID_SIZE; r++) {
-      if (grid[r][c] === null) { full = false; break; }
-    }
-    if (full) colsToClear.push(c);
-  }
-
-  const totalLines = rowsToClear.length + colsToClear.length;
-  if (totalLines === 0) {
-    combo = 0;
-    return 0;
-  }
-
-  combo++;
-
-  // Animate clearing
-  const toClear = new Set();
-  rowsToClear.forEach(r => {
-    for (let c = 0; c < GRID_SIZE; c++) toClear.add(`${r},${c}`);
-  });
-  colsToClear.forEach(c => {
-    for (let r = 0; r < GRID_SIZE; r++) toClear.add(`${r},${c}`);
-  });
-
-  // Spawn particles at each clearing cell
-  toClear.forEach(key => {
-    const [r, c] = key.split(',').map(Number);
-    const el = getCellEl(r, c);
-    const rect = el.getBoundingClientRect();
-    const color = grid[r][c] || 'lavender';
-    spawnParticles(rect.left + rect.width / 2, rect.top + rect.height / 2, color, 6);
-    el.classList.add('clearing');
-  });
-
-  // After animation, actually clear
-  setTimeout(() => {
-    toClear.forEach(key => {
-      const [r, c] = key.split(',').map(Number);
-      grid[r][c] = null;
-      const el = getCellEl(r, c);
-      el.classList.remove('clearing', 'filled');
-      COLORS.forEach(cl => el.classList.remove(`color-${cl}`));
-    });
-    renderGrid();
-    updateNoFitState();
-  }, 500);
-
-  // Score: 10 per block in line + bonus for combos and multiples
-  let lineScore = toClear.size * 10;
-  if (totalLines > 1) lineScore += totalLines * 30; // multi-line bonus
-  if (combo > 1) {
-    lineScore = Math.floor(lineScore * (1 + combo * 0.5));
-    showCombo(combo);
-  }
-
-  return lineScore;
-}
-
-function showCombo(n) {
-  const texts = ['', '', 'Double Bloom!', 'Triple Bloom!', 'Quad Bloom!', 'MEGA BLOOM!'];
-  const text = n >= texts.length ? 'MEGA BLOOM!' : texts[n];
-  const el = document.createElement('div');
-  el.className = 'combo-text show';
-  el.textContent = text;
-  el.style.left = '50%';
-  el.style.top = '40%';
-  el.style.transform = 'translateX(-50%)';
-  document.body.appendChild(el);
-  setTimeout(() => el.remove(), 1300);
-}
-
-function updateScore(add) {
-  score += add;
-  scoreEl.textContent = score;
-  scoreEl.classList.remove('pop');
-  void scoreEl.offsetWidth;
-  scoreEl.classList.add('pop');
-
-  if (score > best) {
-    best = score;
-    bestEl.textContent = best;
-    localStorage.setItem('bloom_puzzle_best', best.toString());
-  }
-}
-
-function checkGameOver() {
-  const remaining = pieces.filter(p => p !== null);
-  if (remaining.length === 0) return false;
-  for (const piece of remaining) {
-    if (canPieceFitAnywhere(piece)) return false;
-  }
-  return true;
-}
-
-function endGame() {
-  gameOver = true;
-  goScoreEl.textContent = score;
-  goBestEl.textContent = score >= best ? 'New Best Score!' : `Best: ${best}`;
-  // Delay to let last animation play
-  setTimeout(() => goOverlay.classList.add('visible'), 600);
-}
-
-function startGame() {
-  gameOver = false;
-  score = 0;
-  combo = 0;
-  scoreEl.textContent = '0';
-  bestEl.textContent = best;
-  goOverlay.classList.remove('visible');
-  initGrid();
-  dealPieces();
-}
-
-// ── Drag & Drop ──
-function getGridCellSize() {
-  const firstCell = getCellEl(0, 0);
-  if (!firstCell) return 50;
-  return firstCell.getBoundingClientRect().width;
-}
-
-function createGhost(piece) {
-  const ghost = document.createElement('div');
-  ghost.className = 'drag-ghost';
-  const rows = piece.shape.length;
-  const cols = piece.shape[0].length;
-  const pg = document.createElement('div');
-  pg.className = 'piece-grid';
-  const cellSize = getGridCellSize();
-  pg.style.gridTemplateColumns = `repeat(${cols}, ${cellSize}px)`;
-  pg.style.gridTemplateRows = `repeat(${rows}, ${cellSize}px)`;
-  pg.style.gap = '3px';
-
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      const cell = document.createElement('div');
-      cell.className = 'piece-cell ' + (piece.shape[r][c] ? 'filled' : 'empty');
-      cell.style.width = cellSize + 'px';
-      cell.style.height = cellSize + 'px';
-      if (piece.shape[r][c]) {
-        cell.classList.add(`color-${piece.color}`);
-        const inner = document.createElement('div');
-        inner.className = 'petal-inner';
-        cell.appendChild(inner);
-      }
-      pg.appendChild(cell);
-    }
-  }
-  ghost.appendChild(pg);
-  document.body.appendChild(ghost);
-  return ghost;
-}
-
-function positionGhost(ghost, x, y) {
-  ghost.style.left = (x - dragOffset.x) + 'px';
-  ghost.style.top = (y - dragOffset.y) + 'px';
-}
-
-function getGridPosition(x, y) {
-  const gridRect = gridEl.getBoundingClientRect();
-  const cellSize = gridRect.width / GRID_SIZE;
-  const col = Math.floor((x - gridRect.left) / cellSize);
-  const row = Math.floor((y - gridRect.top) / cellSize);
-  return { row, col };
-}
-
-function clearHighlights() {
-  for (let r = 0; r < GRID_SIZE; r++) {
-    for (let c = 0; c < GRID_SIZE; c++) {
-      const el = getCellEl(r, c);
-      el.classList.remove('highlight-valid', 'highlight-invalid',
-                          'row-complete-preview', 'col-complete-preview');
-    }
-  }
-}
-
-function showPlacementPreview(piece, startRow, startCol) {
-  clearHighlights();
-  const valid = canPlace(piece, startRow, startCol);
-  for (let r = 0; r < piece.shape.length; r++) {
-    for (let c = 0; c < piece.shape[0].length; c++) {
-      if (piece.shape[r][c]) {
-        const gr = startRow + r;
-        const gc = startCol + c;
-        if (gr >= 0 && gr < GRID_SIZE && gc >= 0 && gc < GRID_SIZE) {
-          const el = getCellEl(gr, gc);
-          el.classList.add(valid ? 'highlight-valid' : 'highlight-invalid');
-        }
-      }
-    }
-  }
-
-  // Show line-complete preview
-  if (valid) {
-    // Simulate placement
-    const tempGrid = grid.map(row => [...row]);
-    for (let r = 0; r < piece.shape.length; r++) {
-      for (let c = 0; c < piece.shape[0].length; c++) {
-        if (piece.shape[r][c]) {
-          tempGrid[startRow + r][startCol + c] = piece.color;
-        }
-      }
-    }
-    // Check rows/cols
-    for (let r = 0; r < GRID_SIZE; r++) {
-      if (tempGrid[r].every(c => c !== null)) {
-        for (let c = 0; c < GRID_SIZE; c++) {
-          getCellEl(r, c).classList.add('row-complete-preview');
-        }
-      }
-    }
-    for (let c = 0; c < GRID_SIZE; c++) {
-      let full = true;
-      for (let r = 0; r < GRID_SIZE; r++) {
-        if (tempGrid[r][c] === null) { full = false; break; }
-      }
-      if (full) {
-        for (let r = 0; r < GRID_SIZE; r++) {
-          getCellEl(r, c).classList.add('col-complete-preview');
-        }
-      }
-    }
-  }
-}
-
-// ── Pointer events ──
-let pointerDown = false;
-let dragStarted = false;
-const DRAG_OFFSET_Y = 100; // Offset so piece appears above finger on mobile
-
-function onPointerDown(e) {
-  if (gameOver) return;
-  const slot = e.target.closest('.piece-slot');
-  if (!slot || slot.classList.contains('used')) return;
-  const idx = parseInt(slot.dataset.index);
-  if (!pieces[idx]) return;
-
-  e.preventDefault();
-  pointerDown = true;
-  dragSlotIdx = idx;
-  dragPiece = pieces[idx];
-
-  // Calculate offset so piece centers around pointer
-  const cellSize = getGridCellSize();
-  const cols = dragPiece.shape[0].length;
-  const rows = dragPiece.shape.length;
-  dragOffset.x = (cols * (cellSize + 3)) / 2;
-  dragOffset.y = (rows * (cellSize + 3)) / 2 + DRAG_OFFSET_Y;
-
-  ghostEl = createGhost(dragPiece);
-  const pt = getPointerPos(e);
-  positionGhost(ghostEl, pt.x, pt.y);
-
-  // Fade the tray piece
-  slot.style.opacity = '0.3';
-
-  dragStarted = true;
-}
-
-function onPointerMove(e) {
-  if (!dragStarted || !dragPiece) return;
-  e.preventDefault();
-  const pt = getPointerPos(e);
-  positionGhost(ghostEl, pt.x, pt.y);
-
-  // Find grid position under the center of the ghost piece
-  const cellSize = getGridCellSize();
-  const centerX = pt.x - dragOffset.x + (dragPiece.shape[0].length * (cellSize + 3)) / 2;
-  const centerY = pt.y - dragOffset.y + (dragPiece.shape.length * (cellSize + 3)) / 2;
-
-  // Snap the piece - use the top-left of the piece relative to the grid
-  const topLeftX = pt.x - dragOffset.x;
-  const topLeftY = pt.y - dragOffset.y;
-  const pos = getGridPosition(topLeftX + cellSize / 2, topLeftY + cellSize / 2);
-
-  showPlacementPreview(dragPiece, pos.row, pos.col);
-}
-
-function onPointerUp(e) {
-  if (!dragStarted || !dragPiece) {
-    pointerDown = false;
-    return;
-  }
-
-  e.preventDefault();
-  const pt = getPointerPos(e);
-  const cellSize = getGridCellSize();
-  const topLeftX = pt.x - dragOffset.x;
-  const topLeftY = pt.y - dragOffset.y;
-  const pos = getGridPosition(topLeftX + cellSize / 2, topLeftY + cellSize / 2);
-
-  if (canPlace(dragPiece, pos.row, pos.col)) {
-    // Place it!
-    const placed = placePiece(dragPiece, pos.row, pos.col);
-
-    // Score for placing
-    let blockCount = 0;
-    for (const row of dragPiece.shape) for (const v of row) if (v) blockCount++;
-    updateScore(blockCount);
-
-    // Render with bloom animation
-    renderGrid();
-    placed.forEach(({ r, c }, i) => {
-      const el = getCellEl(r, c);
-      el.classList.add('bloom-in');
-      el.style.animationDelay = (i * 0.05) + 's';
-      setTimeout(() => el.classList.remove('bloom-in'), 600);
-    });
-
-    // Clear lines
-    setTimeout(() => {
-      const lineScore = clearLines();
-      if (lineScore > 0) {
-        updateScore(lineScore);
-      }
-    }, 150);
-
-    // Remove piece from tray
-    pieces[dragSlotIdx] = null;
-    renderTray();
-
-    // Check if all pieces used → deal new ones
-    if (pieces.every(p => p === null)) {
-      setTimeout(() => dealPieces(), 300);
-    } else {
-      // Check game over after a short delay (to let clearing resolve)
-      setTimeout(() => {
-        if (checkGameOver()) endGame();
-      }, 700);
-    }
-  } else {
-    // Return piece to tray
-    const slot = trayEl.children[dragSlotIdx];
-    if (slot) slot.style.opacity = '';
-  }
-
-  // Cleanup
-  if (ghostEl) { ghostEl.remove(); ghostEl = null; }
-  clearHighlights();
-  dragPiece = null;
-  dragSlotIdx = -1;
-  dragStarted = false;
-  pointerDown = false;
-}
-
-function getPointerPos(e) {
-  if (e.touches && e.touches.length > 0) {
-    return { x: e.touches[0].clientX, y: e.touches[0].clientY };
-  }
-  if (e.changedTouches && e.changedTouches.length > 0) {
-    return { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
-  }
-  return { x: e.clientX, y: e.clientY };
-}
-
-// ── Event Listeners ──
-document.addEventListener('mousedown', onPointerDown);
-document.addEventListener('mousemove', onPointerMove);
-document.addEventListener('mouseup', onPointerUp);
-document.addEventListener('touchstart', onPointerDown, { passive: false });
-document.addEventListener('touchmove', onPointerMove, { passive: false });
-document.addEventListener('touchend', onPointerUp, { passive: false });
-
-btnRestart.addEventListener('click', startGame);
-
-// ── Resize ──
-function handleResize() {
-  particleCanvas.width = window.innerWidth;
-  particleCanvas.height = window.innerHeight;
-  bgCanvas.width = window.innerWidth;
-  bgCanvas.height = window.innerHeight;
-}
-
-window.addEventListener('resize', handleResize);
-
-// ── Sound (subtle web audio) ──
-let audioCtx = null;
-
-function initAudio() {
-  if (!audioCtx) {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  }
-}
-
-function playTone(freq, duration = 0.1, volume = 0.08) {
-  if (!audioCtx) return;
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-  osc.connect(gain);
-  gain.connect(audioCtx.destination);
-  osc.type = 'sine';
-  osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-  gain.gain.setValueAtTime(volume, audioCtx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
-  osc.start(audioCtx.currentTime);
-  osc.stop(audioCtx.currentTime + duration);
-}
-
-function playPlace() {
-  initAudio();
-  playTone(523.25, 0.1, 0.06);
-  setTimeout(() => playTone(659.25, 0.08, 0.04), 50);
-}
-
-function playClear() {
-  initAudio();
-  playTone(523.25, 0.15, 0.06);
-  setTimeout(() => playTone(659.25, 0.12, 0.06), 80);
-  setTimeout(() => playTone(783.99, 0.2, 0.06), 160);
-}
-
-// Hook sounds into game
-const origUpdateScore = updateScore;
-let lastScoreAction = '';
-const origPlacePiece = placePiece;
-
-// Override placePiece to play sound
-const _origPlace = placePiece;
-// We'll handle sounds via the pointer up handler instead
-
-// Enhanced onPointerUp with sounds
-const _origOnPointerUp = onPointerUp;
-
-// Patch: add sounds inline
-document.addEventListener('mousedown', () => initAudio(), { once: true });
-document.addEventListener('touchstart', () => initAudio(), { once: true });
-
-// We add sound via a MutationObserver on score changes
-let prevScore = 0;
-const scoreObserver = new MutationObserver(() => {
-  const newScore = parseInt(scoreEl.textContent);
-  if (newScore > prevScore) {
-    const diff = newScore - prevScore;
-    if (diff > 30) {
-      playClear();
-    } else {
-      playPlace();
-    }
-    prevScore = newScore;
-  }
-});
-scoreObserver.observe(scoreEl, { childList: true, characterData: true, subtree: true });
-
-// ── Prevent ALL iOS scroll / bounce / pull-to-refresh ──
-// Must be on BOTH window and document to catch everything on iOS
-function killScroll(e) { e.preventDefault(); }
-window.addEventListener('touchmove', killScroll, { passive: false });
-document.addEventListener('touchmove', killScroll, { passive: false });
-document.documentElement.addEventListener('touchmove', killScroll, { passive: false });
-document.body.addEventListener('touchmove', killScroll, { passive: false });
-window.addEventListener('scroll', () => { window.scrollTo(0, 0); });
-document.addEventListener('gesturestart', killScroll);
-document.addEventListener('gesturechange', killScroll);
-document.addEventListener('gestureend', killScroll);
-
-// Prevent context menu on long press
-document.addEventListener('contextmenu', e => e.preventDefault());
-
-// ── Service Worker Registration ──
+// Service Worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js').catch(() => {});
   });
 }
-
-// ── Init ──
-handleResize();
-initBg();
-animateBg();
-animateParticles();
-startGame();
-
 </script>
 </body>
 </html>

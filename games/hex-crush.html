@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Hex Crush — Iris Moon Arcade</title>
+<meta name="theme-color" content="#0d0a1a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="stylesheet" href="../shared.css">
+<style>
+:root {
+  --game-accent: var(--neon-magenta);
+  --game-glow: rgba(224,64,251,0.3);
+}
+
+.game-canvas-wrap {
+  position: relative;
+  width: min(92vw, 70dvh, 500px);
+  height: min(92vw, 70dvh, 500px);
+  margin: 0 auto;
+  flex-shrink: 0;
+}
+
+#game-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border-radius: 16px;
+}
+
+.score-bar { flex-shrink: 0; }
+
+.overlay-petals {
+  font-size: clamp(14px, 2dvh, 18px);
+  color: var(--petal-rose);
+  margin-bottom: var(--spacing-md);
+  animation: fadeInUp 0.8s ease 0.3s both;
+}
+
+.overlay-best {
+  font-size: clamp(12px, 1.6dvh, 15px);
+  color: var(--iris-light);
+  margin-bottom: var(--spacing-md);
+  animation: fadeInUp 0.8s ease 0.4s both;
+}
+
+.overlay-buttons {
+  display: flex;
+  gap: var(--spacing-md);
+  animation: fadeInUp 0.8s ease 0.5s both;
+}
+</style>
+</head>
+<body>
+
+<canvas class="bg-canvas" id="bg-canvas"></canvas>
+<canvas class="particle-canvas" id="particle-canvas"></canvas>
+
+<div class="game-page">
+  <div class="game-header">
+    <a class="btn-back" href="../index.html">&#8592;</a>
+    <div>
+      <div class="game-title text-gradient">Hex Crush</div>
+      <div class="game-subtitle">Match &middot; Cascade &middot; Conquer</div>
+    </div>
+  </div>
+
+  <div class="score-bar">
+    <div class="score-box">
+      <div class="score-label">Score</div>
+      <div class="score-value" id="score-display">0</div>
+    </div>
+    <div class="score-box">
+      <div class="score-label">Best</div>
+      <div class="score-value" id="best-display">0</div>
+    </div>
+    <div class="score-box">
+      <div class="score-label">Moves</div>
+      <div class="score-value" id="moves-display">0</div>
+    </div>
+  </div>
+
+  <div class="game-canvas-wrap">
+    <canvas id="game-canvas"></canvas>
+  </div>
+</div>
+
+<!-- Game Over Overlay -->
+<div class="overlay" id="game-over-overlay">
+  <div class="overlay-title text-gradient">Game Over</div>
+  <div class="overlay-score" id="final-score">0</div>
+  <div class="overlay-label">Final Score</div>
+  <div class="overlay-best" id="final-best"></div>
+  <div class="overlay-petals" id="final-petals"></div>
+  <div class="overlay-buttons">
+    <button class="btn-primary" id="btn-restart">Play Again</button>
+    <a class="btn-secondary" href="../index.html">Hub</a>
+  </div>
+</div>
+
+<script src="../shared.js"></script>
+<script>
+(() => {
+'use strict';
+
+/* ══════════════════════════════════════════
+   Constants
+   ══════════════════════════════════════════ */
+const COLS = 7;
+const ROWS = 9;
+const GAME_ID = 'hex-crush';
+const SQRT3 = Math.sqrt(3);
+
+const COLORS = [
+  { name: 'rose',    hex: '#d4728c' },
+  { name: 'cyan',    hex: '#00e5ff' },
+  { name: 'magenta', hex: '#e040fb' },
+  { name: 'gold',    hex: '#ffd740' },
+  { name: 'lime',    hex: '#c6ff00' },
+  { name: 'purple',  hex: '#b388ff' },
+  { name: 'orange',  hex: '#ff9100' },
+];
+
+const STONE_COLOR = '#5a5a6a';
+
+/* ── Neighbor offset tables for pointy-top, odd-r ──
+   Row parity determines column offsets for diagonal neighbors.
+   Direction indices:  0=E  1=NE  2=NW  3=W  4=SW  5=SE          */
+const EVEN_ROW_DIR = [
+  [+1,  0], [ 0, -1], [-1, -1],
+  [-1,  0], [-1, +1], [ 0, +1]
+];
+const ODD_ROW_DIR = [
+  [+1,  0], [+1, -1], [ 0, -1],
+  [-1,  0], [ 0, +1], [+1, +1]
+];
+
+/* ══════════════════════════════════════════
+   State
+   ══════════════════════════════════════════ */
+let grid = [];            // grid[col][row]
+let score = 0;
+let best = 0;
+let moves = 0;
+let selectedHex = null;   // {col, row} or null
+let animating = false;
+let gameOver = false;
+let activeColors = 4;
+let chainMultiplier = 1;
+
+// Canvas
+const canvas = document.getElementById('game-canvas');
+const ctx = canvas.getContext('2d');
+let canvasSize = 0;
+let hexR = 0;             // circumradius
+let offX = 0, offY = 0;   // pixel offset to center grid
+
+// Animation helpers
+let swapAnim = null;
+let burstParticles = [];
+
+// DOM refs
+const scoreEl   = document.getElementById('score-display');
+const bestEl    = document.getElementById('best-display');
+const movesEl   = document.getElementById('moves-display');
+const overEl    = document.getElementById('game-over-overlay');
+const fScoreEl  = document.getElementById('final-score');
+const fBestEl   = document.getElementById('final-best');
+const fPetalsEl = document.getElementById('final-petals');
+
+// Shared systems
+const particleCanvas = document.getElementById('particle-canvas');
+const particles = new ParticleSystem(particleCanvas);
+particles.start();
+const bgCanvas = document.getElementById('bg-canvas');
+const ambient = new AmbientBackground(bgCanvas);
+ambient.start();
+
+/* ══════════════════════════════════════════
+   Hex grid math — pointy-top, odd-r offset
+   ══════════════════════════════════════════
+   Pointy-top hex geometry:
+     width  = sqrt(3) * R
+     height = 2 * R
+   Odd-r layout (row-based offset):
+     x = col * sqrt(3) * R + (row%2) * sqrt(3)/2 * R
+     y = row * 1.5 * R
+   ══════════════════════════════════════════ */
+
+function hexToPixel(col, row) {
+  const x = offX + col * SQRT3 * hexR + (row & 1) * (SQRT3 / 2) * hexR;
+  const y = offY + row * 1.5 * hexR;
+  return { x, y };
+}
+
+function pixelToHex(px, py) {
+  let bestDist = Infinity, bc = -1, br = -1;
+  for (let c = 0; c < COLS; c++) {
+    for (let r = 0; r < ROWS; r++) {
+      const { x, y } = hexToPixel(c, r);
+      const d = (px - x) * (px - x) + (py - y) * (py - y);
+      if (d < bestDist) { bestDist = d; bc = c; br = r; }
+    }
+  }
+  return bestDist <= hexR * hexR * 1.15 ? { col: bc, row: br } : null;
+}
+
+function getNeighbors(col, row) {
+  const dirs = (row & 1) ? ODD_ROW_DIR : EVEN_ROW_DIR;
+  const out = [];
+  for (const [dc, dr] of dirs) {
+    const nc = col + dc, nr = row + dr;
+    if (nc >= 0 && nc < COLS && nr >= 0 && nr < ROWS) out.push({ col: nc, row: nr });
+  }
+  return out;
+}
+
+function stepDir(col, row, dir) {
+  const [dc, dr] = ((row & 1) ? ODD_ROW_DIR : EVEN_ROW_DIR)[dir];
+  const nc = col + dc, nr = row + dr;
+  return (nc >= 0 && nc < COLS && nr >= 0 && nr < ROWS) ? { col: nc, row: nr } : null;
+}
+
+/* ══════════════════════════════════════════
+   Cell factory
+   ══════════════════════════════════════════ */
+function makeCell(colorIdx) {
+  return {
+    colorIdx,          // -1 = stone, 0..6 = gem color
+    powerUp: null,     // null | 'bomb' | 'colorBomb' | 'lightning'
+    falling: false,
+    fallFrom: 0,
+    fallProgress: 1,
+    burstProgress: -1, // -1 = normal, 0..1 = bursting
+  };
+}
+
+function randColor() { return Math.floor(Math.random() * activeColors); }
+
+/* ══════════════════════════════════════════
+   Grid init (no pre-existing matches)
+   ══════════════════════════════════════════ */
+function initGrid() {
+  grid = [];
+  for (let c = 0; c < COLS; c++) {
+    grid[c] = [];
+    for (let r = 0; r < ROWS; r++) grid[c][r] = makeCell(randColor());
+  }
+  for (let pass = 0; pass < 200; pass++) {
+    const m = findAllMatches();
+    if (m.size === 0) break;
+    for (const k of m) {
+      const [c, r] = k.split(',').map(Number);
+      grid[c][r].colorIdx = randColor();
+    }
+  }
+}
+
+/* ══════════════════════════════════════════
+   Canvas sizing
+   ══════════════════════════════════════════ */
+function resize() {
+  const wrap = canvas.parentElement;
+  const rect = wrap.getBoundingClientRect();
+  canvasSize = Math.floor(Math.min(rect.width, rect.height));
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width  = canvasSize * dpr;
+  canvas.height = canvasSize * dpr;
+  canvas.style.width  = canvasSize + 'px';
+  canvas.style.height = canvasSize + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  const pad = canvasSize * 0.04;
+  const aW = canvasSize - pad * 2;
+  const aH = canvasSize - pad * 2;
+  // Width:  (COLS + 0.5) * sqrt3 * R   (0.5 for odd-row shift)
+  const rW = aW / ((COLS + 0.5) * SQRT3);
+  // Height: 1.5*(ROWS-1)*R + 2*R
+  const rH = aH / (1.5 * (ROWS - 1) + 2);
+  hexR = Math.min(rW, rH);
+
+  const gridW = (COLS + 0.5) * SQRT3 * hexR;
+  const gridH = 1.5 * hexR * (ROWS - 1) + 2 * hexR;
+  offX = (canvasSize - gridW) / 2 + SQRT3 / 2 * hexR;
+  offY = (canvasSize - gridH) / 2 + hexR;
+}
+
+/* ══════════════════════════════════════════
+   Drawing helpers
+   ══════════════════════════════════════════ */
+function hexPath(cx, cy, r) {
+  ctx.beginPath();
+  for (let i = 0; i < 6; i++) {
+    const a = Math.PI / 3 * i - Math.PI / 2;
+    const px = cx + r * Math.cos(a);
+    const py = cy + r * Math.sin(a);
+    i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+}
+
+function lighten(hex, amt) {
+  const r = Math.min(255, parseInt(hex.slice(1,3),16)+amt);
+  const g = Math.min(255, parseInt(hex.slice(3,5),16)+amt);
+  const b = Math.min(255, parseInt(hex.slice(5,7),16)+amt);
+  return `rgb(${r},${g},${b})`;
+}
+function darken(hex, amt) {
+  const r = Math.max(0, parseInt(hex.slice(1,3),16)-amt);
+  const g = Math.max(0, parseInt(hex.slice(3,5),16)-amt);
+  const b = Math.max(0, parseInt(hex.slice(5,7),16)-amt);
+  return `rgb(${r},${g},${b})`;
+}
+
+function drawCell(col, row, cell, isSwap) {
+  if (!cell || cell.burstProgress >= 1) return;
+
+  let { x, y } = hexToPixel(col, row);
+
+  // Swap animation interpolation
+  if (isSwap && swapAnim) {
+    const other = (swapAnim.c1 === col && swapAnim.r1 === row)
+      ? hexToPixel(swapAnim.c2, swapAnim.r2)
+      : hexToPixel(swapAnim.c1, swapAnim.r1);
+    const self = { x, y };
+    const t = swapAnim.progress;
+    const e = t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
+    x = self.x + (other.x - self.x) * e;
+    y = self.y + (other.y - self.y) * e;
+  }
+
+  // Fall animation
+  if (cell.falling && cell.fallProgress < 1) {
+    const tgt = y;
+    const e = 1 - Math.pow(1 - cell.fallProgress, 3);
+    y = cell.fallFrom + (tgt - cell.fallFrom) * e;
+  }
+
+  let dr = hexR * 0.90;
+
+  // Burst shrink
+  if (cell.burstProgress >= 0) {
+    const t = cell.burstProgress;
+    dr *= (1 + t * 0.3) * (1 - t);
+    ctx.globalAlpha = 1 - t;
+  }
+
+  const base = cell.colorIdx < 0 ? STONE_COLOR : COLORS[cell.colorIdx].hex;
+  const isSel = selectedHex && selectedHex.col === col && selectedHex.row === row;
+  const isStone = cell.colorIdx < 0;
+
+  if (isStone) {
+    // Stone: dark gradient + hatch
+    const g = ctx.createLinearGradient(x-dr, y-dr, x+dr, y+dr);
+    g.addColorStop(0, '#787888');
+    g.addColorStop(0.5, STONE_COLOR);
+    g.addColorStop(1, '#3a3a4a');
+    hexPath(x, y, dr); ctx.fillStyle = g; ctx.fill();
+    hexPath(x, y, dr); ctx.strokeStyle = 'rgba(100,100,120,0.4)'; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.save();
+    hexPath(x, y, dr); ctx.clip();
+    ctx.strokeStyle = 'rgba(80,80,100,0.3)'; ctx.lineWidth = 1;
+    for (let i = -dr; i < dr; i += 6) {
+      ctx.beginPath(); ctx.moveTo(x+i, y-dr); ctx.lineTo(x+i+dr, y+dr); ctx.stroke();
+    }
+    ctx.restore();
+  } else {
+    // Gem: glass gradient + highlight + optional neon selection
+    const g = ctx.createLinearGradient(x-dr, y-dr, x+dr, y+dr);
+    g.addColorStop(0, lighten(base, 50));
+    g.addColorStop(0.45, base);
+    g.addColorStop(1, darken(base, 40));
+
+    // Selection glow (behind)
+    if (isSel) {
+      ctx.save();
+      ctx.shadowColor = base;
+      ctx.shadowBlur = 18;
+      hexPath(x, y, dr + 3); ctx.strokeStyle = base; ctx.lineWidth = 3; ctx.stroke();
+      ctx.restore();
+    }
+
+    hexPath(x, y, dr); ctx.fillStyle = g; ctx.fill();
+    hexPath(x, y, dr); ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 1; ctx.stroke();
+
+    // Glass highlight (top-half shine)
+    ctx.save();
+    hexPath(x, y, dr * 0.72); ctx.clip();
+    const hl = ctx.createLinearGradient(x, y - dr, x, y);
+    hl.addColorStop(0, 'rgba(255,255,255,0.28)');
+    hl.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = hl;
+    ctx.fillRect(x - dr, y - dr, dr * 2, dr);
+    ctx.restore();
+
+    // Power-up icon
+    if (cell.powerUp) {
+      ctx.save();
+      ctx.font = `bold ${dr * 0.7}px sans-serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#fff';
+      ctx.shadowColor = '#000'; ctx.shadowBlur = 4;
+      const icon = cell.powerUp === 'bomb' ? '\u{1F4A5}'
+                 : cell.powerUp === 'colorBomb' ? '\u{1F308}'
+                 : '\u{26A1}';
+      ctx.fillText(icon, x, y);
+      ctx.restore();
+    }
+
+    // Pulsing neon outline when selected
+    if (isSel) {
+      const pulse = 0.6 + 0.4 * Math.sin(Date.now() * 0.004);
+      ctx.save();
+      ctx.shadowColor = base;
+      ctx.shadowBlur = 10 + 8 * pulse;
+      ctx.strokeStyle = base;
+      ctx.lineWidth = 2.5;
+      hexPath(x, y, dr + 2); ctx.stroke();
+      ctx.restore();
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawBurstParticles() {
+  for (const p of burstParticles) {
+    if (p.life <= 0) continue;
+    ctx.save();
+    ctx.globalAlpha = p.life * 0.8;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+function render() {
+  ctx.clearRect(0, 0, canvasSize, canvasSize);
+
+  // Subtle hex-cell backdrop
+  for (let c = 0; c < COLS; c++) {
+    for (let r = 0; r < ROWS; r++) {
+      const { x, y } = hexToPixel(c, r);
+      hexPath(x, y, hexR * 0.92);
+      ctx.fillStyle = 'rgba(30,24,50,0.35)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(184,169,212,0.07)';
+      ctx.lineWidth = 0.5;
+      ctx.stroke();
+    }
+  }
+
+  // Cells
+  for (let c = 0; c < COLS; c++) {
+    for (let r = 0; r < ROWS; r++) {
+      const cell = grid[c]?.[r];
+      if (!cell) continue;
+      const isSw = swapAnim && (
+        (swapAnim.c1 === c && swapAnim.r1 === r) ||
+        (swapAnim.c2 === c && swapAnim.r2 === r)
+      );
+      drawCell(c, r, cell, isSw);
+    }
+  }
+
+  drawBurstParticles();
+}
+
+/* ══════════════════════════════════════════
+   Match detection — 3+ in any of 3 hex axes
+   ══════════════════════════════════════════ */
+function findAllMatches() {
+  const matched = new Set();
+  const lineScores = [];
+  const seenLines = new Set(); // deduplicate lines by canonical key
+  for (let c = 0; c < COLS; c++) {
+    for (let r = 0; r < ROWS; r++) {
+      const cell = grid[c]?.[r];
+      if (!cell || cell.colorIdx < 0) continue;
+      const color = cell.colorIdx;
+      // Check 3 forward directions (0=E, 1=NE, 2=NW)
+      // Walk both forward and backward to form full line
+      for (let dir = 0; dir < 3; dir++) {
+        const line = [{ col: c, row: r }];
+        let cur = { col: c, row: r };
+        while (true) {
+          const n = stepDir(cur.col, cur.row, dir);
+          if (!n) break;
+          const nc = grid[n.col]?.[n.row];
+          if (!nc || nc.colorIdx !== color) break;
+          line.push(n); cur = n;
+        }
+        cur = { col: c, row: r };
+        while (true) {
+          const n = stepDir(cur.col, cur.row, (dir + 3) % 6);
+          if (!n) break;
+          const nc = grid[n.col]?.[n.row];
+          if (!nc || nc.colorIdx !== color) break;
+          line.push(n); cur = n;
+        }
+        if (line.length >= 3) {
+          // Deduplicate: sort cells to create canonical key
+          const sorted = line.map(h => h.col + ',' + h.row).sort();
+          const lineKey = dir + ':' + sorted.join(';');
+          if (!seenLines.has(lineKey)) {
+            seenLines.add(lineKey);
+            lineScores.push(line.length);
+          }
+          for (const h of line) matched.add(h.col + ',' + h.row);
+        }
+      }
+    }
+  }
+  matched.lineScores = lineScores;
+  return matched;
+}
+
+function longestMatchAt(col, row) {
+  const cell = grid[col]?.[row];
+  if (!cell || cell.colorIdx < 0) return 0;
+  const color = cell.colorIdx;
+  let maxLen = 0;
+  for (let dir = 0; dir < 3; dir++) {
+    let len = 1;
+    let cur = { col, row };
+    while (true) { const n = stepDir(cur.col, cur.row, dir); if (!n || grid[n.col]?.[n.row]?.colorIdx !== color) break; len++; cur = n; }
+    cur = { col, row };
+    while (true) { const n = stepDir(cur.col, cur.row, (dir+3)%6); if (!n || grid[n.col]?.[n.row]?.colorIdx !== color) break; len++; cur = n; }
+    if (len > maxLen) maxLen = len;
+  }
+  return maxLen;
+}
+
+/* ══════════════════════════════════════════
+   Power-up effects
+   ══════════════════════════════════════════ */
+function triggerBomb(col, row) {
+  const t = new Set([col+','+row]);
+  for (const n of getNeighbors(col, row)) {
+    if (grid[n.col]?.[n.row]?.colorIdx >= 0) t.add(n.col+','+n.row);
+  }
+  return t;
+}
+
+function triggerColorBomb(col, row) {
+  const counts = {};
+  for (let c = 0; c < COLS; c++) for (let r = 0; r < ROWS; r++) {
+    const ci = grid[c]?.[r]?.colorIdx;
+    if (ci >= 0) counts[ci] = (counts[ci]||0) + 1;
+  }
+  let best = 0, bestCnt = 0;
+  for (const [ci, cnt] of Object.entries(counts)) if (cnt > bestCnt) { bestCnt = cnt; best = +ci; }
+  const t = new Set([col+','+row]);
+  for (let c = 0; c < COLS; c++) for (let r = 0; r < ROWS; r++) {
+    if (grid[c]?.[r]?.colorIdx === best) t.add(c+','+r);
+  }
+  return t;
+}
+
+function triggerLightning(col, row) {
+  const t = new Set([col+','+row]);
+  for (let dir = 0; dir < 6; dir++) {
+    let cur = { col, row };
+    while (true) {
+      const n = stepDir(cur.col, cur.row, dir);
+      if (!n) break;
+      if (grid[n.col]?.[n.row]?.colorIdx >= 0) t.add(n.col+','+n.row);
+      cur = n;
+    }
+  }
+  return t;
+}
+
+/* ══════════════════════════════════════════
+   Scoring
+   ══════════════════════════════════════════ */
+function scoreFor(n) { return n >= 6 ? 250 : n === 5 ? 150 : n === 4 ? 80 : 30; }
+
+function addScore(pts) {
+  score += pts * chainMultiplier;
+  scoreEl.textContent = score;
+  scoreEl.classList.remove('pop');
+  void scoreEl.offsetWidth;
+  scoreEl.classList.add('pop');
+  const nc = Math.min(7, 4 + Math.floor(score / 500));
+  if (nc > activeColors) activeColors = nc;
+  if (score > best) { best = score; bestEl.textContent = best; }
+}
+
+/* ══════════════════════════════════════════
+   Cascade engine
+   ══════════════════════════════════════════ */
+async function processMatches() {
+  chainMultiplier = 1;
+  while (true) {
+    const matches = findAllMatches();
+    if (matches.size === 0) break;
+
+    const arr = [...matches].map(k => { const [c,r] = k.split(',').map(Number); return {col:c, row:r}; });
+
+    // Find longest line for power-up
+    let maxLen = 0, maxCenter = null;
+    for (const h of arr) {
+      const l = longestMatchAt(h.col, h.row);
+      if (l > maxLen) { maxLen = l; maxCenter = h; }
+    }
+
+    // Score each individual line match separately
+    const lines = matches.lineScores || [arr.length];
+    for (const len of lines) addScore(scoreFor(len));
+
+    // Trigger existing power-ups in matched cells
+    let extra = new Set();
+    for (const h of arr) {
+      const cell = grid[h.col]?.[h.row];
+      if (!cell?.powerUp) continue;
+      let triggered;
+      if (cell.powerUp === 'bomb') { triggered = triggerBomb(h.col, h.row); AudioManager.playClear(); }
+      else if (cell.powerUp === 'colorBomb') { triggered = triggerColorBomb(h.col, h.row); AudioManager.playSuccess(); }
+      else if (cell.powerUp === 'lightning') { triggered = triggerLightning(h.col, h.row); AudioManager.playSuccess(); }
+      if (triggered) for (const t of triggered) extra.add(t);
+    }
+    for (const t of extra) matches.add(t);
+
+    // Burst all matched
+    const burst = [...matches].map(k => { const [c,r] = k.split(',').map(Number); return {col:c, row:r}; });
+
+    for (const h of burst) {
+      const cell = grid[h.col]?.[h.row];
+      if (!cell) continue;
+      const { x, y } = hexToPixel(h.col, h.row);
+      const color = cell.colorIdx >= 0 ? COLORS[cell.colorIdx].hex : '#888';
+      const cr = canvas.getBoundingClientRect();
+      const s = cr.width / canvasSize;
+      particles.spawn(cr.left + x * s, cr.top + y * s, color, 6);
+      for (let i = 0; i < 5; i++) {
+        burstParticles.push({ x, y, vx: (Math.random()-0.5)*3, vy: (Math.random()-0.5)*3, life: 1, size: 2+Math.random()*3, color });
+      }
+      cell.burstProgress = 0;
+    }
+    AudioManager.playClear();
+    haptic('medium');
+
+    await animateBurst(burst);
+
+    // Decide power-up
+    let puType = maxLen >= 6 ? 'lightning' : maxLen === 5 ? 'colorBomb' : maxLen === 4 ? 'bomb' : null;
+
+    // Clear cells
+    for (const h of burst) grid[h.col][h.row] = null;
+
+    // Place power-up
+    if (puType && maxCenter) {
+      grid[maxCenter.col][maxCenter.row] = makeCell(randColor());
+      grid[maxCenter.col][maxCenter.row].powerUp = puType;
+    }
+
+    await applyGravity();
+
+    chainMultiplier *= 2;
+    if (chainMultiplier >= 2) showCombo(chainMultiplier + 'x Chain!');
+  }
+
+  if (score >= 2000) maybeAddStone();
+  if (!hasValidMoves()) endGame();
+  animating = false;
+}
+
+/* ── Burst animation ── */
+function animateBurst(cells) {
+  return new Promise(resolve => {
+    const dur = 300, t0 = performance.now();
+    (function tick(now) {
+      const t = Math.min(1, (now - t0) / dur);
+      for (const h of cells) { const c = grid[h.col]?.[h.row]; if (c) c.burstProgress = t; }
+      burstParticles = burstParticles.filter(p => { p.x += p.vx; p.y += p.vy; p.life -= 0.03; return p.life > 0; });
+      render();
+      t < 1 ? requestAnimationFrame(tick) : resolve();
+    })(performance.now());
+  });
+}
+
+/* ── Gravity: drop + fill ── */
+function applyGravity() {
+  return new Promise(resolve => {
+    let anyFall = false;
+
+    for (let c = 0; c < COLS; c++) {
+      // Separate stones (fixed) from gems (mobile)
+      const stonePos = new Set();
+      const gems = [];
+      for (let r = ROWS - 1; r >= 0; r--) {
+        const cell = grid[c][r];
+        if (!cell) continue;
+        if (cell.colorIdx < 0) stonePos.add(r);
+        else gems.push({ cell, fromRow: r });
+      }
+
+      const newCol = new Array(ROWS).fill(null);
+      // Place stones back
+      for (const sr of stonePos) newCol[sr] = grid[c][sr];
+
+      // Drop gems into empty slots from bottom
+      let gi = 0;
+      for (let r = ROWS - 1; r >= 0; r--) {
+        if (stonePos.has(r)) continue;
+        if (gi < gems.length) {
+          const { cell, fromRow } = gems[gi++];
+          newCol[r] = cell;
+          if (fromRow !== r) {
+            cell.falling = true;
+            cell.fallFrom = hexToPixel(c, fromRow).y;
+            cell.fallProgress = 0;
+            anyFall = true;
+          }
+        } else {
+          // New gem from above
+          const nc = makeCell(randColor());
+          nc.falling = true;
+          nc.fallFrom = hexToPixel(c, 0).y - hexR * 3 * (gi - gems.length + 1);
+          nc.fallProgress = 0;
+          newCol[r] = nc;
+          anyFall = true;
+          gi++;
+        }
+      }
+      grid[c] = newCol;
+    }
+
+    if (!anyFall) { resolve(); return; }
+
+    const dur = 400, t0 = performance.now();
+    (function tick(now) {
+      const t = Math.min(1, (now - t0) / dur);
+      let still = false;
+      for (let c = 0; c < COLS; c++) for (let r = 0; r < ROWS; r++) {
+        const cell = grid[c][r];
+        if (cell?.falling) {
+          cell.fallProgress = t;
+          if (t >= 1) { cell.falling = false; cell.fallProgress = 1; }
+          else still = true;
+        }
+      }
+      burstParticles = burstParticles.filter(p => { p.x += p.vx; p.y += p.vy; p.life -= 0.02; return p.life > 0; });
+      render();
+      still ? requestAnimationFrame(tick) : resolve();
+    })(performance.now());
+  });
+}
+
+/* ══════════════════════════════════════════
+   Valid-move check
+   ══════════════════════════════════════════ */
+function hasValidMoves() {
+  for (let c = 0; c < COLS; c++) for (let r = 0; r < ROWS; r++) {
+    const cell = grid[c][r];
+    if (!cell || cell.colorIdx < 0) continue;
+    for (const n of getNeighbors(c, r)) {
+      if (!grid[n.col][n.row] || grid[n.col][n.row].colorIdx < 0) continue;
+      swap(c, r, n.col, n.row);
+      const ok = findAllMatches().size > 0;
+      swap(c, r, n.col, n.row);
+      if (ok) return true;
+    }
+  }
+  return false;
+}
+
+function swap(c1, r1, c2, r2) {
+  const t = grid[c1][r1]; grid[c1][r1] = grid[c2][r2]; grid[c2][r2] = t;
+}
+
+/* ── Stone placement ── */
+function maybeAddStone() {
+  if (Math.random() > 0.08) return;
+  const cands = [];
+  for (let c = 0; c < COLS; c++) for (let r = 0; r < ROWS; r++) {
+    if (grid[c][r]?.colorIdx >= 0 && !grid[c][r].powerUp) cands.push({col:c,row:r});
+  }
+  if (cands.length) {
+    const p = cands[Math.floor(Math.random() * cands.length)];
+    grid[p.col][p.row] = makeCell(-1);
+  }
+}
+
+/* ══════════════════════════════════════════
+   Swap animation
+   ══════════════════════════════════════════ */
+function animateSwap(c1, r1, c2, r2) {
+  return new Promise(resolve => {
+    swapAnim = { c1, r1, c2, r2, progress: 0 };
+    const dur = 220, t0 = performance.now();
+    (function tick(now) {
+      swapAnim.progress = Math.min(1, (now - t0) / dur);
+      render();
+      swapAnim.progress < 1 ? requestAnimationFrame(tick) : (swapAnim = null, resolve());
+    })(performance.now());
+  });
+}
+
+/* ══════════════════════════════════════════
+   Input
+   ══════════════════════════════════════════ */
+function handleTap(cx, cy) {
+  if (animating || gameOver) return;
+  const rect = canvas.getBoundingClientRect();
+  const s = canvasSize / rect.width;
+  const hex = pixelToHex((cx - rect.left) * s, (cy - rect.top) * s);
+  if (!hex) return;
+  const cell = grid[hex.col]?.[hex.row];
+  if (!cell || cell.colorIdx < 0) return;
+
+  if (!selectedHex) {
+    selectedHex = hex;
+    AudioManager.playClick(); haptic('light');
+    render();
+  } else if (selectedHex.col === hex.col && selectedHex.row === hex.row) {
+    selectedHex = null; render();
+  } else {
+    const nbrs = getNeighbors(selectedHex.col, selectedHex.row);
+    if (nbrs.some(n => n.col === hex.col && n.row === hex.row)) {
+      const sc = selectedHex.col, sr = selectedHex.row;
+      selectedHex = null;
+      doSwap(sc, sr, hex.col, hex.row);
+    } else {
+      selectedHex = hex;
+      AudioManager.playClick(); haptic('light');
+      render();
+    }
+  }
+}
+
+async function doSwap(c1, r1, c2, r2) {
+  animating = true;
+
+  await animateSwap(c1, r1, c2, r2);
+  swap(c1, r1, c2, r2);
+  render();
+
+  if (findAllMatches().size > 0) {
+    moves++; movesEl.textContent = moves;
+    AudioManager.playPlace();
+    await processMatches();
+  } else {
+    AudioManager.playFail(); haptic('light');
+    await animateSwap(c1, r1, c2, r2);
+    swap(c1, r1, c2, r2);
+    render();
+    animating = false;
+  }
+}
+
+/* ── Combo floating text ── */
+function showCombo(text) {
+  const el = document.createElement('div');
+  el.className = 'combo-text show';
+  el.textContent = text;
+  el.style.top = '40%';
+  el.style.color = COLORS[Math.floor(Math.random() * activeColors)].hex;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1200);
+}
+
+/* ══════════════════════════════════════════
+   Game over
+   ══════════════════════════════════════════ */
+function endGame() {
+  gameOver = true;
+  const petals = Math.floor(score / 50);
+  const isNew = ArcadeData.submitScore(GAME_ID, score);
+  if (petals > 0) ArcadeData.earnPetals(petals);
+
+  fScoreEl.textContent = score;
+  fBestEl.textContent = isNew ? 'New Best!' : 'Best: ' + ArcadeData.getBest(GAME_ID);
+  fPetalsEl.textContent = petals > 0 ? '+' + petals + ' petals earned' : '';
+
+  AudioManager.playFail();
+  setTimeout(() => overEl.classList.add('visible'), 500);
+}
+
+/* ══════════════════════════════════════════
+   Main loop & init
+   ══════════════════════════════════════════ */
+function gameLoop() {
+  render();
+  requestAnimationFrame(gameLoop);
+}
+
+function startGame() {
+  score = 0; moves = 0; activeColors = 4; chainMultiplier = 1;
+  selectedHex = null; animating = false; gameOver = false;
+  burstParticles = []; swapAnim = null;
+
+  best = ArcadeData.getBest(GAME_ID);
+  scoreEl.textContent = '0';
+  bestEl.textContent = best;
+  movesEl.textContent = '0';
+  overEl.classList.remove('visible');
+
+  resize();
+  initGrid();
+  for (let i = 0; i < 30 && !hasValidMoves(); i++) initGrid();
+  render();
+}
+
+new TouchManager(canvas, { onTap: e => handleTap(e.x, e.y) });
+window.addEventListener('resize', () => { resize(); render(); });
+document.getElementById('btn-restart').addEventListener('click', startGame);
+
+startGame();
+requestAnimationFrame(gameLoop);
+
+})();
+</script>
+</body>
+</html>

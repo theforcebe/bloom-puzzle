@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Memory Matrix — Iris Moon Arcade</title>
+<meta name="theme-color" content="#0d0a1a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="stylesheet" href="../shared.css">
+<style>
+:root {
+  --game-accent: var(--neon-gold);
+  --game-glow: rgba(255,215,64,0.3);
+  --board-size: min(92vw, 65dvh, 500px);
+}
+
+/* ── Card Grid ── */
+.card-grid {
+  display: grid;
+  width: var(--board-size);
+  height: auto;
+  gap: clamp(4px, 0.8vw, 8px);
+  perspective: 1000px;
+}
+
+.card-grid[data-cols="4"][data-rows="3"] {
+  grid-template-columns: repeat(4, 1fr);
+}
+.card-grid[data-cols="4"][data-rows="4"] {
+  grid-template-columns: repeat(4, 1fr);
+}
+.card-grid[data-cols="5"][data-rows="4"] {
+  grid-template-columns: repeat(5, 1fr);
+}
+.card-grid[data-cols="6"][data-rows="5"] {
+  grid-template-columns: repeat(6, 1fr);
+}
+.card-grid[data-cols="6"][data-rows="6"] {
+  grid-template-columns: repeat(6, 1fr);
+}
+
+/* ── Card ── */
+.memory-card {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1.2;
+  cursor: pointer;
+  perspective: 600px;
+}
+
+.card-inner {
+  position: absolute;
+  inset: 0;
+  transition: transform 0.5s ease;
+  transform-style: preserve-3d;
+}
+
+.memory-card.flipped .card-inner,
+.memory-card.matched .card-inner {
+  transform: rotateY(180deg);
+}
+
+.card-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: clamp(6px, 1.5vw, 12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* ── Card Back — Art Nouveau Glass Panel ── */
+.card-back {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: inset 0 0 15px rgba(74,63,107,0.2), 0 0 8px rgba(255,215,64,0.08);
+}
+
+.card-back::before {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: inherit;
+  border: 1px solid rgba(184,169,212,0.1);
+  background:
+    radial-gradient(ellipse 60% 30% at 50% 15%, rgba(255,215,64,0.08) 0%, transparent 70%),
+    radial-gradient(ellipse 60% 30% at 50% 85%, rgba(212,114,140,0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.card-back::after {
+  content: '\2725';
+  font-size: clamp(14px, 3vw, 24px);
+  color: var(--iris-light);
+  opacity: 0.25;
+  text-shadow: 0 0 6px rgba(255,215,64,0.2);
+}
+
+/* Art Nouveau decorative lines on card back */
+.card-back-deco {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.card-back-deco::before {
+  content: '';
+  position: absolute;
+  top: 15%;
+  left: 50%;
+  width: 60%;
+  height: 70%;
+  transform: translateX(-50%);
+  border: 1px solid rgba(184,169,212,0.08);
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+}
+
+.card-back-deco::after {
+  content: '';
+  position: absolute;
+  bottom: 10%;
+  left: 50%;
+  width: 40%;
+  height: 1px;
+  transform: translateX(-50%);
+  background: linear-gradient(90deg, transparent, rgba(255,215,64,0.15), transparent);
+}
+
+/* ── Card Front ── */
+.card-front {
+  transform: rotateY(180deg);
+  background: linear-gradient(145deg, rgba(36,30,56,0.95), rgba(30,24,50,0.98));
+  border: 1px solid rgba(255,215,64,0.2);
+  box-shadow: inset 0 0 20px rgba(255,215,64,0.05), 0 0 12px rgba(255,215,64,0.1);
+}
+
+.card-front .card-symbol {
+  font-size: clamp(22px, 5vw, 40px);
+  filter: drop-shadow(0 0 6px rgba(255,215,64,0.3));
+  transition: transform 0.3s ease;
+}
+
+/* ── Matched State ── */
+.memory-card.matched .card-front {
+  border-color: rgba(118,255,3,0.3);
+  box-shadow: inset 0 0 20px rgba(118,255,3,0.05), 0 0 15px rgba(118,255,3,0.15);
+}
+
+.memory-card.matched .card-symbol {
+  animation: matchPulse 0.6s ease;
+}
+
+@keyframes matchPulse {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.3); }
+  60% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+/* ── Shake for mismatch ── */
+.memory-card.shake .card-inner {
+  animation: cardShake 0.4s ease;
+}
+
+@keyframes cardShake {
+  0%, 100% { transform: rotateY(180deg) translateX(0); }
+  25% { transform: rotateY(180deg) translateX(-4px); }
+  75% { transform: rotateY(180deg) translateX(4px); }
+}
+
+/* ── Peek state ── */
+.memory-card.peek .card-inner {
+  transform: rotateY(180deg);
+}
+
+/* ── Power-up Bar ── */
+.powerup-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(8px, 2vw, 16px);
+}
+
+.peek-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-ui);
+  font-size: clamp(10px, 1.4dvh, 13px);
+  font-weight: 500;
+  letter-spacing: 1px;
+  color: var(--neon-gold);
+  background: rgba(255,215,64,0.08);
+  border: 1px solid rgba(255,215,64,0.2);
+  border-radius: 20px;
+  padding: clamp(5px, 0.8dvh, 8px) clamp(12px, 2.5vw, 18px);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.peek-btn:hover, .peek-btn:active {
+  background: rgba(255,215,64,0.15);
+  box-shadow: 0 0 12px rgba(255,215,64,0.2);
+}
+
+.peek-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+  box-shadow: none;
+}
+
+.peek-btn .petal-cost {
+  font-size: clamp(9px, 1.2dvh, 11px);
+  opacity: 0.7;
+}
+
+.petal-display {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-ui);
+  font-size: clamp(11px, 1.5dvh, 14px);
+  color: var(--moon-glow);
+}
+
+/* ── Win Overlay extras ── */
+.overlay-stats {
+  display: flex;
+  gap: clamp(16px, 4vw, 32px);
+  margin-bottom: var(--spacing-lg);
+  animation: fadeInUp 0.8s ease 0.3s both;
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-value {
+  font-family: var(--font-display);
+  font-size: clamp(24px, 4dvh, 36px);
+  font-weight: 600;
+  color: var(--moon-glow);
+}
+
+.stat-label {
+  font-size: clamp(9px, 1.2dvh, 11px);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--iris-light);
+  opacity: 0.6;
+}
+
+.overlay-petals {
+  font-size: clamp(13px, 1.8dvh, 16px);
+  color: var(--neon-gold);
+  margin-bottom: var(--spacing-md);
+  animation: fadeInUp 0.8s ease 0.5s both;
+}
+
+.overlay-best {
+  font-size: clamp(11px, 1.5dvh, 14px);
+  color: var(--neon-green);
+  margin-bottom: var(--spacing-sm);
+  animation: fadeInUp 0.8s ease 0.4s both;
+}
+</style>
+</head>
+<body>
+
+<!-- Background Canvas -->
+<canvas class="bg-canvas" id="bg-canvas"></canvas>
+
+<!-- Particle Canvas -->
+<canvas class="particle-canvas" id="particle-canvas"></canvas>
+
+<!-- Game Page -->
+<div class="game-page">
+
+  <!-- Header -->
+  <div class="game-header">
+    <a class="btn-back" onclick="goToHub()" aria-label="Back">&#9664;</a>
+    <div>
+      <div class="game-title text-gradient">Memory Matrix</div>
+      <div class="game-subtitle">Flip &amp; Match</div>
+    </div>
+  </div>
+
+  <!-- Difficulty Selector -->
+  <div class="difficulty-selector" id="difficulty-selector">
+    <button class="difficulty-btn active" data-difficulty="easy">Easy</button>
+    <button class="difficulty-btn" data-difficulty="medium">Medium</button>
+    <button class="difficulty-btn" data-difficulty="hard">Hard</button>
+    <button class="difficulty-btn" data-difficulty="expert">Expert</button>
+    <button class="difficulty-btn" data-difficulty="master">Master</button>
+  </div>
+
+  <!-- Score Bar -->
+  <div class="score-bar">
+    <div class="score-box">
+      <div class="score-label">Moves</div>
+      <div class="score-value" id="moves-display">0</div>
+    </div>
+    <div class="score-box">
+      <div class="score-label">Matches</div>
+      <div class="score-value" id="matches-display">0</div>
+    </div>
+    <div class="score-box">
+      <div class="score-label">Time</div>
+      <div class="score-value" id="timer-display">0:00</div>
+    </div>
+  </div>
+
+  <!-- Card Grid -->
+  <div class="card-grid" id="card-grid" data-cols="4" data-rows="3"></div>
+
+  <!-- Power-up Bar -->
+  <div class="powerup-bar">
+    <div class="petal-display">
+      <span>&#127801;</span>
+      <span id="petal-count">0</span>
+    </div>
+    <button class="peek-btn" id="peek-btn" onclick="activatePeek()">
+      &#128065; Peek
+      <span class="petal-cost">(5&#127801;)</span>
+    </button>
+  </div>
+
+</div>
+
+<!-- Win Overlay -->
+<div class="overlay" id="win-overlay">
+  <div class="overlay-title text-gradient">Complete!</div>
+  <div class="overlay-score" id="overlay-score">0</div>
+  <div class="overlay-label">Score</div>
+  <div class="overlay-stats" id="overlay-stats">
+    <div class="stat-item">
+      <div class="stat-value" id="overlay-time">0:00</div>
+      <div class="stat-label">Time</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value" id="overlay-moves">0</div>
+      <div class="stat-label">Moves</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value" id="overlay-matches">0</div>
+      <div class="stat-label">Matches</div>
+    </div>
+  </div>
+  <div class="overlay-best" id="overlay-best" style="display:none">&#9733; New Best Score!</div>
+  <div class="overlay-petals" id="overlay-petals">+3 &#127801;</div>
+  <button class="btn-primary" onclick="playAgain()">Play Again</button>
+</div>
+
+<script src="../shared.js"></script>
+<script>
+// ══════════════════════════════════════════
+//  Memory Matrix — Game Logic
+// ══════════════════════════════════════════
+
+const SYMBOLS = [
+  '\u{1F339}', '\u{1F337}', '\u{1F33A}', '\u{1F338}', '\u{1F343}', '\u{1F33F}',
+  '\u{1F33B}', '\u{1F33C}', '\u{1F490}', '\u{1FABB}', '\u{1F33E}', '\u{1F340}',
+  '\u{1FAB7}', '\u{1F331}', '\u{1FAB4}', '\u{1F333}', '\u{1F341}', '\u{1F342}'
+];
+
+const DIFFICULTIES = {
+  easy:   { cols: 4, rows: 3, pairs: 6 },
+  medium: { cols: 4, rows: 4, pairs: 8 },
+  hard:   { cols: 5, rows: 4, pairs: 10 },
+  expert: { cols: 6, rows: 5, pairs: 15 },
+  master: { cols: 6, rows: 6, pairs: 18 }
+};
+
+// ── State ──
+let currentDifficulty = 'easy';
+let cards = [];
+let flippedCards = [];
+let matchedPairs = 0;
+let totalPairs = 0;
+let moves = 0;
+let streak = 0;
+let streakBonus = 0;
+let score = 0;
+let timerSeconds = 0;
+let timerInterval = null;
+let isLocked = false;
+let gameStarted = false;
+let gameOver = false;
+let isPeeking = false;
+
+// ── DOM refs ──
+const gridEl = document.getElementById('card-grid');
+const movesEl = document.getElementById('moves-display');
+const matchesEl = document.getElementById('matches-display');
+const timerEl = document.getElementById('timer-display');
+const petalCountEl = document.getElementById('petal-count');
+const peekBtn = document.getElementById('peek-btn');
+const winOverlay = document.getElementById('win-overlay');
+
+// ── Background & Particles ──
+let ambientBg, particles;
+
+function initSystems() {
+  ambientBg = new AmbientBackground(document.getElementById('bg-canvas'));
+  ambientBg.start();
+  particles = new ParticleSystem(document.getElementById('particle-canvas'));
+  particles.start();
+}
+
+// ── Difficulty Selection ──
+document.querySelectorAll('.difficulty-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.difficulty-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentDifficulty = btn.dataset.difficulty;
+    AudioManager.playClick();
+    haptic('light');
+    startGame();
+  });
+});
+
+// ── Update Petal Display ──
+function updatePetalDisplay() {
+  petalCountEl.textContent = ArcadeData.getPetals();
+  peekBtn.disabled = ArcadeData.getPetals() < 5 || gameOver || isPeeking;
+}
+
+// ── Start Game ──
+function startGame() {
+  const diff = DIFFICULTIES[currentDifficulty];
+  totalPairs = diff.pairs;
+  matchedPairs = 0;
+  moves = 0;
+  streak = 0;
+  streakBonus = 0;
+  score = 0;
+  timerSeconds = 0;
+  flippedCards = [];
+  isLocked = false;
+  gameStarted = false;
+  gameOver = false;
+  isPeeking = false;
+
+  clearInterval(timerInterval);
+  timerInterval = null;
+
+  movesEl.textContent = '0';
+  matchesEl.textContent = '0';
+  timerEl.textContent = '0:00';
+  updatePetalDisplay();
+
+  winOverlay.classList.remove('visible');
+
+  // Build card data
+  const shuffledSymbols = [...SYMBOLS].sort(() => Math.random() - 0.5).slice(0, totalPairs);
+  const cardData = [...shuffledSymbols, ...shuffledSymbols];
+
+  // Fisher-Yates shuffle
+  for (let i = cardData.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [cardData[i], cardData[j]] = [cardData[j], cardData[i]];
+  }
+
+  // Set grid attributes
+  gridEl.dataset.cols = diff.cols;
+  gridEl.dataset.rows = diff.rows;
+  gridEl.innerHTML = '';
+  cards = [];
+
+  // Create card elements
+  cardData.forEach((symbol, index) => {
+    const card = document.createElement('div');
+    card.className = 'memory-card';
+    card.dataset.index = index;
+    card.dataset.symbol = symbol;
+
+    card.innerHTML = `
+      <div class="card-inner">
+        <div class="card-face card-back">
+          <div class="card-back-deco"></div>
+        </div>
+        <div class="card-face card-front">
+          <span class="card-symbol">${symbol}</span>
+        </div>
+      </div>
+    `;
+
+    card.onclick = () => flipCard(index);
+    gridEl.appendChild(card);
+    cards.push(card);
+  });
+}
+
+// ── Timer ──
+function startTimer() {
+  if (timerInterval) return;
+  timerInterval = setInterval(() => {
+    timerSeconds++;
+    const mins = Math.floor(timerSeconds / 60);
+    const secs = timerSeconds % 60;
+    timerEl.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+  }, 1000);
+}
+
+function stopTimer() {
+  clearInterval(timerInterval);
+  timerInterval = null;
+}
+
+// ── Flip Card ──
+function flipCard(index) {
+  if (isLocked || gameOver || isPeeking) return;
+
+  const card = cards[index];
+
+  // Don't flip already flipped or matched cards
+  if (card.classList.contains('flipped') || card.classList.contains('matched')) return;
+
+  // Don't flip more than 2
+  if (flippedCards.length >= 2) return;
+
+  // Start timer on first flip
+  if (!gameStarted) {
+    gameStarted = true;
+    startTimer();
+  }
+
+  // Flip the card
+  card.classList.add('flipped');
+  flippedCards.push(index);
+  AudioManager.playClick();
+  haptic('light');
+
+  // Check for match when 2 cards are flipped
+  if (flippedCards.length === 2) {
+    moves++;
+    movesEl.textContent = moves;
+    popScore(movesEl);
+    checkMatch();
+  }
+}
+
+// ── Check Match ──
+function checkMatch() {
+  isLocked = true;
+  const [i1, i2] = flippedCards;
+  const card1 = cards[i1];
+  const card2 = cards[i2];
+
+  if (card1.dataset.symbol === card2.dataset.symbol) {
+    // Match found
+    setTimeout(() => {
+      card1.classList.add('matched');
+      card2.classList.add('matched');
+      matchedPairs++;
+      streak++;
+      if (streak >= 2) streakBonus += 50;
+      matchesEl.textContent = matchedPairs;
+      popScore(matchesEl);
+
+      AudioManager.playClear();
+      haptic('medium');
+
+      // Spawn particles at card positions
+      spawnParticlesAtCard(card1);
+      spawnParticlesAtCard(card2);
+
+      // Show streak combo
+      if (streak >= 2) {
+        showCombo(streak);
+      }
+
+      flippedCards = [];
+      isLocked = false;
+
+      // Check win
+      if (matchedPairs === totalPairs) {
+        handleWin();
+      }
+    }, 300);
+  } else {
+    // Mismatch
+    streak = 0;
+    setTimeout(() => {
+      card1.classList.add('shake');
+      card2.classList.add('shake');
+      AudioManager.playFail();
+      haptic('light');
+
+      setTimeout(() => {
+        card1.classList.remove('flipped', 'shake');
+        card2.classList.remove('flipped', 'shake');
+        flippedCards = [];
+        isLocked = false;
+      }, 500);
+    }, 600);
+  }
+}
+
+// ── Particles at Card ──
+function spawnParticlesAtCard(card) {
+  const rect = card.getBoundingClientRect();
+  const x = rect.left + rect.width / 2;
+  const y = rect.top + rect.height / 2;
+  const colors = ['#ffd740', '#d4728c', '#e8b87a', '#b8a9d4', '#8fb89a'];
+  const color = colors[Math.floor(Math.random() * colors.length)];
+  particles.spawn(x, y, color, 8);
+}
+
+// ── Score Pop Animation ──
+function popScore(el) {
+  el.classList.remove('pop');
+  void el.offsetWidth;
+  el.classList.add('pop');
+}
+
+// ── Combo Float ──
+function showCombo(streakCount) {
+  const texts = ['Double!', 'Triple!', 'Quad!', 'Penta!', 'Incredible!'];
+  const text = streakCount <= 5 ? texts[streakCount - 2] : `${streakCount}x Streak!`;
+
+  const el = document.createElement('div');
+  el.className = 'combo-text show';
+  el.style.top = '35%';
+  el.style.color = 'var(--neon-gold)';
+  el.style.textShadow = '0 0 20px rgba(255,215,64,0.5)';
+  el.textContent = text;
+  document.body.appendChild(el);
+
+  setTimeout(() => el.remove(), 1300);
+}
+
+// ── Calculate Score ──
+// 1000 base - 10/miss - 1/second + 50 per streak match (2+ consecutive)
+function calculateScore() {
+  const misses = moves - matchedPairs;
+  let s = 1000;
+  s -= misses * 10;
+  s -= timerSeconds;
+  s += streakBonus;
+
+  return Math.max(s, 10); // minimum 10 points
+}
+
+// ── Handle Win ──
+function handleWin() {
+  gameOver = true;
+  stopTimer();
+  AudioManager.playSuccess();
+  haptic('heavy');
+
+  score = calculateScore();
+  const diffPetals = { easy: 2, medium: 3, hard: 5, expert: 8, master: 12 };
+  const petalsEarned = diffPetals[currentDifficulty] || 3;
+
+  // Submit score and earn petals
+  const isBest = ArcadeData.submitScore('memory-matrix', score);
+  ArcadeData.earnPetals(petalsEarned);
+
+  // Update overlay
+  const mins = Math.floor(timerSeconds / 60);
+  const secs = timerSeconds % 60;
+  const timeStr = `${mins}:${secs.toString().padStart(2, '0')}`;
+
+  document.getElementById('overlay-score').textContent = score;
+  document.getElementById('overlay-time').textContent = timeStr;
+  document.getElementById('overlay-moves').textContent = moves;
+  document.getElementById('overlay-matches').textContent = matchedPairs;
+  document.getElementById('overlay-petals').textContent = `+${petalsEarned} \u{1F339}`;
+
+  const bestEl = document.getElementById('overlay-best');
+  if (isBest) {
+    bestEl.style.display = 'block';
+  } else {
+    bestEl.style.display = 'none';
+  }
+
+  // Big particle celebration
+  for (let i = 0; i < 5; i++) {
+    setTimeout(() => {
+      const x = Math.random() * window.innerWidth;
+      const y = Math.random() * window.innerHeight * 0.5;
+      const colors = ['#ffd740', '#d4728c', '#e8b87a', '#b8a9d4', '#76ff03'];
+      particles.spawn(x, y, colors[i % colors.length], 15);
+    }, i * 200);
+  }
+
+  setTimeout(() => {
+    winOverlay.classList.add('visible');
+  }, 600);
+}
+
+// ── Peek Power-up ──
+function activatePeek() {
+  if (isPeeking || gameOver || isLocked) return;
+  if (ArcadeData.getPetals() < 5) return;
+
+  if (!ArcadeData.spendPetals(5)) return;
+
+  isPeeking = true;
+  isLocked = true;
+  updatePetalDisplay();
+  AudioManager.playPlace();
+  haptic('medium');
+
+  // Flip all unmatched cards face-up
+  cards.forEach(card => {
+    if (!card.classList.contains('matched')) {
+      card.classList.add('peek');
+    }
+  });
+
+  // Flip them back after 1 second
+  setTimeout(() => {
+    cards.forEach(card => {
+      if (!card.classList.contains('matched') && !card.classList.contains('flipped')) {
+        card.classList.remove('peek');
+      }
+      // Also remove peek from already-flipped ones
+      card.classList.remove('peek');
+    });
+    isPeeking = false;
+    isLocked = false;
+  }, 1000);
+}
+
+// ── Play Again ──
+function playAgain() {
+  AudioManager.playClick();
+  haptic('light');
+  startGame();
+}
+
+// ── Init ──
+initSystems();
+startGame();
+</script>
+</body>
+</html>

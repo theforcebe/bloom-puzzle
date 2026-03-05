@@ -1,0 +1,1880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Garden Runner | Iris Moon Arcade</title>
+<meta name="theme-color" content="#0d0a1a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="stylesheet" href="../shared.css">
+<style>
+  :root {
+    --game-accent: var(--neon-lime);
+    --game-glow: rgba(198,255,0,0.3);
+  }
+
+  #gameCanvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    touch-action: none;
+  }
+
+  .btn-back {
+    position: fixed;
+    left: var(--spacing-sm);
+    top: calc(var(--spacing-sm) + env(safe-area-inset-top));
+    z-index: 100;
+  }
+
+  .hud {
+    position: fixed;
+    top: calc(var(--spacing-sm) + env(safe-area-inset-top));
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    gap: clamp(12px, 3vw, 24px);
+    z-index: 50;
+    pointer-events: none;
+    padding: 0 clamp(50px, 12vw, 70px);
+  }
+
+  .hud-item {
+    text-align: center;
+    background: rgba(30, 24, 50, 0.7);
+    border: 1px solid var(--glass-border);
+    border-radius: 10px;
+    padding: clamp(2px, 0.4dvh, 4px) clamp(8px, 2vw, 14px);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    min-width: clamp(55px, 14vw, 80px);
+  }
+
+  .hud-label {
+    font-size: clamp(7px, 1dvh, 10px);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--iris-light);
+    opacity: 0.6;
+  }
+
+  .hud-value {
+    font-family: var(--font-display);
+    font-size: clamp(16px, 2.8dvh, 26px);
+    font-weight: 600;
+    color: var(--moon-glow);
+  }
+
+  .hud-value.score-val {
+    color: var(--neon-lime);
+  }
+
+  /* Power-up indicator */
+  .powerup-indicator {
+    position: fixed;
+    bottom: calc(25% + 60px);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 50;
+    pointer-events: none;
+    font-size: clamp(12px, 1.8dvh, 16px);
+    font-family: var(--font-ui);
+    color: var(--neon-lime);
+    text-shadow: 0 0 10px var(--game-glow);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .powerup-indicator.visible {
+    opacity: 1;
+    animation: pulse 0.8s infinite;
+  }
+
+  /* Overlays */
+  .game-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(13, 10, 26, 0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s ease;
+  }
+
+  .game-overlay.visible {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .menu-title {
+    font-family: var(--font-display);
+    font-size: clamp(40px, 8dvh, 64px);
+    font-weight: 300;
+    letter-spacing: 3px;
+    margin-bottom: clamp(4px, 1dvh, 10px);
+    animation: fadeInDown 0.8s ease;
+  }
+
+  .menu-subtitle {
+    font-family: var(--font-display);
+    font-size: clamp(12px, 2dvh, 18px);
+    font-weight: 300;
+    letter-spacing: 6px;
+    text-transform: uppercase;
+    color: var(--iris-light);
+    opacity: 0.7;
+    margin-bottom: clamp(20px, 4dvh, 40px);
+    animation: fadeInDown 0.8s ease 0.1s both;
+  }
+
+  .tap-prompt {
+    font-family: var(--font-ui);
+    font-size: clamp(12px, 1.8dvh, 16px);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--iris-light);
+    animation: pulse 2s infinite;
+  }
+
+  .best-score-line {
+    font-family: var(--font-ui);
+    font-size: clamp(11px, 1.5dvh, 14px);
+    color: var(--iris-light);
+    opacity: 0.5;
+    margin-bottom: clamp(16px, 3dvh, 30px);
+    animation: fadeIn 1s ease 0.3s both;
+  }
+
+  /* Game Over */
+  .go-title {
+    font-family: var(--font-display);
+    font-size: clamp(36px, 6dvh, 52px);
+    font-weight: 300;
+    margin-bottom: var(--spacing-sm);
+    animation: fadeInDown 0.8s ease;
+    color: var(--petal-rose);
+  }
+
+  .go-score {
+    font-family: var(--font-display);
+    font-size: clamp(48px, 8dvh, 72px);
+    font-weight: 600;
+    color: var(--moon-glow);
+    margin-bottom: var(--spacing-xs);
+    animation: fadeInDown 0.6s ease 0.2s both;
+  }
+
+  .go-label {
+    font-size: clamp(10px, 1.5dvh, 13px);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--iris-light);
+    opacity: 0.6;
+    margin-bottom: var(--spacing-md);
+  }
+
+  .go-stats {
+    display: flex;
+    gap: clamp(16px, 4vw, 30px);
+    margin-bottom: var(--spacing-lg);
+    animation: fadeInUp 0.6s ease 0.4s both;
+  }
+
+  .go-stat {
+    text-align: center;
+  }
+
+  .go-stat-val {
+    font-family: var(--font-display);
+    font-size: clamp(20px, 3.5dvh, 32px);
+    font-weight: 600;
+    color: var(--moon-glow);
+  }
+
+  .go-stat-label {
+    font-size: clamp(9px, 1.2dvh, 11px);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--iris-light);
+    opacity: 0.5;
+  }
+
+  .go-new-best {
+    font-family: var(--font-display);
+    font-size: clamp(14px, 2dvh, 18px);
+    color: var(--neon-lime);
+    text-shadow: 0 0 15px var(--game-glow);
+    letter-spacing: 3px;
+    margin-bottom: var(--spacing-md);
+    animation: pulse 1.5s infinite;
+  }
+
+  .go-buttons {
+    display: flex;
+    gap: clamp(10px, 2vw, 16px);
+    animation: fadeInUp 0.6s ease 0.6s both;
+  }
+
+  /* Swipe hint arrows */
+  .swipe-hints {
+    display: flex;
+    gap: clamp(20px, 5vw, 40px);
+    margin-top: clamp(10px, 2dvh, 20px);
+    animation: fadeIn 1s ease 0.5s both;
+  }
+
+  .swipe-hint {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    color: var(--iris-light);
+    opacity: 0.5;
+    font-size: clamp(9px, 1.2dvh, 11px);
+    letter-spacing: 1px;
+  }
+
+  .swipe-hint .arrow {
+    font-size: clamp(18px, 3dvh, 28px);
+  }
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+
+<a href="../index.html" class="btn-back" id="backBtn">&#8592;</a>
+
+<div class="hud" id="hud" style="display:none;">
+  <div class="hud-item">
+    <div class="hud-label">Score</div>
+    <div class="hud-value score-val" id="hudScore">0</div>
+  </div>
+  <div class="hud-item">
+    <div class="hud-label">Dist</div>
+    <div class="hud-value" id="hudDist">0</div>
+  </div>
+  <div class="hud-item">
+    <div class="hud-label">x</div>
+    <div class="hud-value" id="hudMulti">1</div>
+  </div>
+</div>
+
+<div class="powerup-indicator" id="powerupInd">SHIELD ACTIVE</div>
+
+<!-- Menu Overlay -->
+<div class="game-overlay visible" id="menuOverlay">
+  <div class="menu-title text-gradient">Garden Runner</div>
+  <div class="menu-subtitle">Iris Moon Arcade</div>
+  <div class="best-score-line" id="menuBest"></div>
+  <div class="tap-prompt">Tap to Run</div>
+  <div class="swipe-hints">
+    <div class="swipe-hint"><span class="arrow">&#8592;</span>Lane Left</div>
+    <div class="swipe-hint"><span class="arrow">&#8593;</span>Jump</div>
+    <div class="swipe-hint"><span class="arrow">&#8595;</span>Slide</div>
+    <div class="swipe-hint"><span class="arrow">&#8594;</span>Lane Right</div>
+  </div>
+</div>
+
+<!-- Game Over Overlay -->
+<div class="game-overlay" id="gameOverOverlay">
+  <div class="go-title">Garden's End</div>
+  <div class="go-score" id="goScore">0</div>
+  <div class="go-label">Score</div>
+  <div class="go-new-best" id="goNewBest" style="display:none;">New Best!</div>
+  <div class="go-stats">
+    <div class="go-stat">
+      <div class="go-stat-val" id="goDist">0</div>
+      <div class="go-stat-label">Distance</div>
+    </div>
+    <div class="go-stat">
+      <div class="go-stat-val" id="goBest">0</div>
+      <div class="go-stat-label">Best</div>
+    </div>
+    <div class="go-stat">
+      <div class="go-stat-val" id="goPetals">0</div>
+      <div class="go-stat-label">Petals</div>
+    </div>
+  </div>
+  <div class="go-buttons">
+    <button class="btn-primary" id="btnRetry">Play Again</button>
+    <a href="../index.html" class="btn-secondary">Exit</a>
+  </div>
+</div>
+
+<script src="../shared.js"></script>
+<script>
+(() => {
+'use strict';
+
+// ═══════════════════════════════════════════
+//  CONSTANTS
+// ═══════════════════════════════════════════
+const LANE_COUNT = 3;
+const VW = 400;   // virtual width
+const VH = 700;   // virtual height
+
+// Perspective
+const HORIZON_Y = 0.22;          // horizon line (fraction of VH)
+const PLAYER_Y_FRAC = 0.78;      // player vertical position
+const VANISH_X = VW / 2;         // vanishing point X
+const VANISH_Y = VH * HORIZON_Y; // vanishing point Y
+const ROAD_BOTTOM_WIDTH = VW * 0.92; // road width at bottom of screen
+const ROAD_TOP_WIDTH = VW * 0.06;    // road width at horizon
+
+// Lanes: -1 = left, 0 = center, 1 = right
+const LANE_POSITIONS = [-1, 0, 1];
+
+// Player
+const PLAYER_SIZE = 36;
+const LANE_SWITCH_MS = 180;
+const JUMP_DURATION = 450;   // faster, snappier jump
+const SLIDE_DURATION = 400;  // faster slide
+const JUMP_HEIGHT = 95;
+
+// World depth
+const WORLD_DEPTH = 200;     // how far ahead objects spawn (z units)
+const SPAWN_Z = WORLD_DEPTH;
+const DESPAWN_Z = -5;
+
+// Speed
+const BASE_SPEED = 45;       // z-units per second at speed 1.0 (slower start for readability)
+const SPEED_INCREMENT = 0.08;
+const SPEED_INTERVAL = 600;  // distance units between speed-ups
+const MAX_SPEED = 2.5;
+
+// Spawning
+const BASE_OBSTACLE_INTERVAL = 2.2; // seconds between obstacles at speed 1 (more breathing room)
+const BASE_COLLECTIBLE_INTERVAL = 0.8;
+const MIN_OBSTACLE_INTERVAL = 0.7;
+
+// Colors
+const COL_NEON_LIME = '#c6ff00';
+const COL_NEON_LIME_GLOW = 'rgba(198,255,0,0.4)';
+const COL_ROSE = '#d4728c';
+const COL_BLOOM = '#e040fb';
+const COL_GEM = '#00e5ff';
+const COL_SHIELD = '#76ff03';
+const COL_STONE = '#5a5068';
+const COL_VINE = '#4a7a4f';
+const COL_WALL = '#3d3555';
+const COL_PATH = '#1e1830';
+const COL_PATH_LINE = 'rgba(184,169,212,0.12)';
+const COL_SKY_TOP = '#0d0a1a';
+const COL_HORIZON = '#1a1528';
+
+const MAX_PARTICLES = 50;
+
+// ═══════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════
+let state = 'menu'; // menu | playing | dead
+let canvas, ctx;
+let cw, ch; // canvas pixel dimensions
+let scaleX, scaleY, scaleFactor;
+
+// Player state
+let playerLane = 1;       // 0, 1, 2
+let playerLaneVisual = 1; // smooth interpolation
+let playerLaneSwitchStart = 0;
+let playerLaneFrom = 1;
+let playerLaneTo = 1;
+
+let isJumping = false;
+let jumpStartTime = 0;
+let jumpProgress = 0; // 0-1
+
+let isSliding = false;
+let slideStartTime = 0;
+let slideProgress = 0;
+
+let hasShield = false;
+let shieldTimer = 0;
+
+let speed = 1.0;
+let distance = 0;
+let score = 0;
+let comboMultiplier = 1;
+let comboTimer = 0;
+let lastMilestone = 0;
+
+// World objects
+let obstacles = [];
+let collectibles = [];
+let particles = [];
+
+// Background layers
+let bgTreeOffset = 0;
+let bgMountainOffset = 0;
+let pathLineOffset = 0;
+
+// Sky color cycle
+let skyPhase = 0;
+
+// Timing
+let lastTime = 0;
+let accumulator = 0;
+const FIXED_DT = 1 / 60;
+
+// Screen shake
+let shakeAmount = 0;
+let shakeDecay = 0;
+
+// Flash effect
+let flashAlpha = 0;
+let flashColor = '#fff';
+
+// Near miss tracking
+let nearMissTimer = 0;
+
+// Obstacle / collectible spawn timers
+let obstacleTimer = 0;
+let collectibleTimer = 0;
+
+// ═══════════════════════════════════════════
+//  DOM REFS
+// ═══════════════════════════════════════════
+const hudEl = document.getElementById('hud');
+const hudScore = document.getElementById('hudScore');
+const hudDist = document.getElementById('hudDist');
+const hudMulti = document.getElementById('hudMulti');
+const powerupInd = document.getElementById('powerupInd');
+const menuOverlay = document.getElementById('menuOverlay');
+const gameOverOverlay = document.getElementById('gameOverOverlay');
+const goScoreEl = document.getElementById('goScore');
+const goDistEl = document.getElementById('goDist');
+const goBestEl = document.getElementById('goBest');
+const goPetalsEl = document.getElementById('goPetals');
+const goNewBestEl = document.getElementById('goNewBest');
+const menuBestEl = document.getElementById('menuBest');
+const btnRetry = document.getElementById('btnRetry');
+
+// ═══════════════════════════════════════════
+//  CANVAS SETUP
+// ═══════════════════════════════════════════
+canvas = document.getElementById('gameCanvas');
+ctx = canvas.getContext('2d');
+
+function resize() {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  cw = window.innerWidth;
+  ch = window.innerHeight;
+  canvas.width = cw * dpr;
+  canvas.height = ch * dpr;
+  canvas.style.width = cw + 'px';
+  canvas.style.height = ch + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  scaleX = cw / VW;
+  scaleY = ch / VH;
+  scaleFactor = Math.min(scaleX, scaleY);
+}
+
+window.addEventListener('resize', resize);
+resize();
+
+// ═══════════════════════════════════════════
+//  PERSPECTIVE PROJECTION
+// ═══════════════════════════════════════════
+// z: 0 = at player, WORLD_DEPTH = at horizon
+// returns {x, y, scale} in screen coords
+function project(laneOffset, z, elevation) {
+  elevation = elevation || 0;
+  const t = z / WORLD_DEPTH; // 0 at player, 1 at horizon
+  const t2 = Math.max(0, Math.min(1, t));
+
+  // Y position: lerp from bottom to horizon
+  const bottomY = ch * PLAYER_Y_FRAC;
+  const topY = ch * HORIZON_Y;
+  const sy = bottomY + (topY - bottomY) * t2;
+
+  // Road width at this depth
+  const roadW = ROAD_BOTTOM_WIDTH * scaleX * (1 - t2) + ROAD_TOP_WIDTH * scaleX * t2;
+  const laneW = roadW / LANE_COUNT;
+
+  // X position: center + lane offset
+  const cx = cw / 2;
+  const sx = cx + laneOffset * laneW;
+
+  // Scale: objects appear smaller at distance
+  const objScale = (1 - t2 * 0.85) * scaleFactor;
+
+  // Elevation (for jumping)
+  const elevationScreen = elevation * objScale;
+
+  return { x: sx, y: sy - elevationScreen, scale: objScale, roadW, laneW, t: t2 };
+}
+
+// ═══════════════════════════════════════════
+//  SPAWNING
+// ═══════════════════════════════════════════
+function spawnObstacle() {
+  const difficulty = Math.min(speed / MAX_SPEED, 1);
+  const r = Math.random();
+  let type, lane, lanes;
+
+  // Early game: only simple single-lane obstacles until distance > 200
+  const isEarly = distance < 200;
+  const isMid = distance < 600;
+
+  if (isEarly || r < 0.4) {
+    // Simple single-lane obstacle: either jump or slide
+    if (Math.random() < 0.55) {
+      // Low obstacle (must jump) — most common early
+      type = 'low';
+      lane = Math.floor(Math.random() * 3);
+      obstacles.push({ type, lane, z: SPAWN_Z, height: 0.4, color: COL_STONE });
+    } else {
+      // High obstacle (must slide)
+      type = 'high';
+      lane = Math.floor(Math.random() * 3);
+      obstacles.push({ type, lane, z: SPAWN_Z, height: 0.6, color: COL_VINE });
+    }
+  } else if (!isMid && r < 0.55 + difficulty * 0.1) {
+    // Double obstacle: two lanes blocked (low) — only after distance 600
+    const blocked1 = Math.floor(Math.random() * 3);
+    let blocked2 = (blocked1 + 1 + Math.floor(Math.random() * 2)) % 3;
+    obstacles.push({ type: 'low', lane: blocked1, z: SPAWN_Z, height: 0.4, color: COL_STONE });
+    obstacles.push({ type: 'low', lane: blocked2, z: SPAWN_Z, height: 0.4, color: COL_STONE });
+  } else if (!isMid && r < 0.7 + difficulty * 0.1) {
+    // Wall with one gap — only after distance 600
+    const gap = Math.floor(Math.random() * 3);
+    for (let i = 0; i < 3; i++) {
+      if (i !== gap) {
+        obstacles.push({ type: 'wall', lane: i, z: SPAWN_Z, height: 0.8, color: COL_WALL });
+      }
+    }
+  } else if (r < 0.85) {
+    // Single lane block (jump or slide)
+    if (Math.random() < 0.5) {
+      obstacles.push({ type: 'low', lane: Math.floor(Math.random() * 3), z: SPAWN_Z, height: 0.4, color: COL_STONE });
+    } else {
+      obstacles.push({ type: 'high', lane: Math.floor(Math.random() * 3), z: SPAWN_Z, height: 0.6, color: COL_VINE });
+    }
+  } else {
+    // Mixed: one low + one high in different lanes
+    const lowLane = Math.floor(Math.random() * 3);
+    let highLane = (lowLane + 1 + Math.floor(Math.random() * 2)) % 3;
+    obstacles.push({ type: 'low', lane: lowLane, z: SPAWN_Z, height: 0.4, color: COL_STONE });
+    obstacles.push({ type: 'high', lane: highLane, z: SPAWN_Z, height: 0.6, color: COL_VINE });
+  }
+}
+
+function spawnCollectible() {
+  const r = Math.random();
+  let type, lane, value, color, symbol;
+
+  lane = Math.floor(Math.random() * 3);
+
+  if (r < 0.65) {
+    type = 'petal'; value = 1; color = COL_ROSE; symbol = '\u{1F339}';
+  } else if (r < 0.85) {
+    type = 'bloom'; value = 10; color = COL_BLOOM; symbol = '\u{1F338}';
+  } else if (r < 0.94) {
+    type = 'gem'; value = 0; color = COL_GEM; symbol = '\u{1F48E}';
+  } else {
+    type = 'shield'; value = 0; color = COL_SHIELD; symbol = '\u{1F33F}';
+  }
+
+  // Occasionally spawn a row of petals across lanes
+  if (type === 'petal' && Math.random() < 0.3) {
+    for (let i = 0; i < 3; i++) {
+      collectibles.push({ type, lane: i, z: SPAWN_Z, value, color, symbol, bobPhase: Math.random() * Math.PI * 2 });
+    }
+  } else {
+    collectibles.push({ type, lane, z: SPAWN_Z, value, color, symbol, bobPhase: Math.random() * Math.PI * 2 });
+  }
+}
+
+// ═══════════════════════════════════════════
+//  PARTICLES
+// ═══════════════════════════════════════════
+function spawnParticles(x, y, color, count) {
+  count = count || 8;
+  for (let i = 0; i < count && particles.length < MAX_PARTICLES; i++) {
+    particles.push({
+      x, y,
+      vx: (Math.random() - 0.5) * 3,
+      vy: (Math.random() - 0.5) * 3 - 1.5,
+      life: 1,
+      decay: 0.02 + Math.random() * 0.02,
+      size: 2 + Math.random() * 4,
+      color
+    });
+  }
+}
+
+function spawnTrailParticle(x, y) {
+  if (particles.length >= MAX_PARTICLES) return;
+  particles.push({
+    x: x + (Math.random() - 0.5) * 6,
+    y: y + Math.random() * 4,
+    vx: (Math.random() - 0.5) * 0.5,
+    vy: Math.random() * 0.5,
+    life: 0.6,
+    decay: 0.03,
+    size: 1.5 + Math.random() * 2,
+    color: COL_NEON_LIME
+  });
+}
+
+// ═══════════════════════════════════════════
+//  PLAYER ACTIONS
+// ═══════════════════════════════════════════
+function moveLeft() {
+  if (state !== 'playing') return;
+  if (playerLane > 0) {
+    playerLaneFrom = playerLaneVisual;
+    playerLaneTo = playerLane - 1;
+    playerLane = playerLaneTo;
+    playerLaneSwitchStart = performance.now();
+    AudioManager.playClick();
+    haptic('light');
+  }
+}
+
+function moveRight() {
+  if (state !== 'playing') return;
+  if (playerLane < 2) {
+    playerLaneFrom = playerLaneVisual;
+    playerLaneTo = playerLane + 1;
+    playerLane = playerLaneTo;
+    playerLaneSwitchStart = performance.now();
+    AudioManager.playClick();
+    haptic('light');
+  }
+}
+
+let bufferedAction = null; // 'jump' or 'slide' — queued if currently in action
+
+function jump() {
+  if (state !== 'playing') return;
+  if (isSliding) {
+    // Cancel slide into jump if past 50%
+    if (slideProgress > 0.5) {
+      isSliding = false;
+      slideProgress = 0;
+    } else {
+      bufferedAction = 'jump';
+      return;
+    }
+  }
+  if (isJumping) {
+    bufferedAction = 'jump';
+    return;
+  }
+  isJumping = true;
+  jumpStartTime = performance.now();
+  jumpProgress = 0;
+  bufferedAction = null;
+  AudioManager.playClick();
+  haptic('light');
+}
+
+function slide() {
+  if (state !== 'playing') return;
+  if (isJumping) {
+    // Cancel jump into slide if past peak (descending)
+    if (jumpProgress > 0.5) {
+      isJumping = false;
+      jumpProgress = 0;
+    } else {
+      bufferedAction = 'slide';
+      return;
+    }
+  }
+  if (isSliding) {
+    bufferedAction = 'slide';
+    return;
+  }
+  isSliding = true;
+  slideStartTime = performance.now();
+  slideProgress = 0;
+  bufferedAction = null;
+  AudioManager.playClick();
+  haptic('light');
+}
+
+// ═══════════════════════════════════════════
+//  COLLISION DETECTION
+// ═══════════════════════════════════════════
+function checkCollisions() {
+  const playerZ = 0;
+  // Forgiving hit zone that scales with speed — faster = wider zone so you don't phase through
+  const hitZone = 6 + speed * 3;
+
+  for (let i = obstacles.length - 1; i >= 0; i--) {
+    const obs = obstacles[i];
+    // Asymmetric: more forgiving after the obstacle passes (player side)
+    if (obs.z > hitZone * 0.7 || obs.z < -hitZone) continue;
+    if (obs.lane !== playerLane) continue;
+
+    // Check based on obstacle type
+    let hit = false;
+    if (obs.type === 'low') {
+      // Must jump over low obstacles — generous window
+      hit = !isJumping || jumpProgress < 0.08 || jumpProgress > 0.92;
+    } else if (obs.type === 'high') {
+      // Must slide under high obstacles — generous window
+      hit = !isSliding || slideProgress < 0.05 || slideProgress > 0.95;
+    } else if (obs.type === 'wall') {
+      // Walls block entirely - can't jump or slide
+      hit = true;
+    }
+
+    if (hit) {
+      if (hasShield) {
+        hasShield = false;
+        shieldTimer = 0;
+        powerupInd.classList.remove('visible');
+        obstacles.splice(i, 1);
+        const p = project(LANE_POSITIONS[playerLane], 0, 0);
+        spawnParticles(p.x, p.y, COL_SHIELD, 15);
+        flashAlpha = 0.3;
+        flashColor = COL_SHIELD;
+        AudioManager.playClick();
+        haptic('medium');
+        continue;
+      }
+      die();
+      return;
+    }
+
+    // Near miss detection (close but not hit)
+    if (Math.abs(obs.z) < hitZone * 1.5 && !obs.nearMissed) {
+      obs.nearMissed = true;
+      comboMultiplier = Math.min(comboMultiplier + 0.5, 5);
+      comboTimer = 3;
+      score += Math.floor(5 * comboMultiplier);
+      nearMissTimer = 0.5;
+    }
+  }
+
+  // Collectible pickup
+  for (let i = collectibles.length - 1; i >= 0; i--) {
+    const col = collectibles[i];
+    if (col.z > hitZone || col.z < -hitZone) continue;
+    if (col.lane !== playerLane) continue;
+
+    // For jump height collectibles - always collect if in lane
+    const p = project(LANE_POSITIONS[col.lane], col.z, 0);
+    spawnParticles(p.x, p.y, col.color, 6);
+
+    if (col.type === 'petal' || col.type === 'bloom') {
+      score += Math.floor(col.value * comboMultiplier);
+      AudioManager.playPlace();
+    } else if (col.type === 'gem') {
+      // Speed boost visual
+      flashAlpha = 0.2;
+      flashColor = COL_GEM;
+      speed = Math.min(speed + 0.3, MAX_SPEED);
+      AudioManager.playClear();
+    } else if (col.type === 'shield') {
+      hasShield = true;
+      shieldTimer = 15; // seconds
+      powerupInd.textContent = 'SHIELD ACTIVE';
+      powerupInd.classList.add('visible');
+      AudioManager.playClear();
+    }
+
+    haptic('light');
+    collectibles.splice(i, 1);
+  }
+}
+
+// ═══════════════════════════════════════════
+//  GAME STATE MANAGEMENT
+// ═══════════════════════════════════════════
+function startGame() {
+  state = 'playing';
+  playerLane = 1;
+  playerLaneVisual = 1;
+  playerLaneFrom = 1;
+  playerLaneTo = 1;
+  isJumping = false;
+  isSliding = false;
+  hasShield = false;
+  shieldTimer = 0;
+  speed = 1.0;
+  distance = 0;
+  score = 0;
+  comboMultiplier = 1;
+  comboTimer = 0;
+  lastMilestone = 0;
+  obstacles = [];
+  collectibles = [];
+  particles = [];
+  obstacleTimer = 2.5; // grace period: no obstacles for first 2.5 seconds
+  collectibleTimer = 0.5;
+  shakeAmount = 0;
+  flashAlpha = 0;
+  nearMissTimer = 0;
+  skyPhase = 0;
+  bgTreeOffset = 0;
+  bgMountainOffset = 0;
+  pathLineOffset = 0;
+  lastTime = performance.now();
+  accumulator = 0;
+
+  menuOverlay.classList.remove('visible');
+  gameOverOverlay.classList.remove('visible');
+  hudEl.style.display = '';
+  powerupInd.classList.remove('visible');
+}
+
+function die() {
+  state = 'dead';
+  AudioManager.playFail();
+  haptic('heavy');
+  shakeAmount = 12;
+  shakeDecay = 0.9;
+
+  // Player explosion
+  const p = project(LANE_POSITIONS[playerLane], 0, isJumping ? JUMP_HEIGHT * Math.sin(jumpProgress * Math.PI) : 0);
+  spawnParticles(p.x, p.y, COL_NEON_LIME, 20);
+  spawnParticles(p.x, p.y, COL_ROSE, 10);
+
+  // Score submission
+  const finalScore = Math.floor(score + distance);
+  const isNewBest = ArcadeData.submitScore('garden-maze', finalScore);
+  const petalsEarned = Math.floor(finalScore / 50);
+  ArcadeData.earnPetals(petalsEarned);
+
+  // Update game over screen
+  goScoreEl.textContent = finalScore;
+  goDistEl.textContent = Math.floor(distance);
+  goBestEl.textContent = ArcadeData.getBest('garden-maze');
+  goPetalsEl.textContent = petalsEarned;
+  goNewBestEl.style.display = isNewBest ? '' : 'none';
+
+  // Show overlay after short delay for death animation
+  setTimeout(() => {
+    gameOverOverlay.classList.add('visible');
+    hudEl.style.display = 'none';
+  }, 800);
+}
+
+// ═══════════════════════════════════════════
+//  UPDATE (fixed timestep)
+// ═══════════════════════════════════════════
+function update(dt) {
+  if (state !== 'playing') return;
+
+  const moveSpeed = BASE_SPEED * speed * dt;
+
+  // Distance & score
+  distance += moveSpeed * 0.5;
+  score += moveSpeed * 0.1 * comboMultiplier;
+
+  // Speed increase
+  const milestone = Math.floor(distance / SPEED_INTERVAL);
+  if (milestone > lastMilestone) {
+    lastMilestone = milestone;
+    speed = Math.min(speed + SPEED_INCREMENT, MAX_SPEED);
+    AudioManager.playClear();
+    flashAlpha = 0.15;
+    flashColor = COL_NEON_LIME;
+  }
+
+  // Sky phase (dawn to dusk cycle)
+  skyPhase = (distance / 5000) % 1;
+
+  // Combo decay
+  if (comboTimer > 0) {
+    comboTimer -= dt;
+    if (comboTimer <= 0) {
+      comboMultiplier = 1;
+    }
+  }
+
+  // Shield timer
+  if (hasShield) {
+    shieldTimer -= dt;
+    if (shieldTimer <= 0) {
+      hasShield = false;
+      powerupInd.classList.remove('visible');
+    }
+  }
+
+  // Near miss display
+  if (nearMissTimer > 0) nearMissTimer -= dt;
+
+  // Player lane smooth interpolation
+  const now = performance.now();
+  const laneElapsed = now - playerLaneSwitchStart;
+  if (laneElapsed < LANE_SWITCH_MS) {
+    const t = laneElapsed / LANE_SWITCH_MS;
+    const ease = t * (2 - t); // ease out
+    playerLaneVisual = playerLaneFrom + (playerLaneTo - playerLaneFrom) * ease;
+  } else {
+    playerLaneVisual = playerLane;
+  }
+
+  // Jump
+  if (isJumping) {
+    jumpProgress = (now - jumpStartTime) / JUMP_DURATION;
+    if (jumpProgress >= 1) {
+      isJumping = false;
+      jumpProgress = 0;
+      // Execute buffered action
+      if (bufferedAction === 'slide') { slide(); }
+      else if (bufferedAction === 'jump') { jump(); }
+      bufferedAction = null;
+    }
+  }
+
+  // Slide
+  if (isSliding) {
+    slideProgress = (now - slideStartTime) / SLIDE_DURATION;
+    if (slideProgress >= 1) {
+      isSliding = false;
+      slideProgress = 0;
+      // Execute buffered action
+      if (bufferedAction === 'jump') { jump(); }
+      else if (bufferedAction === 'slide') { slide(); }
+      bufferedAction = null;
+    }
+  }
+
+  // Move obstacles toward player
+  for (let i = obstacles.length - 1; i >= 0; i--) {
+    obstacles[i].z -= moveSpeed;
+    if (obstacles[i].z < DESPAWN_Z) {
+      obstacles.splice(i, 1);
+    }
+  }
+
+  // Move collectibles toward player
+  for (let i = collectibles.length - 1; i >= 0; i--) {
+    collectibles[i].z -= moveSpeed;
+    if (collectibles[i].z < DESPAWN_Z) {
+      collectibles.splice(i, 1);
+    }
+  }
+
+  // Spawn obstacles
+  obstacleTimer -= dt;
+  if (obstacleTimer <= 0) {
+    spawnObstacle();
+    const interval = Math.max(MIN_OBSTACLE_INTERVAL, BASE_OBSTACLE_INTERVAL / speed);
+    obstacleTimer = interval * (0.7 + Math.random() * 0.6);
+  }
+
+  // Spawn collectibles
+  collectibleTimer -= dt;
+  if (collectibleTimer <= 0) {
+    spawnCollectible();
+    collectibleTimer = BASE_COLLECTIBLE_INTERVAL * (0.6 + Math.random() * 0.8);
+  }
+
+  // Collision detection
+  checkCollisions();
+
+  // Update particles
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.05;
+    p.life -= p.decay;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+
+  // Player trail particles
+  if (Math.random() < 0.3 * speed) {
+    const pp = project(LANE_POSITIONS[playerLane], 0, 0);
+    spawnTrailParticle(pp.x, pp.y);
+  }
+
+  // Background scroll
+  pathLineOffset = (pathLineOffset + moveSpeed * 2) % 60;
+  bgTreeOffset += moveSpeed * 0.6 * dt;
+  bgMountainOffset += moveSpeed * 0.2 * dt;
+
+  // Screen shake decay
+  if (shakeAmount > 0.1) {
+    shakeAmount *= shakeDecay;
+  } else {
+    shakeAmount = 0;
+  }
+
+  // Flash decay
+  if (flashAlpha > 0) {
+    flashAlpha -= dt * 2;
+    if (flashAlpha < 0) flashAlpha = 0;
+  }
+
+  // Update HUD
+  hudScore.textContent = Math.floor(score + distance);
+  hudDist.textContent = Math.floor(distance);
+  hudMulti.textContent = comboMultiplier > 1 ? comboMultiplier.toFixed(1) : '1';
+}
+
+// ═══════════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════════
+function render() {
+  ctx.save();
+
+  // Screen shake
+  if (shakeAmount > 0.5) {
+    ctx.translate(
+      (Math.random() - 0.5) * shakeAmount * 2,
+      (Math.random() - 0.5) * shakeAmount * 2
+    );
+  }
+
+  // Clear
+  ctx.clearRect(-20, -20, cw + 40, ch + 40);
+
+  // ── Sky gradient (shifts with skyPhase) ──
+  drawSky();
+
+  // ── Parallax background layers ──
+  drawBackground();
+
+  // ── Road / path ──
+  drawRoad();
+
+  // ── Road markings (perspective lines) ──
+  drawRoadLines();
+
+  // ── Sort objects by z (far to near) ──
+  const allObjects = [];
+  obstacles.forEach(o => allObjects.push({ ...o, objType: 'obstacle' }));
+  collectibles.forEach(c => allObjects.push({ ...c, objType: 'collectible' }));
+  allObjects.sort((a, b) => b.z - a.z);
+
+  // ── Draw objects ──
+  for (const obj of allObjects) {
+    if (obj.z < -3 || obj.z > WORLD_DEPTH + 5) continue;
+    if (obj.objType === 'obstacle') {
+      drawObstacle(obj);
+    } else {
+      drawCollectible(obj);
+    }
+  }
+
+  // ── Draw player ──
+  drawPlayer();
+
+  // ── Particles ──
+  for (const p of particles) {
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, p.life);
+    ctx.fillStyle = p.color;
+    ctx.shadowColor = p.color;
+    ctx.shadowBlur = 6;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // ── Near miss text ──
+  if (nearMissTimer > 0 && state === 'playing') {
+    ctx.save();
+    ctx.globalAlpha = nearMissTimer / 0.5;
+    ctx.font = `${Math.floor(20 * scaleFactor)}px 'Cormorant Garamond', serif`;
+    ctx.fillStyle = COL_NEON_LIME;
+    ctx.shadowColor = COL_NEON_LIME_GLOW;
+    ctx.shadowBlur = 15;
+    ctx.textAlign = 'center';
+    ctx.fillText(`NEAR MISS x${comboMultiplier.toFixed(1)}`, cw / 2, ch * 0.55);
+    ctx.restore();
+  }
+
+  // ── Flash overlay ──
+  if (flashAlpha > 0) {
+    ctx.save();
+    ctx.globalAlpha = flashAlpha;
+    ctx.fillStyle = flashColor;
+    ctx.fillRect(0, 0, cw, ch);
+    ctx.restore();
+  }
+
+  ctx.restore();
+}
+
+// ── Sky ──
+function drawSky() {
+  const grad = ctx.createLinearGradient(0, 0, 0, ch * HORIZON_Y + 40);
+
+  // Cycle through colors based on skyPhase
+  const phase = skyPhase;
+  let topR, topG, topB, botR, botG, botB;
+
+  if (phase < 0.25) {
+    // Night to dawn
+    const t = phase / 0.25;
+    topR = lerp(13, 30, t); topG = lerp(10, 15, t); topB = lerp(26, 40, t);
+    botR = lerp(26, 60, t); botG = lerp(21, 30, t); botB = lerp(40, 50, t);
+  } else if (phase < 0.5) {
+    // Dawn to day
+    const t = (phase - 0.25) / 0.25;
+    topR = lerp(30, 20, t); topG = lerp(15, 18, t); topB = lerp(40, 50, t);
+    botR = lerp(60, 45, t); botG = lerp(30, 25, t); botB = lerp(50, 60, t);
+  } else if (phase < 0.75) {
+    // Day to dusk
+    const t = (phase - 0.5) / 0.25;
+    topR = lerp(20, 40, t); topG = lerp(18, 12, t); topB = lerp(50, 35, t);
+    botR = lerp(45, 70, t); botG = lerp(25, 20, t); botB = lerp(60, 40, t);
+  } else {
+    // Dusk to night
+    const t = (phase - 0.75) / 0.25;
+    topR = lerp(40, 13, t); topG = lerp(12, 10, t); topB = lerp(35, 26, t);
+    botR = lerp(70, 26, t); botG = lerp(20, 21, t); botB = lerp(40, 40, t);
+  }
+
+  grad.addColorStop(0, `rgb(${Math.floor(topR)},${Math.floor(topG)},${Math.floor(topB)})`);
+  grad.addColorStop(1, `rgb(${Math.floor(botR)},${Math.floor(botG)},${Math.floor(botB)})`);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, cw, ch * HORIZON_Y + 40);
+
+  // Stars (visible in darker phases)
+  const starAlpha = Math.max(0, 1 - skyPhase * 4) * 0.6;
+  if (starAlpha > 0.05) {
+    ctx.save();
+    ctx.globalAlpha = starAlpha;
+    ctx.fillStyle = '#e8e0f0';
+    // Fixed star positions using seeded values
+    for (let i = 0; i < 30; i++) {
+      const sx = ((i * 137.5) % cw);
+      const sy = ((i * 97.3 + 20) % (ch * HORIZON_Y * 0.8));
+      const ss = 0.5 + (i % 3) * 0.5;
+      ctx.beginPath();
+      ctx.arc(sx, sy, ss, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+}
+
+// ── Background (parallax layers) ──
+function drawBackground() {
+  const horizonY = ch * HORIZON_Y;
+
+  // Distant mountains/hills
+  ctx.save();
+  ctx.fillStyle = '#1a1530';
+  ctx.beginPath();
+  ctx.moveTo(0, horizonY + 10);
+  for (let x = 0; x <= cw; x += 20) {
+    const h = Math.sin((x + bgMountainOffset * 40) * 0.008) * 25 +
+              Math.sin((x + bgMountainOffset * 40) * 0.015) * 15;
+    ctx.lineTo(x, horizonY - h * scaleY - 5);
+  }
+  ctx.lineTo(cw, horizonY + 10);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+
+  // Mid-ground trees (silhouettes)
+  ctx.save();
+  ctx.fillStyle = '#151225';
+  const treeSpacing = 60 * scaleX;
+  const treeOffset = (bgTreeOffset * 30) % treeSpacing;
+  for (let x = -treeSpacing + treeOffset; x < cw + treeSpacing; x += treeSpacing) {
+    const h = 18 + Math.sin(x * 0.05) * 8;
+    // Tree trunk
+    ctx.fillRect(x - 2 * scaleX, horizonY - h * scaleY, 4 * scaleX, h * scaleY + 5);
+    // Tree canopy (triangle)
+    ctx.beginPath();
+    ctx.moveTo(x - 12 * scaleX, horizonY - (h - 5) * scaleY);
+    ctx.lineTo(x + 12 * scaleX, horizonY - (h - 5) * scaleY);
+    ctx.lineTo(x, horizonY - (h + 15) * scaleY);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // Art nouveau decorative border at horizon
+  ctx.save();
+  ctx.strokeStyle = 'rgba(184,169,212,0.08)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, horizonY + 2);
+  for (let x = 0; x <= cw; x += 3) {
+    const wave = Math.sin(x * 0.03 + distance * 0.01) * 3;
+    ctx.lineTo(x, horizonY + 2 + wave);
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
+// ── Road ──
+function drawRoad() {
+  const horizonY = ch * HORIZON_Y;
+  const bottomY = ch;
+
+  // Road shape (trapezoid converging to vanishing point)
+  const topLeft = cw / 2 - ROAD_TOP_WIDTH * scaleX / 2;
+  const topRight = cw / 2 + ROAD_TOP_WIDTH * scaleX / 2;
+  const botLeft = cw / 2 - ROAD_BOTTOM_WIDTH * scaleX / 2;
+  const botRight = cw / 2 + ROAD_BOTTOM_WIDTH * scaleX / 2;
+
+  // Road fill (gradient)
+  const roadGrad = ctx.createLinearGradient(0, horizonY, 0, bottomY);
+  roadGrad.addColorStop(0, '#151020');
+  roadGrad.addColorStop(0.5, '#1a1530');
+  roadGrad.addColorStop(1, '#201838');
+
+  ctx.fillStyle = roadGrad;
+  ctx.beginPath();
+  ctx.moveTo(topLeft, horizonY);
+  ctx.lineTo(topRight, horizonY);
+  ctx.lineTo(botRight, bottomY);
+  ctx.lineTo(botLeft, bottomY);
+  ctx.closePath();
+  ctx.fill();
+
+  // Road edge glow
+  ctx.save();
+  ctx.strokeStyle = 'rgba(198,255,0,0.15)';
+  ctx.lineWidth = 1.5;
+  ctx.shadowColor = COL_NEON_LIME_GLOW;
+  ctx.shadowBlur = 8;
+
+  // Left edge
+  ctx.beginPath();
+  ctx.moveTo(topLeft, horizonY);
+  ctx.lineTo(botLeft, bottomY);
+  ctx.stroke();
+
+  // Right edge
+  ctx.beginPath();
+  ctx.moveTo(topRight, horizonY);
+  ctx.lineTo(botRight, bottomY);
+  ctx.stroke();
+  ctx.restore();
+
+  // Foreground path edge decoration (flowers/vines along edges)
+  drawPathEdges(botLeft, botRight, horizonY, bottomY, topLeft, topRight);
+}
+
+function drawPathEdges(botLeft, botRight, topY, botY, topLeft, topRight) {
+  ctx.save();
+  ctx.globalAlpha = 0.3;
+  // Small flower dots along the edges
+  const steps = 12;
+  for (let i = 0; i < steps; i++) {
+    const t = i / steps;
+    const lx = lerp(topLeft, botLeft, t) - 4 * scaleX;
+    const rx = lerp(topRight, botRight, t) + 4 * scaleX;
+    const y = lerp(topY, botY, t);
+    const sz = (1 + t * 3) * scaleFactor;
+
+    // Left flower
+    ctx.fillStyle = COL_ROSE;
+    ctx.beginPath();
+    ctx.arc(lx, y, sz, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Right flower
+    ctx.fillStyle = '#8fb89a';
+    ctx.beginPath();
+    ctx.arc(rx, y, sz, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+// ── Road Lines ──
+function drawRoadLines() {
+  const horizonY = ch * HORIZON_Y;
+  const bottomY = ch;
+
+  // Lane dividers
+  ctx.save();
+  ctx.strokeStyle = 'rgba(184,169,212,0.1)';
+  ctx.lineWidth = 1;
+
+  for (let lane = 1; lane < LANE_COUNT; lane++) {
+    const laneT = lane / LANE_COUNT;
+    ctx.beginPath();
+    const topX = cw / 2 + (laneT - 0.5) * ROAD_TOP_WIDTH * scaleX;
+    const botX = cw / 2 + (laneT - 0.5) * ROAD_BOTTOM_WIDTH * scaleX;
+    ctx.moveTo(topX, horizonY);
+    ctx.lineTo(botX, bottomY);
+    ctx.stroke();
+  }
+
+  // Scrolling cross lines for depth effect
+  ctx.strokeStyle = 'rgba(184,169,212,0.06)';
+  const lineSpacing = 60;
+  for (let z = (pathLineOffset % lineSpacing); z < WORLD_DEPTH; z += lineSpacing) {
+    const t = z / WORLD_DEPTH;
+    const y = lerp(bottomY, horizonY, t);
+    const roadW = lerp(ROAD_BOTTOM_WIDTH * scaleX, ROAD_TOP_WIDTH * scaleX, t);
+    const cx = cw / 2;
+
+    ctx.beginPath();
+    ctx.moveTo(cx - roadW / 2, y);
+    ctx.lineTo(cx + roadW / 2, y);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// ── Obstacle Drawing ──
+function drawObstacle(obs) {
+  const laneOffset = LANE_POSITIONS[obs.lane];
+  const p = project(laneOffset, obs.z, 0);
+  if (p.scale < 0.02) return;
+
+  const w = p.laneW * 0.75;
+  const h = obs.height * 40 * p.scale;
+
+  ctx.save();
+
+  // Draw warning indicator on the ground plane when obstacle is close
+  if (obs.z < 60 && obs.z > 0) {
+    const warnAlpha = Math.max(0, (1 - obs.z / 60)) * 0.35;
+    const warnP = project(laneOffset, 0, 0);
+    ctx.save();
+    ctx.globalAlpha = warnAlpha;
+    if (obs.type === 'low') {
+      // Upward arrow hint: jump
+      ctx.fillStyle = '#ffcc00';
+      ctx.font = `${Math.floor(22 * scaleFactor)}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText('\u25B2', warnP.x, warnP.y - 10 * scaleFactor);
+    } else if (obs.type === 'high') {
+      // Downward arrow hint: slide
+      ctx.fillStyle = '#00ccff';
+      ctx.font = `${Math.floor(22 * scaleFactor)}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText('\u25BC', warnP.x, warnP.y - 10 * scaleFactor);
+    } else if (obs.type === 'wall') {
+      // X mark: dodge lane
+      ctx.fillStyle = '#ff4444';
+      ctx.font = `${Math.floor(20 * scaleFactor)}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText('\u2716', warnP.x, warnP.y - 10 * scaleFactor);
+    }
+    ctx.restore();
+  }
+
+  if (obs.type === 'low') {
+    // Low obstacle: garden stone / thorny bush
+    // Stone body
+    const grad = ctx.createLinearGradient(p.x - w/2, p.y, p.x - w/2, p.y - h);
+    grad.addColorStop(0, '#4a4060');
+    grad.addColorStop(1, '#6a5e80');
+    ctx.fillStyle = grad;
+
+    // Rounded rectangle shape
+    const r = Math.min(w * 0.2, h * 0.3);
+    ctx.beginPath();
+    ctx.moveTo(p.x - w/2 + r, p.y);
+    ctx.lineTo(p.x + w/2 - r, p.y);
+    ctx.quadraticCurveTo(p.x + w/2, p.y, p.x + w/2, p.y - r);
+    ctx.lineTo(p.x + w/2, p.y - h + r);
+    ctx.quadraticCurveTo(p.x + w/2, p.y - h, p.x + w/2 - r, p.y - h);
+    ctx.lineTo(p.x - w/2 + r, p.y - h);
+    ctx.quadraticCurveTo(p.x - w/2, p.y - h, p.x - w/2, p.y - h + r);
+    ctx.lineTo(p.x - w/2, p.y - r);
+    ctx.quadraticCurveTo(p.x - w/2, p.y, p.x - w/2 + r, p.y);
+    ctx.closePath();
+    ctx.fill();
+
+    // Neon outline
+    ctx.strokeStyle = COL_ROSE;
+    ctx.lineWidth = 1.5 * p.scale;
+    ctx.shadowColor = 'rgba(212,114,140,0.5)';
+    ctx.shadowBlur = 8 * p.scale;
+    ctx.stroke();
+
+    // Thorn spikes on top
+    const spikes = 3;
+    ctx.fillStyle = '#6a5e80';
+    for (let s = 0; s < spikes; s++) {
+      const sx = p.x - w/3 + (w * 2/3) * s / (spikes - 1);
+      ctx.beginPath();
+      ctx.moveTo(sx - 2 * p.scale, p.y - h);
+      ctx.lineTo(sx, p.y - h - 6 * p.scale);
+      ctx.lineTo(sx + 2 * p.scale, p.y - h);
+      ctx.fill();
+    }
+
+  } else if (obs.type === 'high') {
+    // High obstacle: hanging vines / arched branches
+    const archH = h * 1.5;
+    const archTop = p.y - archH;
+
+    // Arch shape
+    ctx.strokeStyle = COL_VINE;
+    ctx.lineWidth = 3 * p.scale;
+    ctx.shadowColor = 'rgba(74,122,79,0.5)';
+    ctx.shadowBlur = 10 * p.scale;
+
+    // Main arch
+    ctx.beginPath();
+    ctx.moveTo(p.x - w/2, p.y);
+    ctx.quadraticCurveTo(p.x - w/2, archTop, p.x, archTop);
+    ctx.quadraticCurveTo(p.x + w/2, archTop, p.x + w/2, p.y);
+    ctx.stroke();
+
+    // Hanging vines
+    ctx.lineWidth = 1 * p.scale;
+    ctx.strokeStyle = 'rgba(74,122,79,0.6)';
+    const vineCount = 4;
+    for (let v = 0; v < vineCount; v++) {
+      const vx = p.x - w/3 + (w * 2/3) * v / (vineCount - 1);
+      const archY = archTop + Math.sin(v / vineCount * Math.PI) * (archH * 0.1);
+      const hangLen = archH * 0.3 + Math.sin(v * 2.3) * archH * 0.1;
+      ctx.beginPath();
+      ctx.moveTo(vx, archY + 5 * p.scale);
+      ctx.lineTo(vx + Math.sin(v) * 2 * p.scale, archY + hangLen);
+      ctx.stroke();
+
+      // Small leaf at vine end
+      ctx.fillStyle = '#4a7a4f';
+      ctx.beginPath();
+      ctx.ellipse(vx, archY + hangLen, 2 * p.scale, 3.5 * p.scale, Math.sin(v) * 0.3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Fill the blocking area (upper portion)
+    ctx.fillStyle = 'rgba(74,122,79,0.15)';
+    ctx.beginPath();
+    ctx.moveTo(p.x - w/2, p.y - h * 0.3);
+    ctx.quadraticCurveTo(p.x - w/2, archTop, p.x, archTop);
+    ctx.quadraticCurveTo(p.x + w/2, archTop, p.x + w/2, p.y - h * 0.3);
+    ctx.closePath();
+    ctx.fill();
+
+  } else if (obs.type === 'wall') {
+    // Stone wall
+    const wallH = h * 2;
+    const grad = ctx.createLinearGradient(p.x - w/2, p.y, p.x - w/2, p.y - wallH);
+    grad.addColorStop(0, '#3d3555');
+    grad.addColorStop(0.5, '#4a4068');
+    grad.addColorStop(1, '#3d3555');
+    ctx.fillStyle = grad;
+    ctx.fillRect(p.x - w/2, p.y - wallH, w, wallH);
+
+    // Brick pattern
+    ctx.strokeStyle = 'rgba(184,169,212,0.1)';
+    ctx.lineWidth = 0.5;
+    const brickH = 8 * p.scale;
+    for (let by = p.y; by > p.y - wallH; by -= brickH) {
+      ctx.beginPath();
+      ctx.moveTo(p.x - w/2, by);
+      ctx.lineTo(p.x + w/2, by);
+      ctx.stroke();
+    }
+
+    // Neon top edge
+    ctx.strokeStyle = 'rgba(198,255,0,0.4)';
+    ctx.lineWidth = 2 * p.scale;
+    ctx.shadowColor = COL_NEON_LIME_GLOW;
+    ctx.shadowBlur = 10;
+    ctx.beginPath();
+    ctx.moveTo(p.x - w/2, p.y - wallH);
+    ctx.lineTo(p.x + w/2, p.y - wallH);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+// ── Collectible Drawing ──
+function drawCollectible(col) {
+  const laneOffset = LANE_POSITIONS[col.lane];
+  const bob = Math.sin(performance.now() * 0.004 + col.bobPhase) * 5;
+  const p = project(laneOffset, col.z, 15 + bob);
+  if (p.scale < 0.02) return;
+
+  const size = 12 * p.scale;
+
+  ctx.save();
+
+  if (col.type === 'petal') {
+    // Rose petal glow
+    ctx.shadowColor = 'rgba(212,114,140,0.6)';
+    ctx.shadowBlur = 12 * p.scale;
+    ctx.fillStyle = COL_ROSE;
+    drawPetalShape(p.x, p.y, size);
+
+  } else if (col.type === 'bloom') {
+    // Bloom orb - larger, glowing
+    ctx.shadowColor = 'rgba(224,64,251,0.6)';
+    ctx.shadowBlur = 18 * p.scale;
+    ctx.fillStyle = COL_BLOOM;
+
+    // Outer glow ring
+    ctx.globalAlpha = 0.3;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, size * 1.8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // Inner orb
+    const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, size);
+    grad.addColorStop(0, '#fff');
+    grad.addColorStop(0.4, COL_BLOOM);
+    grad.addColorStop(1, 'rgba(224,64,251,0.3)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
+    ctx.fill();
+
+  } else if (col.type === 'gem') {
+    // Speed gem - diamond shape
+    ctx.shadowColor = 'rgba(0,229,255,0.6)';
+    ctx.shadowBlur = 15 * p.scale;
+    ctx.fillStyle = COL_GEM;
+
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y - size);
+    ctx.lineTo(p.x + size * 0.7, p.y);
+    ctx.lineTo(p.x, p.y + size * 0.6);
+    ctx.lineTo(p.x - size * 0.7, p.y);
+    ctx.closePath();
+    ctx.fill();
+
+    // Sparkle
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(p.x - size * 0.3, p.y - size * 0.3);
+    ctx.lineTo(p.x + size * 0.3, p.y + size * 0.3);
+    ctx.moveTo(p.x + size * 0.3, p.y - size * 0.3);
+    ctx.lineTo(p.x - size * 0.3, p.y + size * 0.3);
+    ctx.stroke();
+
+  } else if (col.type === 'shield') {
+    // Shield flower - green glow
+    ctx.shadowColor = 'rgba(118,255,3,0.6)';
+    ctx.shadowBlur = 15 * p.scale;
+
+    // Leaf/shield shape
+    ctx.fillStyle = COL_SHIELD;
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y - size * 1.2);
+    ctx.quadraticCurveTo(p.x + size, p.y - size * 0.4, p.x + size * 0.6, p.y + size * 0.6);
+    ctx.quadraticCurveTo(p.x, p.y + size * 1.1, p.x, p.y + size * 1.1);
+    ctx.quadraticCurveTo(p.x, p.y + size * 1.1, p.x - size * 0.6, p.y + size * 0.6);
+    ctx.quadraticCurveTo(p.x - size, p.y - size * 0.4, p.x, p.y - size * 1.2);
+    ctx.fill();
+
+    // Center vein
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y - size * 0.8);
+    ctx.lineTo(p.x, p.y + size * 0.8);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+function drawPetalShape(x, y, size) {
+  ctx.beginPath();
+  // 5-petal flower shape
+  for (let i = 0; i < 5; i++) {
+    const angle = (i / 5) * Math.PI * 2 - Math.PI / 2;
+    const px = x + Math.cos(angle) * size;
+    const py = y + Math.sin(angle) * size;
+    if (i === 0) ctx.moveTo(px, py);
+
+    const nextAngle = ((i + 0.5) / 5) * Math.PI * 2 - Math.PI / 2;
+    const cpx = x + Math.cos(nextAngle) * size * 0.4;
+    const cpy = y + Math.sin(nextAngle) * size * 0.4;
+
+    const nextPetalAngle = ((i + 1) / 5) * Math.PI * 2 - Math.PI / 2;
+    const npx = x + Math.cos(nextPetalAngle) * size;
+    const npy = y + Math.sin(nextPetalAngle) * size;
+
+    ctx.quadraticCurveTo(cpx, cpy, npx, npy);
+  }
+  ctx.closePath();
+  ctx.fill();
+
+  // Center
+  ctx.fillStyle = '#ffd740';
+  ctx.beginPath();
+  ctx.arc(x, y, size * 0.25, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+// ── Player Drawing ──
+function drawPlayer() {
+  const laneOffset = LANE_POSITIONS[playerLaneVisual] || 0;
+  let elevation = 0;
+  let scaleModY = 1;
+
+  if (isJumping) {
+    elevation = JUMP_HEIGHT * Math.sin(jumpProgress * Math.PI);
+  }
+  if (isSliding) {
+    scaleModY = 0.35;
+    elevation = -5;
+  }
+
+  const p = project(laneOffset, 0, elevation);
+  const size = 22 * p.scale;
+
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.scale(1, scaleModY);
+
+  // Shield glow
+  if (hasShield) {
+    ctx.save();
+    ctx.globalAlpha = 0.2 + Math.sin(performance.now() * 0.005) * 0.1;
+    ctx.fillStyle = COL_SHIELD;
+    ctx.shadowColor = COL_SHIELD;
+    ctx.shadowBlur = 25;
+    ctx.beginPath();
+    ctx.arc(0, 0, size * 2.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Player glow
+  ctx.shadowColor = COL_NEON_LIME_GLOW;
+  ctx.shadowBlur = 20;
+
+  // Outer glow
+  ctx.globalAlpha = 0.15;
+  ctx.fillStyle = COL_NEON_LIME;
+  ctx.beginPath();
+  ctx.arc(0, 0, size * 2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+
+  // Main body - stylized flower
+  // Petals
+  const petalCount = 6;
+  const rotation = performance.now() * 0.002;
+  ctx.fillStyle = COL_NEON_LIME;
+  ctx.shadowColor = COL_NEON_LIME_GLOW;
+  ctx.shadowBlur = 15;
+
+  for (let i = 0; i < petalCount; i++) {
+    const angle = rotation + (i / petalCount) * Math.PI * 2;
+    ctx.save();
+    ctx.rotate(angle);
+    ctx.beginPath();
+    ctx.ellipse(0, -size * 0.7, size * 0.35, size * 0.6, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Center
+  const cGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, size * 0.45);
+  cGrad.addColorStop(0, '#fff');
+  cGrad.addColorStop(0.5, '#e8ff60');
+  cGrad.addColorStop(1, COL_NEON_LIME);
+  ctx.fillStyle = cGrad;
+  ctx.beginPath();
+  ctx.arc(0, 0, size * 0.4, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Outline ring
+  ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(0, 0, size * 0.4, 0, Math.PI * 2);
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+// ═══════════════════════════════════════════
+//  MENU RENDER (background animation)
+// ═══════════════════════════════════════════
+function renderMenu() {
+  ctx.clearRect(0, 0, cw, ch);
+
+  // Dark background gradient
+  const grad = ctx.createLinearGradient(0, 0, 0, ch);
+  grad.addColorStop(0, '#0d0a1a');
+  grad.addColorStop(0.5, '#141024');
+  grad.addColorStop(1, '#1a1528');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, cw, ch);
+
+  // Floating petals background animation
+  const t = performance.now() * 0.001;
+  ctx.save();
+  ctx.globalAlpha = 0.15;
+  for (let i = 0; i < 15; i++) {
+    const x = cw * 0.5 + Math.sin(t * 0.3 + i * 1.7) * cw * 0.35;
+    const y = (t * 20 + i * ch / 15) % ch;
+    const sz = 3 + Math.sin(i * 0.8) * 2;
+
+    ctx.fillStyle = i % 3 === 0 ? COL_ROSE : i % 3 === 1 ? COL_NEON_LIME : '#9b8ec4';
+    ctx.beginPath();
+    ctx.arc(x, y, sz * scaleFactor, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // Decorative perspective lines
+  ctx.save();
+  ctx.strokeStyle = 'rgba(198,255,0,0.05)';
+  ctx.lineWidth = 1;
+  const vx = cw / 2;
+  const vy = ch * 0.3;
+  for (let i = 0; i < 8; i++) {
+    const angle = (i / 8) * Math.PI - Math.PI / 2;
+    ctx.beginPath();
+    ctx.moveTo(vx, vy);
+    ctx.lineTo(vx + Math.cos(angle) * cw, vy + Math.sin(angle) * ch);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// ═══════════════════════════════════════════
+//  GAME LOOP
+// ═══════════════════════════════════════════
+function gameLoop(timestamp) {
+  if (!lastTime) lastTime = timestamp;
+  let dt = (timestamp - lastTime) / 1000;
+  lastTime = timestamp;
+
+  // Clamp dt to avoid spiral of death
+  if (dt > 0.1) dt = 0.1;
+
+  if (state === 'playing') {
+    accumulator += dt;
+    while (accumulator >= FIXED_DT) {
+      update(FIXED_DT);
+      accumulator -= FIXED_DT;
+    }
+    render();
+  } else if (state === 'menu') {
+    renderMenu();
+  } else if (state === 'dead') {
+    // Keep rendering but don't update (death freeze)
+    // Still update particles and shake
+    if (shakeAmount > 0.1) shakeAmount *= 0.95;
+    if (flashAlpha > 0) {
+      flashAlpha -= dt * 1.5;
+      if (flashAlpha < 0) flashAlpha = 0;
+    }
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.05;
+      p.life -= p.decay;
+      if (p.life <= 0) particles.splice(i, 1);
+    }
+    render();
+  }
+
+  requestAnimationFrame(gameLoop);
+}
+
+// ═══════════════════════════════════════════
+//  INPUT HANDLING
+// ═══════════════════════════════════════════
+const touch = new TouchManager(canvas, {
+  swipeThreshold: 20,  // very responsive swipe detection
+  dragThreshold: 10,
+  onSwipe: (info) => {
+    const dir = info.direction;
+    if (state === 'menu') {
+      startGame();
+      return;
+    }
+    if (state !== 'playing') return;
+
+    if (dir === 'left') moveLeft();
+    else if (dir === 'right') moveRight();
+    else if (dir === 'up') jump();
+    else if (dir === 'down') slide();
+  },
+  onTap: (info) => {
+    if (state === 'menu') {
+      startGame();
+      return;
+    }
+    if (state !== 'playing') return;
+
+    // Tap on left/right third of screen for lane switching
+    const third = cw / 3;
+    if (info.x < third) {
+      moveLeft();
+    } else if (info.x > third * 2) {
+      moveRight();
+    } else {
+      // Tap center = jump
+      jump();
+    }
+  }
+});
+
+// Keyboard support
+document.addEventListener('keydown', (e) => {
+  if (state === 'menu') {
+    if (e.key === ' ' || e.key === 'Enter') {
+      e.preventDefault();
+      startGame();
+    }
+    return;
+  }
+  if (state !== 'playing') return;
+
+  switch (e.key) {
+    case 'ArrowLeft': case 'a': case 'A':
+      e.preventDefault(); moveLeft(); break;
+    case 'ArrowRight': case 'd': case 'D':
+      e.preventDefault(); moveRight(); break;
+    case 'ArrowUp': case 'w': case 'W': case ' ':
+      e.preventDefault(); jump(); break;
+    case 'ArrowDown': case 's': case 'S':
+      e.preventDefault(); slide(); break;
+  }
+});
+
+// Retry button
+btnRetry.addEventListener('click', () => {
+  gameOverOverlay.classList.remove('visible');
+  startGame();
+});
+
+// ═══════════════════════════════════════════
+//  UTILITY
+// ═══════════════════════════════════════════
+function lerp(a, b, t) {
+  return a + (b - a) * t;
+}
+
+// ═══════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════
+function init() {
+  // Show best score on menu
+  const best = ArcadeData.getBest('garden-maze');
+  if (best > 0) {
+    menuBestEl.textContent = `Best: ${best}`;
+  } else {
+    menuBestEl.textContent = 'First run!';
+  }
+
+  lastTime = 0;
+  requestAnimationFrame(gameLoop);
+}
+
+init();
+
+})();
+</script>
+</body>
+</html>

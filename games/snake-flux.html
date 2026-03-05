@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Snake Flux — Iris Moon Arcade</title>
+<meta name="theme-color" content="#0d0a1a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="stylesheet" href="../shared.css">
+<style>
+  :root {
+    --game-accent: var(--neon-green);
+    --game-glow: rgba(118,255,3,0.3);
+  }
+
+  .game-title { color: var(--neon-green); }
+
+  /* Canvas container */
+  .canvas-wrap {
+    position: relative;
+    width: min(92vw, 70dvh, 500px);
+    height: min(92vw, 70dvh, 500px);
+    flex-shrink: 0;
+  }
+
+  .canvas-wrap canvas {
+    width: 100%;
+    height: 100%;
+    border-radius: 12px;
+    display: block;
+  }
+
+  /* HUD bar */
+  .hud-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(8px, 2vw, 20px);
+    width: 100%;
+  }
+
+  .hud-item {
+    text-align: center;
+    background: rgba(74, 63, 107, 0.3);
+    border: 1px solid var(--glass-border);
+    border-radius: 10px;
+    padding: var(--spacing-xs) clamp(10px, 2.5vw, 18px);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    min-width: clamp(60px, 16vw, 90px);
+  }
+
+  .hud-label {
+    font-size: clamp(7px, 1dvh, 10px);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--iris-light);
+    opacity: 0.6;
+  }
+
+  .hud-value {
+    font-family: var(--font-display);
+    font-size: clamp(16px, 2.8dvh, 26px);
+    font-weight: 600;
+    color: var(--moon-glow);
+  }
+
+  .hud-value.pop {
+    animation: scorePop 0.4s ease;
+  }
+
+  /* Power-up indicator */
+  .power-indicator {
+    text-align: center;
+    background: rgba(74, 63, 107, 0.3);
+    border: 1px solid var(--glass-border);
+    border-radius: 10px;
+    padding: var(--spacing-xs) clamp(10px, 2.5vw, 18px);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    min-width: clamp(60px, 16vw, 90px);
+    transition: border-color 0.3s, box-shadow 0.3s;
+  }
+
+  .power-indicator.active {
+    border-color: var(--power-color, var(--neon-green));
+    box-shadow: 0 0 12px var(--power-glow, rgba(118,255,3,0.3));
+  }
+
+  .power-name {
+    font-size: clamp(8px, 1.1dvh, 11px);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--iris-light);
+    opacity: 0.6;
+    transition: color 0.3s, opacity 0.3s;
+  }
+
+  .power-indicator.active .power-name {
+    color: var(--power-color, var(--neon-green));
+    opacity: 1;
+  }
+
+  .power-timer {
+    font-family: var(--font-display);
+    font-size: clamp(14px, 2.2dvh, 22px);
+    font-weight: 600;
+    color: var(--moon-glow);
+    opacity: 0.3;
+    transition: opacity 0.3s;
+  }
+
+  .power-indicator.active .power-timer {
+    opacity: 1;
+  }
+
+  /* Start overlay */
+  .start-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(13, 10, 26, 0.88);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    transition: opacity 0.5s ease;
+  }
+
+  .start-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .start-title {
+    font-family: var(--font-display);
+    font-size: clamp(32px, 5.5dvh, 48px);
+    font-weight: 300;
+    letter-spacing: 3px;
+    color: var(--neon-green);
+    margin-bottom: var(--spacing-sm);
+    animation: fadeInDown 0.8s ease;
+  }
+
+  .start-hint {
+    font-size: clamp(12px, 1.8dvh, 16px);
+    color: var(--iris-light);
+    letter-spacing: 2px;
+    animation: pulse 2s ease infinite;
+  }
+
+  /* Game over extras */
+  .overlay-stats {
+    display: flex;
+    gap: clamp(16px, 4vw, 32px);
+    margin-bottom: var(--spacing-lg);
+    animation: fadeInUp 0.8s ease 0.2s both;
+  }
+
+  .stat-item {
+    text-align: center;
+  }
+
+  .stat-value {
+    font-family: var(--font-display);
+    font-size: clamp(24px, 4dvh, 36px);
+    font-weight: 600;
+    color: var(--moon-glow);
+  }
+
+  .stat-label {
+    font-size: clamp(9px, 1.2dvh, 12px);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--iris-light);
+    opacity: 0.6;
+  }
+
+  .new-best {
+    color: var(--neon-gold);
+    font-size: clamp(11px, 1.5dvh, 14px);
+    letter-spacing: 2px;
+    margin-bottom: var(--spacing-sm);
+    animation: pulse 1.5s ease infinite;
+  }
+
+  .overlay-buttons {
+    display: flex;
+    gap: clamp(8px, 2vw, 16px);
+    animation: fadeInUp 0.8s ease 0.4s both;
+  }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- Background -->
+<canvas class="bg-canvas" id="bgCanvas"></canvas>
+
+<!-- Particle canvas -->
+<canvas class="particle-canvas" id="particleCanvas"></canvas>
+
+<!-- Game page -->
+<div class="game-page" id="gamePage">
+  <!-- Header -->
+  <div class="game-header">
+    <a class="btn-back" onclick="goToHub()" aria-label="Back">&#8592;</a>
+    <div>
+      <div class="game-title text-gradient">Snake Flux</div>
+      <div class="game-subtitle">Flux Zones</div>
+    </div>
+  </div>
+
+  <!-- HUD -->
+  <div class="hud-bar">
+    <div class="hud-item">
+      <div class="hud-label">Score</div>
+      <div class="hud-value" id="hudScore">0</div>
+    </div>
+    <div class="power-indicator" id="powerIndicator">
+      <div class="power-name" id="powerName">Power</div>
+      <div class="power-timer" id="powerTimer">--</div>
+    </div>
+    <div class="hud-item">
+      <div class="hud-label">Best</div>
+      <div class="hud-value" id="hudBest">0</div>
+    </div>
+  </div>
+
+  <!-- Game canvas -->
+  <div class="canvas-wrap" id="canvasWrap">
+    <canvas id="gameCanvas"></canvas>
+  </div>
+</div>
+
+<!-- Start overlay -->
+<div class="start-overlay" id="startOverlay">
+  <div class="start-title text-gradient">Snake Flux</div>
+  <div class="start-hint">Swipe to Start</div>
+</div>
+
+<!-- Game over overlay -->
+<div class="overlay" id="gameOverOverlay">
+  <div class="overlay-title text-gradient">Game Over</div>
+  <div class="overlay-score" id="overScore">0</div>
+  <div class="overlay-label">Score</div>
+  <div class="overlay-stats">
+    <div class="stat-item">
+      <div class="stat-value" id="overLength">0</div>
+      <div class="stat-label">Length</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value" id="overBest">0</div>
+      <div class="stat-label">Best</div>
+    </div>
+  </div>
+  <div class="new-best hidden" id="newBestLabel">New Best!</div>
+  <div class="overlay-buttons">
+    <button class="btn-primary" id="btnRestart">Play Again</button>
+    <button class="btn-secondary" onclick="goToHub()">Exit</button>
+  </div>
+</div>
+
+<script src="../shared.js"></script>
+<script>
+(() => {
+  'use strict';
+
+  // ── Constants ──
+  const GRID = 20;
+  const GAME_ID = 'snake-flux';
+  const BASE_INTERVAL = 150;
+  const MIN_INTERVAL = 60;
+  const INTERVAL_DEC = 3;
+  const SWIPE_THRESHOLD = 20;
+
+  // Direction vectors
+  const DIR = {
+    up:    { x: 0, y: -1 },
+    down:  { x: 0, y: 1 },
+    left:  { x: -1, y: 0 },
+    right: { x: 1, y: 0 }
+  };
+
+  const OPPOSITE = { up: 'down', down: 'up', left: 'right', right: 'left' };
+
+  // Power-up definitions
+  const POWER_TYPES = [
+    { id: 'speed',  name: 'Speed Boost', letter: 'S', color: '#ffd740', glow: 'rgba(255,215,64,0.5)',  duration: 5000 },
+    { id: 'ghost',  name: 'Ghost Mode',  letter: 'G', color: '#00e5ff', glow: 'rgba(0,229,255,0.5)',   duration: 5000 },
+    { id: 'shrink', name: 'Shrink',      letter: 'K', color: '#e040fb', glow: 'rgba(224,64,251,0.5)',  duration: 0 },
+    { id: 'magnet', name: 'Magnet',      letter: 'M', color: '#b388ff', glow: 'rgba(179,136,255,0.5)', duration: 5000 },
+    { id: 'slow',   name: 'Time Slow',   letter: 'T', color: '#76ff03', glow: 'rgba(118,255,3,0.5)',   duration: 5000 }
+  ];
+
+  // ── DOM refs ──
+  const canvasWrap = document.getElementById('canvasWrap');
+  const gameCanvas = document.getElementById('gameCanvas');
+  const ctx = gameCanvas.getContext('2d');
+  const bgCanvas = document.getElementById('bgCanvas');
+  const particleCanvas = document.getElementById('particleCanvas');
+
+  const hudScore = document.getElementById('hudScore');
+  const hudBest = document.getElementById('hudBest');
+  const powerIndicator = document.getElementById('powerIndicator');
+  const powerName = document.getElementById('powerName');
+  const powerTimer = document.getElementById('powerTimer');
+
+  const startOverlay = document.getElementById('startOverlay');
+  const gameOverOverlay = document.getElementById('gameOverOverlay');
+  const overScore = document.getElementById('overScore');
+  const overLength = document.getElementById('overLength');
+  const overBest = document.getElementById('overBest');
+  const newBestLabel = document.getElementById('newBestLabel');
+  const btnRestart = document.getElementById('btnRestart');
+
+  // ── Systems ──
+  const ambient = new AmbientBackground(bgCanvas);
+  ambient.start();
+  const particles = new ParticleSystem(particleCanvas);
+  particles.start();
+
+  // ── Game State ──
+  let snake = [];
+  let direction = 'right';
+  let nextDirection = 'right';
+  let food = null;
+  let obstacles = [];
+  let powerUp = null;        // { x, y, type: POWER_TYPES[i] }
+  let activePower = null;    // { type, endsAt }
+  let score = 0;
+  let bestScore = 0;
+  let foodEaten = 0;
+  let foodSinceLastPower = 0;
+  let nextPowerThreshold = 15 + Math.floor(Math.random() * 6); // 15-20
+  let gameRunning = false;
+  let gameStarted = false;
+  let gameLoopTimer = null;
+  let cellSize = 0;
+  let animTime = 0;
+
+  // ── Canvas sizing ──
+  function resizeCanvas() {
+    const rect = canvasWrap.getBoundingClientRect();
+    const size = Math.floor(rect.width);
+    gameCanvas.width = size * window.devicePixelRatio;
+    gameCanvas.height = size * window.devicePixelRatio;
+    ctx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
+    cellSize = size / GRID;
+  }
+
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+
+  // ── Init ──
+  function init() {
+    bestScore = ArcadeData.getBest(GAME_ID);
+    hudBest.textContent = bestScore;
+    hudScore.textContent = '0';
+    resetPowerUI();
+    drawInitialGrid();
+  }
+
+  function drawInitialGrid() {
+    const size = gameCanvas.width / window.devicePixelRatio;
+    ctx.clearRect(0, 0, size, size);
+    drawGrid(size);
+  }
+
+  // ── Reset / Start ──
+  function resetGame() {
+    const midY = Math.floor(GRID / 2);
+    const startX = Math.floor(GRID / 4);
+    snake = [];
+    for (let i = 0; i < 4; i++) {
+      snake.push({ x: startX - i, y: midY });
+    }
+    direction = 'right';
+    nextDirection = 'right';
+    food = null;
+    obstacles = [];
+    powerUp = null;
+    activePower = null;
+    score = 0;
+    foodEaten = 0;
+    foodSinceLastPower = 0;
+    nextPowerThreshold = 15 + Math.floor(Math.random() * 6);
+    hudScore.textContent = '0';
+    resetPowerUI();
+    spawnFood();
+  }
+
+  function startGame() {
+    resetGame();
+    gameRunning = true;
+    gameStarted = true;
+    startOverlay.classList.add('hidden');
+    gameOverOverlay.classList.remove('visible');
+    scheduleStep();
+  }
+
+  // ── Game loop ──
+  function getInterval() {
+    let interval = BASE_INTERVAL - (foodEaten * INTERVAL_DEC);
+    if (interval < MIN_INTERVAL) interval = MIN_INTERVAL;
+    // Power-up speed modifiers
+    if (activePower) {
+      if (activePower.type.id === 'speed') interval = Math.max(30, interval / 2);
+      if (activePower.type.id === 'slow')  interval = interval * 2;
+    }
+    return interval;
+  }
+
+  function scheduleStep() {
+    if (gameLoopTimer) clearTimeout(gameLoopTimer);
+    if (!gameRunning) return;
+    gameLoopTimer = setTimeout(step, getInterval());
+  }
+
+  function step() {
+    if (!gameRunning) return;
+
+    // Apply queued direction
+    direction = nextDirection;
+
+    // Move head
+    const head = snake[0];
+    const newHead = {
+      x: head.x + DIR[direction].x,
+      y: head.y + DIR[direction].y
+    };
+
+    // Wall collision
+    if (newHead.x < 0 || newHead.x >= GRID || newHead.y < 0 || newHead.y >= GRID) {
+      gameOver();
+      return;
+    }
+
+    // Self collision (unless ghost)
+    const isGhost = activePower && activePower.type.id === 'ghost';
+    if (!isGhost) {
+      for (let i = 0; i < snake.length; i++) {
+        if (snake[i].x === newHead.x && snake[i].y === newHead.y) {
+          gameOver();
+          return;
+        }
+      }
+    }
+
+    // Obstacle collision
+    for (const ob of obstacles) {
+      if (ob.x === newHead.x && ob.y === newHead.y) {
+        gameOver();
+        return;
+      }
+    }
+
+    snake.unshift(newHead);
+
+    // Food check
+    let ate = false;
+    if (food && newHead.x === food.x && newHead.y === food.y) {
+      ate = true;
+      score += 10;
+      foodEaten++;
+      foodSinceLastPower++;
+      hudScore.textContent = score;
+      hudScore.classList.remove('pop');
+      void hudScore.offsetWidth;
+      hudScore.classList.add('pop');
+
+      // Particles at food position
+      const canvasRect = gameCanvas.getBoundingClientRect();
+      const px = canvasRect.left + (food.x + 0.5) * cellSize;
+      const py = canvasRect.top + (food.y + 0.5) * cellSize;
+      particles.spawn(px, py, '#ff6b9d', 8);
+
+      AudioManager.playPlace();
+      haptic('light');
+
+      spawnFood();
+
+      // Obstacle spawning every 10 food
+      if (foodEaten % 10 === 0) {
+        spawnObstacle();
+      }
+
+      // Power-up spawning
+      if (foodSinceLastPower >= nextPowerThreshold && !powerUp) {
+        spawnPowerUp();
+        foodSinceLastPower = 0;
+        nextPowerThreshold = 15 + Math.floor(Math.random() * 6);
+      }
+    } else {
+      snake.pop(); // remove tail if no food eaten
+    }
+
+    // Power-up pick up
+    if (powerUp && newHead.x === powerUp.x && newHead.y === powerUp.y) {
+      activatePower(powerUp.type);
+      const canvasRect = gameCanvas.getBoundingClientRect();
+      const px = canvasRect.left + (powerUp.x + 0.5) * cellSize;
+      const py = canvasRect.top + (powerUp.y + 0.5) * cellSize;
+      particles.spawn(px, py, powerUp.type.color, 16);
+      AudioManager.playClear();
+      haptic('medium');
+      powerUp = null;
+    }
+
+    // Magnet: move food toward head
+    if (activePower && activePower.type.id === 'magnet' && food) {
+      const dx = newHead.x - food.x;
+      const dy = newHead.y - food.y;
+      let mx = 0, my = 0;
+      if (Math.abs(dx) > Math.abs(dy)) {
+        mx = dx > 0 ? 1 : -1;
+      } else if (dy !== 0) {
+        my = dy > 0 ? 1 : -1;
+      }
+      const newFX = food.x + mx;
+      const newFY = food.y + my;
+      // Only move if not onto snake or obstacle
+      if (newFX >= 0 && newFX < GRID && newFY >= 0 && newFY < GRID) {
+        let blocked = false;
+        for (const s of snake) {
+          if (s.x === newFX && s.y === newFY) { blocked = true; break; }
+        }
+        for (const ob of obstacles) {
+          if (ob.x === newFX && ob.y === newFY) { blocked = true; break; }
+        }
+        if (!blocked) {
+          food.x = newFX;
+          food.y = newFY;
+        }
+      }
+    }
+
+    // Check active power expiration
+    if (activePower && activePower.type.duration > 0) {
+      if (Date.now() >= activePower.endsAt) {
+        activePower = null;
+        resetPowerUI();
+      }
+    }
+
+    scheduleStep();
+  }
+
+  // ── Spawning ──
+  function isCellFree(x, y) {
+    for (const s of snake) { if (s.x === x && s.y === y) return false; }
+    for (const o of obstacles) { if (o.x === x && o.y === y) return false; }
+    if (food && food.x === x && food.y === y) return false;
+    if (powerUp && powerUp.x === x && powerUp.y === y) return false;
+    return true;
+  }
+
+  function getRandomFreeCell() {
+    const free = [];
+    for (let x = 0; x < GRID; x++) {
+      for (let y = 0; y < GRID; y++) {
+        if (isCellFree(x, y)) free.push({ x, y });
+      }
+    }
+    if (free.length === 0) return null;
+    return free[Math.floor(Math.random() * free.length)];
+  }
+
+  function spawnFood() {
+    const cell = getRandomFreeCell();
+    if (cell) food = { x: cell.x, y: cell.y };
+  }
+
+  function spawnObstacle() {
+    const cell = getRandomFreeCell();
+    if (cell) obstacles.push({ x: cell.x, y: cell.y });
+  }
+
+  function spawnPowerUp() {
+    const cell = getRandomFreeCell();
+    if (!cell) return;
+    const type = POWER_TYPES[Math.floor(Math.random() * POWER_TYPES.length)];
+    powerUp = { x: cell.x, y: cell.y, type };
+  }
+
+  // ── Power-ups ──
+  function activatePower(type) {
+    if (type.id === 'shrink') {
+      // Instant: remove 3 from tail
+      const removeCount = Math.min(3, snake.length - 1);
+      for (let i = 0; i < removeCount; i++) snake.pop();
+      // Flash indicator briefly
+      setPowerUI(type, 0);
+      setTimeout(resetPowerUI, 1500);
+      return;
+    }
+
+    activePower = {
+      type,
+      endsAt: Date.now() + type.duration
+    };
+    setPowerUI(type, type.duration);
+  }
+
+  function setPowerUI(type, duration) {
+    powerIndicator.classList.add('active');
+    powerIndicator.style.setProperty('--power-color', type.color);
+    powerIndicator.style.setProperty('--power-glow', type.glow);
+    powerName.textContent = type.name;
+    if (duration > 0) {
+      powerTimer.textContent = (duration / 1000).toFixed(1) + 's';
+    } else {
+      powerTimer.textContent = type.letter;
+    }
+  }
+
+  function resetPowerUI() {
+    powerIndicator.classList.remove('active');
+    powerIndicator.style.removeProperty('--power-color');
+    powerIndicator.style.removeProperty('--power-glow');
+    powerName.textContent = 'Power';
+    powerTimer.textContent = '--';
+  }
+
+  function updatePowerTimerUI() {
+    if (!activePower || activePower.type.duration === 0) return;
+    const remaining = Math.max(0, activePower.endsAt - Date.now());
+    if (remaining <= 0) {
+      activePower = null;
+      resetPowerUI();
+    } else {
+      powerTimer.textContent = (remaining / 1000).toFixed(1) + 's';
+    }
+  }
+
+  // Update power timer display
+  let powerTimerInterval = setInterval(updatePowerTimerUI, 100);
+
+  // ── Game over ──
+  function gameOver() {
+    gameRunning = false;
+    if (gameLoopTimer) clearTimeout(gameLoopTimer);
+
+    // Length bonus
+    const lengthBonus = snake.length;
+    const finalScore = score + lengthBonus;
+
+    // Submit
+    const isNewBest = ArcadeData.submitScore(GAME_ID, finalScore);
+    bestScore = ArcadeData.getBest(GAME_ID);
+
+    // Petals: 2 per food
+    const petalsEarned = foodEaten * 2;
+    if (petalsEarned > 0) ArcadeData.earnPetals(petalsEarned);
+
+    // Update HUD
+    hudBest.textContent = bestScore;
+
+    // Show overlay
+    overScore.textContent = finalScore;
+    overLength.textContent = snake.length;
+    overBest.textContent = bestScore;
+
+    if (isNewBest && finalScore > 0) {
+      newBestLabel.classList.remove('hidden');
+    } else {
+      newBestLabel.classList.add('hidden');
+    }
+
+    AudioManager.playFail();
+    haptic('heavy');
+
+    // Death particles at head
+    if (snake.length > 0) {
+      const canvasRect = gameCanvas.getBoundingClientRect();
+      const px = canvasRect.left + (snake[0].x + 0.5) * cellSize;
+      const py = canvasRect.top + (snake[0].y + 0.5) * cellSize;
+      particles.spawn(px, py, '#ff6b9d', 20);
+    }
+
+    setTimeout(() => {
+      gameOverOverlay.classList.add('visible');
+    }, 300);
+  }
+
+  // ── Rendering ──
+  function render() {
+    const size = gameCanvas.width / window.devicePixelRatio;
+    animTime = Date.now() * 0.001;
+
+    ctx.clearRect(0, 0, size, size);
+
+    // Background
+    ctx.fillStyle = 'rgba(13, 10, 26, 0.95)';
+    ctx.fillRect(0, 0, size, size);
+
+    // Grid lines
+    drawGrid(size);
+
+    // Obstacles
+    drawObstacles();
+
+    // Food
+    drawFood();
+
+    // Power-up
+    drawPowerUp();
+
+    // Snake
+    drawSnake();
+  }
+
+  function drawGrid(size) {
+    ctx.strokeStyle = 'rgba(184, 169, 212, 0.06)';
+    ctx.lineWidth = 0.5;
+    for (let i = 0; i <= GRID; i++) {
+      const pos = i * cellSize;
+      ctx.beginPath();
+      ctx.moveTo(pos, 0);
+      ctx.lineTo(pos, size);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(0, pos);
+      ctx.lineTo(size, pos);
+      ctx.stroke();
+    }
+  }
+
+  function drawSnake() {
+    const len = snake.length;
+    const isGhost = activePower && activePower.type.id === 'ghost';
+
+    for (let i = len - 1; i >= 0; i--) {
+      const seg = snake[i];
+      const t = i / Math.max(len - 1, 1); // 0 = head, 1 = tail
+      const cx = seg.x * cellSize;
+      const cy = seg.y * cellSize;
+      const pad = cellSize * 0.08;
+
+      // Gradient from bright green (head) to dark green (tail)
+      const r = Math.round(118 - t * 80);
+      const g = Math.round(255 - t * 140);
+      const b = Math.round(3 + t * 20);
+      const color = `rgb(${r},${g},${b})`;
+
+      ctx.save();
+
+      if (isGhost) {
+        ctx.globalAlpha = 0.5 + Math.sin(animTime * 4 + i * 0.3) * 0.2;
+      }
+
+      // Segment glow (head gets bigger glow)
+      if (i === 0) {
+        ctx.shadowColor = 'rgba(118,255,3,0.6)';
+        ctx.shadowBlur = 12;
+      } else if (i < 3) {
+        ctx.shadowColor = 'rgba(118,255,3,0.2)';
+        ctx.shadowBlur = 6;
+      }
+
+      // Draw rounded rect for segment
+      const radius = cellSize * 0.2;
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      roundedRect(ctx, cx + pad, cy + pad, cellSize - pad * 2, cellSize - pad * 2, radius);
+      ctx.fill();
+
+      // Head eye details
+      if (i === 0) {
+        ctx.shadowBlur = 0;
+        const eyeSize = cellSize * 0.12;
+        const eyeOffset = cellSize * 0.22;
+        ctx.fillStyle = '#0d0a1a';
+
+        let ex1, ey1, ex2, ey2;
+        if (direction === 'right') {
+          ex1 = cx + cellSize * 0.65; ey1 = cy + cellSize * 0.3;
+          ex2 = cx + cellSize * 0.65; ey2 = cy + cellSize * 0.7;
+        } else if (direction === 'left') {
+          ex1 = cx + cellSize * 0.35; ey1 = cy + cellSize * 0.3;
+          ex2 = cx + cellSize * 0.35; ey2 = cy + cellSize * 0.7;
+        } else if (direction === 'up') {
+          ex1 = cx + cellSize * 0.3; ey1 = cy + cellSize * 0.35;
+          ex2 = cx + cellSize * 0.7; ey2 = cy + cellSize * 0.35;
+        } else {
+          ex1 = cx + cellSize * 0.3; ey1 = cy + cellSize * 0.65;
+          ex2 = cx + cellSize * 0.7; ey2 = cy + cellSize * 0.65;
+        }
+        ctx.beginPath();
+        ctx.arc(ex1, ey1, eyeSize, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(ex2, ey2, eyeSize, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.restore();
+    }
+  }
+
+  function drawFood() {
+    if (!food) return;
+
+    const cx = (food.x + 0.5) * cellSize;
+    const cy = (food.y + 0.5) * cellSize;
+    const r = cellSize * 0.35;
+    const pulse = 1 + Math.sin(animTime * 3) * 0.1;
+
+    ctx.save();
+
+    // Outer glow
+    ctx.shadowColor = 'rgba(255, 107, 157, 0.6)';
+    ctx.shadowBlur = 15;
+
+    // Petal effect - draw small petals around food
+    const petalCount = 5;
+    for (let i = 0; i < petalCount; i++) {
+      const angle = (i / petalCount) * Math.PI * 2 + animTime * 0.5;
+      const px = cx + Math.cos(angle) * r * 0.8 * pulse;
+      const py = cy + Math.sin(angle) * r * 0.8 * pulse;
+      ctx.fillStyle = 'rgba(255, 107, 157, 0.4)';
+      ctx.beginPath();
+      ctx.ellipse(px, py, r * 0.35, r * 0.2, angle, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Core circle
+    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * pulse);
+    grad.addColorStop(0, '#ff6b9d');
+    grad.addColorStop(0.6, '#d4728c');
+    grad.addColorStop(1, 'rgba(212,114,140,0.3)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r * pulse, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  function drawPowerUp() {
+    if (!powerUp) return;
+
+    const cx = (powerUp.x + 0.5) * cellSize;
+    const cy = (powerUp.y + 0.5) * cellSize;
+    const r = cellSize * 0.4;
+    const pulse = 1 + Math.sin(animTime * 4) * 0.15;
+    const type = powerUp.type;
+
+    ctx.save();
+
+    // Glow
+    ctx.shadowColor = type.glow;
+    ctx.shadowBlur = 20 + Math.sin(animTime * 3) * 8;
+
+    // Outer ring
+    ctx.strokeStyle = type.color;
+    ctx.lineWidth = 2;
+    ctx.globalAlpha = 0.5 + Math.sin(animTime * 4) * 0.3;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r * pulse * 1.2, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Filled circle
+    ctx.globalAlpha = 0.8;
+    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * pulse);
+    grad.addColorStop(0, type.color);
+    grad.addColorStop(1, 'rgba(0,0,0,0.3)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r * pulse, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Letter
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#0d0a1a';
+    ctx.font = `bold ${cellSize * 0.4}px ${getComputedStyle(document.body).getPropertyValue('--font-ui').trim() || 'sans-serif'}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(type.letter, cx, cy + 1);
+
+    ctx.restore();
+  }
+
+  function drawObstacles() {
+    for (const ob of obstacles) {
+      const cx = ob.x * cellSize;
+      const cy = ob.y * cellSize;
+      const pad = cellSize * 0.05;
+
+      ctx.save();
+      ctx.fillStyle = 'rgba(100, 90, 120, 0.7)';
+      ctx.shadowColor = 'rgba(100, 90, 120, 0.3)';
+      ctx.shadowBlur = 4;
+
+      ctx.beginPath();
+      roundedRect(ctx, cx + pad, cy + pad, cellSize - pad * 2, cellSize - pad * 2, cellSize * 0.15);
+      ctx.fill();
+
+      // Cross hatch pattern
+      ctx.strokeStyle = 'rgba(60, 50, 80, 0.5)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(cx + pad * 3, cy + pad * 3);
+      ctx.lineTo(cx + cellSize - pad * 3, cy + cellSize - pad * 3);
+      ctx.moveTo(cx + cellSize - pad * 3, cy + pad * 3);
+      ctx.lineTo(cx + pad * 3, cy + cellSize - pad * 3);
+      ctx.stroke();
+
+      ctx.restore();
+    }
+  }
+
+  function roundedRect(ctx, x, y, w, h, r) {
+    r = Math.min(r, w / 2, h / 2);
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  // ── Animation loop for non-step visuals ──
+  let renderRAF = null;
+  function renderLoop() {
+    if (gameRunning) {
+      render();
+    }
+    renderRAF = requestAnimationFrame(renderLoop);
+  }
+  renderRAF = requestAnimationFrame(renderLoop);
+
+  // ── Touch / Keyboard input ──
+  const touchMgr = new TouchManager(document.body, {
+    swipeThreshold: SWIPE_THRESHOLD,
+    dragThreshold: SWIPE_THRESHOLD,
+    onSwipe(e) {
+      if (!gameStarted) {
+        startGame();
+        // Set initial direction from first swipe if compatible
+        if (OPPOSITE[e.direction] !== 'right') {
+          nextDirection = e.direction;
+          direction = e.direction;
+        }
+        return;
+      }
+      if (!gameRunning) return;
+      setDirection(e.direction);
+    }
+  });
+
+  function setDirection(dir) {
+    // Cannot reverse
+    if (OPPOSITE[dir] === direction) return;
+    nextDirection = dir;
+  }
+
+  // Keyboard support
+  document.addEventListener('keydown', (e) => {
+    const keyMap = {
+      ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
+      w: 'up', s: 'down', a: 'left', d: 'right',
+      W: 'up', S: 'down', A: 'left', D: 'right'
+    };
+    const dir = keyMap[e.key];
+    if (dir) {
+      e.preventDefault();
+      if (!gameStarted) {
+        startGame();
+        return;
+      }
+      if (!gameRunning) return;
+      setDirection(dir);
+    }
+  });
+
+  // Restart button
+  btnRestart.addEventListener('click', () => {
+    gameOverOverlay.classList.remove('visible');
+    setTimeout(startGame, 300);
+  });
+
+  // ── Init ──
+  init();
+})();
+</script>
+</body>
+</html>
