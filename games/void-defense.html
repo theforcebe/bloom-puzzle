@@ -2117,6 +2117,19 @@ function update(dt) {
     const stats = getTowerStats(t);
     const scaledRange = stats.range * (cellSize / 40);
 
+    // Continuous target tracking — all towers smoothly rotate toward nearest enemy
+    const trackTarget = findTarget(t, stats, t.targeting || 'first');
+    if (trackTarget) {
+      const desiredAngle = Math.atan2(trackTarget.y - t.y, trackTarget.x - t.x);
+      let diff = desiredAngle - (t.angle || 0);
+      // Normalize to [-PI, PI]
+      while (diff > Math.PI) diff -= Math.PI * 2;
+      while (diff < -Math.PI) diff += Math.PI * 2;
+      // Smooth rotation (lerp toward target angle)
+      const rotSpeed = 8 * sDt; // radians per second
+      t.angle = (t.angle || 0) + diff * Math.min(rotSpeed, 1);
+    }
+
     if (def.type === 'beam') {
       // Continuous beam
       t.beamTargets = t.beamTargets || [];
