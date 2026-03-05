@@ -1028,19 +1028,19 @@
 
   // Tap to play / flap
   canvas.addEventListener('pointerdown', (e) => {
-    e.preventDefault();
     if (state === 'start') {
+      e.preventDefault();
       startGame();
     } else if (state === 'playing') {
+      e.preventDefault();
       flap();
     }
   });
 
-  // Start screen tap — use stopPropagation to prevent canvas handler also firing
-  startScreen.addEventListener('pointerdown', (e) => {
+  // Start screen tap — use click for reliability on mobile
+  startScreen.addEventListener('click', (e) => {
     // Don't trigger if clicking the back button
     if (e.target.closest('.btn-back')) return;
-    e.preventDefault();
     e.stopPropagation();
     if (state === 'start') {
       startGame();
@@ -1062,14 +1062,12 @@
   });
 
   // Buttons
-  btnRetry.addEventListener('pointerdown', (e) => {
-    e.preventDefault();
+  btnRetry.addEventListener('click', (e) => {
     e.stopPropagation();
     retry();
   });
 
-  btnHub.addEventListener('pointerdown', (e) => {
-    e.preventDefault();
+  btnHub.addEventListener('click', (e) => {
     e.stopPropagation();
     goToHub();
   });

@@ -806,6 +806,7 @@
   // ══════════════════════════════════════════
 
   function onCellPointerDown(e, r, c) {
+    if (gameOver) return;
     e.preventDefault();
     longPressTimer = setTimeout(() => {
       // Long press toggles pencil mode
@@ -987,8 +988,7 @@
       countBadge.textContent = counts[n] + '/9';
       btn.appendChild(countBadge);
 
-      btn.addEventListener('pointerdown', (e) => {
-        e.preventDefault();
+      btn.addEventListener('click', () => {
         inputNumber(n);
       });
       numpadEl.appendChild(btn);
@@ -998,8 +998,7 @@
     const eraseBtn = document.createElement('button');
     eraseBtn.className = 'num-btn erase-btn';
     eraseBtn.textContent = 'Erase';
-    eraseBtn.addEventListener('pointerdown', (e) => {
-      e.preventDefault();
+    eraseBtn.addEventListener('click', () => {
       eraseCell();
     });
     numpadEl.appendChild(eraseBtn);
@@ -1010,8 +1009,7 @@
     pencilBtn.id = 'pencil-toggle';
     if (pencilMode) pencilBtn.classList.add('pencil-active');
     pencilBtn.innerHTML = '&#9998; Notes';
-    pencilBtn.addEventListener('pointerdown', (e) => {
-      e.preventDefault();
+    pencilBtn.addEventListener('click', () => {
       pencilMode = !pencilMode;
       updatePencilButton();
       haptic('light');
@@ -1022,8 +1020,7 @@
     const hintBtn = document.createElement('button');
     hintBtn.className = 'num-btn erase-btn';
     hintBtn.textContent = 'Hint';
-    hintBtn.addEventListener('pointerdown', (e) => {
-      e.preventDefault();
+    hintBtn.addEventListener('click', () => {
       useHint();
     });
     numpadEl.appendChild(hintBtn);

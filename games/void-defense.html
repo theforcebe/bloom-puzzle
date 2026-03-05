@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Void Defense — Iris Moon Arcade</title>
+<title>Galactic Defense — Iris Moon Arcade</title>
 <meta name="theme-color" content="#0d0a1a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="stylesheet" href="../shared.css">
 <style>
-:root{--game-accent:var(--neon-purple);--game-glow:rgba(179,136,255,0.3)}
+:root{--game-accent:#4488cc;--game-glow:rgba(68,136,204,0.3)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{overflow:hidden;position:fixed;inset:0;width:100%;height:100dvh;touch-action:none;overscroll-behavior:none;margin:0;padding:0}
 #game-canvas{display:block;position:absolute;top:0;left:0;touch-action:none;z-index:1}
@@ -19,14 +19,14 @@ html,body{overflow:hidden;position:fixed;inset:0;width:100%;height:100dvh;touch-
 .hud-item{display:flex;align-items:center;gap:3px;font-family:var(--font-ui);font-size:clamp(11px,1.5dvh,14px);font-weight:600;color:var(--moon-glow);background:rgba(13,10,26,0.7);border:1px solid var(--glass-border);border-radius:8px;padding:3px 8px;pointer-events:auto;white-space:nowrap}
 .hud-left,.hud-center,.hud-right{display:flex;gap:5px;align-items:center}
 .hud-item .gold-icon{color:#ffd740}
-.hud-item .life-icon{color:#ff6b9d}
+.hud-item .life-icon{color:#44aaff}
 .speed-btn{font-family:var(--font-ui);font-size:clamp(10px,1.2dvh,12px);font-weight:600;color:var(--iris-light);background:rgba(30,24,50,0.7);border:1px solid var(--glass-border);border-radius:6px;padding:2px 7px;cursor:pointer;pointer-events:auto;transition:all .15s}
 .speed-btn.active{color:var(--moon-glow);background:rgba(179,136,255,0.3);border-color:var(--neon-purple);box-shadow:0 0 8px var(--game-glow)}
 
 /* ── Shop Bar ── */
-.shop-bar{position:fixed;bottom:0;left:0;right:0;z-index:10;display:flex;justify-content:center;gap:3px;padding:4px 6px calc(env(safe-area-inset-bottom) + 4px);background:rgba(13,10,26,0.92);border-top:1px solid rgba(184,169,212,0.12);pointer-events:auto}
+.shop-bar{position:fixed;bottom:0;left:0;right:0;z-index:10;display:flex;justify-content:center;gap:3px;padding:4px 6px calc(env(safe-area-inset-bottom) + 4px);background:rgba(10,10,20,0.95);border-top:1px solid rgba(68,170,255,0.12);pointer-events:auto}
 .shop-item{display:flex;flex-direction:column;align-items:center;justify-content:center;width:clamp(42px,12vw,54px);height:clamp(48px,12vw,58px);border-radius:8px;background:rgba(30,24,50,0.6);border:2px solid transparent;cursor:pointer;transition:all .15s;position:relative}
-.shop-item.selected{border-color:var(--neon-purple);background:rgba(179,136,255,0.15);box-shadow:0 0 10px var(--game-glow)}
+.shop-item.selected{border-color:var(--ta,#4488cc);background:rgba(68,136,204,0.15);box-shadow:0 0 10px var(--ta,rgba(68,136,204,0.4))}
 .shop-item.cant-afford{opacity:0.35}
 .shop-item .si-icon{font-size:clamp(16px,2.8dvh,22px);line-height:1}
 .shop-item .si-cost{font-size:clamp(8px,1dvh,10px);color:#ffd740;font-weight:700;margin-top:1px}
@@ -37,7 +37,7 @@ html,body{overflow:hidden;position:fixed;inset:0;width:100%;height:100dvh;touch-
 .send-wave-btn.visible{display:block}
 
 /* ── Tower Info Panel ── */
-.tower-panel{position:fixed;z-index:15;left:50%;transform:translateX(-50%);background:rgba(16,13,30,0.95);border:1px solid var(--glass-border);border-radius:14px;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);padding:10px 14px;display:none;width:min(320px,88vw);pointer-events:auto}
+.tower-panel{position:fixed;z-index:15;left:50%;transform:translateX(-50%);background:rgba(10,15,30,0.95);border:1px solid var(--glass-border);border-top:1px solid rgba(68,170,255,0.3);border-radius:14px;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);padding:10px 14px;display:none;width:min(320px,88vw);pointer-events:auto}
 .tower-panel.visible{display:block}
 .tp-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
 .tp-name{font-family:var(--font-display);font-size:clamp(14px,2dvh,18px);font-weight:600;color:var(--moon-glow)}
@@ -55,12 +55,12 @@ html,body{overflow:hidden;position:fixed;inset:0;width:100%;height:100dvh;touch-
 .tp-actions{display:flex;gap:8px;justify-content:center}
 .tp-btn{font-family:var(--font-ui);font-size:clamp(10px,1.3dvh,12px);font-weight:500;color:var(--moon-glow);border:1px solid var(--glass-border);border-radius:8px;padding:5px 16px;cursor:pointer;background:rgba(74,63,107,0.3);transition:all .15s}
 .tp-btn:active{background:rgba(74,63,107,0.6)}
-.tp-btn.sell{border-color:rgba(255,107,157,0.3);color:#ff6b9d}
+.tp-btn.sell{border-color:rgba(255,68,68,0.3);color:#ff4444}
 
 /* ── Wave Banner ── */
-.wave-banner{position:fixed;top:30%;left:50%;transform:translate(-50%,-50%);z-index:25;font-family:var(--font-display);font-size:clamp(28px,5dvh,42px);font-weight:300;color:var(--moon-glow);text-shadow:0 0 30px var(--game-glow);opacity:0;pointer-events:none;transition:opacity .4s;letter-spacing:3px}
+.wave-banner{position:fixed;top:30%;left:50%;transform:translate(-50%,-50%);z-index:25;font-family:var(--font-display);font-size:clamp(28px,5dvh,42px);font-weight:300;color:var(--moon-glow);text-shadow:0 0 30px var(--game-glow);opacity:0;pointer-events:none;transition:opacity .4s;letter-spacing:6px;text-transform:uppercase}
 .wave-banner.visible{opacity:1}
-.moab-warning{position:fixed;top:22%;left:50%;transform:translate(-50%,-50%);z-index:25;font-family:var(--font-display);font-size:clamp(18px,3dvh,28px);font-weight:600;color:#ff6b9d;text-shadow:0 0 30px rgba(255,107,157,0.5);opacity:0;pointer-events:none;letter-spacing:3px;text-transform:uppercase}
+.moab-warning{position:fixed;top:22%;left:50%;transform:translate(-50%,-50%);z-index:25;font-family:var(--font-display);font-size:clamp(18px,3dvh,28px);font-weight:600;color:#ff4444;text-shadow:0 0 30px rgba(255,68,68,0.5);opacity:0;pointer-events:none;letter-spacing:3px;text-transform:uppercase}
 .moab-warning.visible{opacity:1;animation:pulse 0.5s infinite}
 
 /* ── Overlays ── */
@@ -102,11 +102,11 @@ html,body{overflow:hidden;position:fixed;inset:0;width:100%;height:100dvh;touch-
 
 <div class="hud" id="hud" style="display:none">
   <div class="hud-left">
-    <div class="hud-item"><span class="gold-icon">$</span><span id="hudGold">650</span></div>
-    <div class="hud-item"><span class="life-icon">&#9829;</span><span id="hudLives">150</span></div>
+    <div class="hud-item"><span class="gold-icon">CR</span><span id="hudGold">650</span></div>
+    <div class="hud-item"><span class="life-icon">&#128737;</span><span id="hudLives">150</span></div>
   </div>
   <div class="hud-center">
-    <div class="hud-item">Wave <span id="hudWave">0/40</span></div>
+    <div class="hud-item">Assault Wave <span id="hudWave">0/40</span></div>
   </div>
   <div class="hud-right">
     <div class="speed-btn active" data-speed="1">1x</div>
@@ -116,15 +116,15 @@ html,body{overflow:hidden;position:fixed;inset:0;width:100%;height:100dvh;touch-
 </div>
 
 <div class="shop-bar" id="shopBar" style="display:none"></div>
-<button class="send-wave-btn" id="sendWaveBtn">Send Wave (+$25)</button>
+<button class="send-wave-btn" id="sendWaveBtn">Launch Assault (+25CR)</button>
 <div class="tower-panel" id="towerPanel"></div>
 <div class="wave-banner" id="waveBanner"></div>
-<div class="moab-warning" id="moabWarning">&#9888; MOAB INCOMING &#9888;</div>
+<div class="moab-warning" id="moabWarning">&#9888; STAR DESTROYER INCOMING &#9888;</div>
 
 <!-- START MENU -->
 <div class="menu-overlay" id="startMenu">
-  <div class="menu-title text-gradient">Void Defense</div>
-  <div class="menu-subtitle">Bloom Tower Defense</div>
+  <div class="menu-title text-gradient">Galactic Defense</div>
+  <div class="menu-subtitle">Tower Defense</div>
   <div class="map-selector" id="mapSelector"></div>
   <button class="btn-primary" id="startBtn">Start Game</button>
 </div>
@@ -154,7 +154,7 @@ html,body{overflow:hidden;position:fixed;inset:0;width:100%;height:100dvh;touch-
 <script>
 'use strict';
 // ═══════════════════════════════════════════════════════
-//  VOID DEFENSE — Bloons TD-style Tower Defense
+//  GALACTIC DEFENSE — Star Wars Tower Defense
 // ═══════════════════════════════════════════════════════
 
 (() => {
@@ -196,26 +196,62 @@ let popCombo = 0, comboTimer = 0;
 let cellSize = 0, gridOffX = 0, gridOffY = 0;
 let grid = [];
 const MAX_PARTICLES = 300;
-const SHOP_HEIGHT = 66; // reserve space for shop bar
+const SHOP_HEIGHT = 66;
 const HUD_HEIGHT = 44;
+
+// ── Starfield & Nebula ──
+const stars = [];
+let nebulaCanvas = null;
+function initStarfield() {
+  stars.length = 0;
+  const count = 80 + Math.floor(Math.random() * 40);
+  for (let i = 0; i < count; i++) {
+    stars.push({
+      x: Math.random(), y: Math.random(),
+      size: 0.5 + Math.random() * 1.5,
+      twinkle: Math.random() < 0.1,
+      phase: Math.random() * Math.PI * 2,
+      alpha: 0.3 + Math.random() * 0.7
+    });
+  }
+}
+initStarfield();
+
+function initNebula(w, h) {
+  nebulaCanvas = document.createElement('canvas');
+  nebulaCanvas.width = w; nebulaCanvas.height = h;
+  const nCtx = nebulaCanvas.getContext('2d');
+  const nebulae = [
+    { x: w*0.25, y: h*0.3, r: Math.max(w,h)*0.3, c:'100,50,180' },
+    { x: w*0.7, y: h*0.6, r: Math.max(w,h)*0.25, c:'30,80,180' },
+    { x: w*0.5, y: h*0.8, r: Math.max(w,h)*0.2, c:'30,150,150' },
+  ];
+  for (const n of nebulae) {
+    const g = nCtx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.r);
+    g.addColorStop(0, `rgba(${n.c},0.05)`);
+    g.addColorStop(1, `rgba(${n.c},0)`);
+    nCtx.fillStyle = g;
+    nCtx.fillRect(0, 0, w, h);
+  }
+}
 
 // ═══════════════════════════════════════
 //  BLOOM TYPES — The cascade core
 // ═══════════════════════════════════════
 // In Bloons TD, each balloon "layer" pops into children
 const BLOOM_TYPES = {
-  red:     { hp:1, speed:1.0, reward:1, color:'#ff4444', children:[], rbe:1, name:'Red' },
-  blue:    { hp:1, speed:1.4, reward:1, color:'#4488ff', children:['red'], rbe:2, name:'Blue' },
-  green:   { hp:1, speed:1.8, reward:1, color:'#44dd44', children:['blue'], rbe:3, name:'Green' },
-  yellow:  { hp:1, speed:3.2, reward:1, color:'#ffdd00', children:['green'], rbe:4, name:'Yellow' },
-  pink:    { hp:1, speed:3.5, reward:1, color:'#ff88cc', children:['yellow'], rbe:5, name:'Pink' },
-  black:   { hp:1, speed:1.8, reward:2, color:'#444444', children:['pink','pink'], rbe:12, name:'Black', immuneExplosion:true },
-  white:   { hp:1, speed:2.0, reward:2, color:'#eeeeee', children:['pink','pink'], rbe:12, name:'White', immuneFreeze:true },
-  lead:    { hp:1, speed:1.0, reward:5, color:'#778899', children:['black','black'], rbe:25, name:'Lead', immuneSharp:true },
-  rainbow: { hp:1, speed:2.2, reward:3, color:'rainbow', children:['black','white'], rbe:25, name:'Rainbow' },
-  ceramic: { hp:10, speed:2.5, reward:10, color:'#cc7744', children:['rainbow','rainbow'], rbe:60, name:'Ceramic' },
-  moab:    { hp:200, speed:0.25, reward:50, color:'#44aa88', children:['ceramic','ceramic','ceramic','ceramic'], rbe:440, name:'M.O.A.B.', moabClass:true },
-  bfb:     { hp:700, speed:0.12, reward:100, color:'#cc4444', children:['moab','moab','moab','moab'], rbe:2460, name:'B.F.B.', moabClass:true },
+  red:     { hp:1, speed:1.0, reward:1, color:'#ff4444', children:[], rbe:1, name:'TIE Scout' },
+  blue:    { hp:1, speed:1.4, reward:1, color:'#4488ff', children:['red'], rbe:2, name:'TIE Fighter' },
+  green:   { hp:1, speed:1.8, reward:1, color:'#44dd44', children:['blue'], rbe:3, name:'TIE Interceptor' },
+  yellow:  { hp:1, speed:3.2, reward:1, color:'#ffdd00', children:['green'], rbe:4, name:'TIE Bomber' },
+  pink:    { hp:1, speed:3.5, reward:1, color:'#ff88cc', children:['yellow'], rbe:5, name:'TIE Striker' },
+  black:   { hp:1, speed:1.8, reward:2, color:'#444444', children:['pink','pink'], rbe:12, name:'Shadow Squad', immuneExplosion:true },
+  white:   { hp:1, speed:2.0, reward:2, color:'#eeeeee', children:['pink','pink'], rbe:12, name:'Snow Squad', immuneFreeze:true },
+  lead:    { hp:1, speed:1.0, reward:5, color:'#778899', children:['black','black'], rbe:25, name:'AT-ST', immuneSharp:true },
+  rainbow: { hp:1, speed:2.2, reward:3, color:'rainbow', children:['black','white'], rbe:25, name:'Elite Squad' },
+  ceramic: { hp:10, speed:2.5, reward:10, color:'#cc7744', children:['rainbow','rainbow'], rbe:60, name:'AT-AT' },
+  moab:    { hp:200, speed:0.25, reward:50, color:'#6a8899', children:['ceramic','ceramic','ceramic','ceramic'], rbe:440, name:'Star Destroyer', moabClass:true },
+  bfb:     { hp:700, speed:0.12, reward:100, color:'#556677', children:['moab','moab','moab','moab'], rbe:2460, name:'Super Star Destroyer', moabClass:true },
 };
 
 // ═══════════════════════════════════════
@@ -225,106 +261,106 @@ const BLOOM_TYPES = {
 
 const TOWER_DEFS = [
   {
-    id:'thorn', name:'Thorn Shooter', icon:'🌿', baseCost:90,
+    id:'thorn', name:'Blaster Turret', baseCost:90, accent:'#ff4444', accentRGB:'255,68,68',
     damage:1, pierce:2, fireRate:1.0, range:100, projSpeed:360,
-    type:'projectile', projColor:'#88cc44', attackType:'sharp',
-    desc:'Basic thorn shooter. Reliable and cheap.',
+    type:'projectile', projColor:'#ff4444', attackType:'sharp',
+    desc:'Standard blaster turret. Reliable and affordable.',
     pathA:[
-      { name:'Sharp Tips', cost:100, desc:'+2 pierce, faster fire' },
-      { name:'Triple Shot', cost:350, desc:'Shoots 3 thorns at once' },
+      { name:'Accelerated Bolts', cost:100, desc:'+2 pierce, faster fire' },
+      { name:'Triple Barrel', cost:350, desc:'Fires 3 bolts at once' },
     ],
     pathB:[
-      { name:'Keen Eyes', cost:80, desc:'+35% range' },
-      { name:'Seeking Thorns', cost:400, desc:'Thorns home in on targets' },
+      { name:'Targeting Computer', cost:80, desc:'+35% range' },
+      { name:'Homing Bolts', cost:400, desc:'Bolts home in on targets' },
     ]
   },
   {
-    id:'tack', name:'Tack Shooter', icon:'✴️', baseCost:140,
+    id:'tack', name:'Ion Scatter', baseCost:140, accent:'#44aaff', accentRGB:'68,170,255',
     damage:1, pierce:1, fireRate:0.7, range:65, projSpeed:280,
-    type:'tack', projColor:'#ffaa44', attackType:'sharp',
+    type:'tack', projColor:'#44aaff', attackType:'sharp',
     tacks:8,
-    desc:'Shoots 8 tacks in all directions.',
+    desc:'Fires 8 ion bolts in all directions.',
     pathA:[
-      { name:'Extra Tacks', cost:120, desc:'12 tacks, faster fire' },
-      { name:'Tack Sprayer', cost:450, desc:'16 tacks, 2x fire rate' },
+      { name:'Overcharged', cost:120, desc:'12 ions, faster fire' },
+      { name:'Ion Storm', cost:450, desc:'16 ions, 2x fire rate' },
     ],
     pathB:[
-      { name:'Hot Tacks', cost:100, desc:'Tacks pop lead, +burn' },
-      { name:'Ring of Fire', cost:600, desc:'Constant fire ring pops everything nearby' },
+      { name:'Thermal Ions', cost:100, desc:'Ions pop lead, +burn' },
+      { name:'Plasma Ring', cost:600, desc:'Constant fire ring pops everything nearby' },
     ]
   },
   {
-    id:'frost', name:'Frost Bloom', icon:'❄️', baseCost:150,
+    id:'frost', name:'Cryo Emitter', baseCost:150, accent:'#88eeff', accentRGB:'136,238,255',
     damage:0, pierce:0, fireRate:0, range:80, projSpeed:0,
-    type:'freeze', projColor:'#88ddff', attackType:'freeze',
+    type:'freeze', projColor:'#88eeff', attackType:'freeze',
     slowFactor:0.4, slowDuration:1.5,
-    desc:'Slows all blooms in range.',
+    desc:'Slows all enemies in range.',
     pathA:[
       { name:'Deep Freeze', cost:125, desc:'Stronger slow, also pops' },
-      { name:'Arctic Wind', cost:550, desc:'Huge range, freezes solid' },
+      { name:'Absolute Zero', cost:550, desc:'Huge range, freezes solid' },
     ],
     pathB:[
-      { name:'Snap Freeze', cost:100, desc:'Pops 1 layer on slow' },
-      { name:'Cryo Cannon', cost:500, desc:'Shoots freeze projectiles far' },
+      { name:'Flash Freeze', cost:100, desc:'Pops 1 layer on slow' },
+      { name:'Cryo Launcher', cost:500, desc:'Shoots freeze projectiles far' },
     ]
   },
   {
-    id:'solar', name:'Solar Flare', icon:'☀️', baseCost:200,
+    id:'solar', name:'Thermal Detonator', baseCost:200, accent:'#ff8800', accentRGB:'255,136,0',
     damage:1, pierce:0, fireRate:0.5, range:110, projSpeed:260,
-    type:'aoe', projColor:'#ffaa33', attackType:'explosion',
+    type:'aoe', projColor:'#ff8800', attackType:'explosion',
     splashRadius:45,
-    desc:'Explosive area damage. Pops lead.',
+    desc:'Explosive area damage. Melts armor.',
     pathA:[
-      { name:'Bigger Blasts', cost:150, desc:'+60% splash radius' },
-      { name:'Cluster Bombs', cost:600, desc:'Fragments deal 2nd explosion' },
+      { name:'Expanded Payload', cost:150, desc:'+60% splash radius' },
+      { name:'Cluster Charges', cost:600, desc:'Fragments deal 2nd explosion' },
     ],
     pathB:[
-      { name:'Hot Shots', cost:120, desc:'Burn DoT on hit' },
-      { name:'MOAB Mauler', cost:700, desc:'10x damage to MOAB-class' },
+      { name:'Incendiary', cost:120, desc:'Burn DoT on hit' },
+      { name:'Capital Ship Buster', cost:700, desc:'10x damage to capital ships' },
     ]
   },
   {
-    id:'cannon', name:'Bloom Cannon', icon:'💣', baseCost:275,
+    id:'cannon', name:'Proton Cannon', baseCost:275, accent:'#44ff44', accentRGB:'68,255,68',
     damage:2, pierce:0, fireRate:0.35, range:120, projSpeed:300,
-    type:'aoe', projColor:'#aa6633', attackType:'explosion',
+    type:'aoe', projColor:'#44ff44', attackType:'explosion',
     splashRadius:55,
-    desc:'Heavy explosions. Great vs groups.',
+    desc:'Heavy proton explosions. Devastating vs groups.',
     pathA:[
-      { name:'Heavy Shells', cost:200, desc:'3x damage' },
-      { name:'Siege Breaker', cost:900, desc:'8x damage, stun MOAB 1s' },
+      { name:'Heavy Protons', cost:200, desc:'3x damage' },
+      { name:'Orbital Strike', cost:900, desc:'8x damage, stun capital ships 1s' },
     ],
     pathB:[
-      { name:'Faster Reload', cost:150, desc:'+60% fire rate' },
-      { name:'Missile Barrage', cost:750, desc:'Fires 3 seeking missiles' },
+      { name:'Rapid Cycling', cost:150, desc:'+60% fire rate' },
+      { name:'Concussion Barrage', cost:750, desc:'Fires 3 seeking missiles' },
     ]
   },
   {
-    id:'laser', name:'Void Laser', icon:'🔮', baseCost:400,
+    id:'laser', name:'Death Ray', baseCost:400, accent:'#cc66ff', accentRGB:'204,102,255',
     damage:4, pierce:0, fireRate:1, range:130, projSpeed:0,
-    type:'beam', projColor:'#cc88ff', attackType:'energy',
-    desc:'Continuous beam. High DPS.',
+    type:'beam', projColor:'#cc66ff', attackType:'energy',
+    desc:'Continuous energy beam. High sustained DPS.',
     pathA:[
       { name:'Plasma Beam', cost:300, desc:'2.5x DPS' },
-      { name:'Ray of Doom', cost:2000, desc:'6x DPS, pops all types' },
+      { name:'Superlaser', cost:2000, desc:'6x DPS, pops all types' },
     ],
     pathB:[
-      { name:'Beam Split', cost:250, desc:'Targets 2 blooms' },
-      { name:'Tech Terror', cost:1500, desc:'Targets 4, ability: screen wipe' },
+      { name:'Split Beam', cost:250, desc:'Targets 2 enemies' },
+      { name:'Death Star Cannon', cost:1500, desc:'Targets 4, ability: screen wipe' },
     ]
   },
   {
-    id:'storm', name:'Storm Spire', icon:'⚡', baseCost:500,
+    id:'storm', name:'Force Lightning', baseCost:500, accent:'#aaccff', accentRGB:'170,204,255',
     damage:2, pierce:0, fireRate:0.5, range:120, projSpeed:0,
-    type:'chain', projColor:'#aaddff', attackType:'energy',
+    type:'chain', projColor:'#aaccff', attackType:'energy',
     chains:3,
-    desc:'Chain lightning hits multiple blooms.',
+    desc:'Chain lightning strikes multiple targets.',
     pathA:[
-      { name:'Longer Chains', cost:250, desc:'+3 chains, +damage' },
-      { name:'Superstorm', cost:1200, desc:'+5 chains, AoE on hit' },
+      { name:'Chain Extension', cost:250, desc:'+3 chains, +damage' },
+      { name:'Force Storm', cost:1200, desc:'+5 chains, AoE on hit' },
     ],
     pathB:[
-      { name:'Static Shock', cost:200, desc:'25% stun 0.5s' },
-      { name:'Lightning Lord', cost:1000, desc:'50% stun 1s, 2x damage' },
+      { name:'Static Discharge', cost:200, desc:'25% stun 0.5s' },
+      { name:'Sith Lightning', cost:1000, desc:'50% stun 1s, 2x damage' },
     ]
   },
 ];
@@ -434,7 +470,7 @@ function towerTotalCost(t) {
 
 const MAPS = [
   {
-    name:'Garden Path', difficulty:'Easy', cols:14, rows:9,
+    name:'Trench Run', difficulty:'Easy', cols:14, rows:9,
     generate() {
       const g = Array.from({length:9}, () => Array(14).fill(0));
       for (let c = 0; c < 14; c++) { g[0][c] = 2; g[8][c] = 2; }
@@ -456,7 +492,7 @@ const MAPS = [
     }
   },
   {
-    name:'Forked Garden', difficulty:'Medium', cols:16, rows:10,
+    name:'Imperial Crossroads', difficulty:'Medium', cols:16, rows:10,
     generate() {
       const g = Array.from({length:10}, () => Array(16).fill(0));
       for (let c = 0; c < 16; c++) { g[0][c] = 2; g[9][c] = 2; }
@@ -483,7 +519,7 @@ const MAPS = [
     }
   },
   {
-    name:'Spiral Grove', difficulty:'Hard', cols:13, rows:13,
+    name:'Death Star Core', difficulty:'Hard', cols:13, rows:13,
     generate() {
       const g = Array.from({length:13}, () => Array(13).fill(0));
       for (let c = 0; c < 13; c++) { g[0][c] = 2; g[12][c] = 2; }
@@ -640,7 +676,20 @@ function popBloom(bloom, fromExplosion, fromFreeze, fromEnergy) {
     bloom.dead = true;
     gold += def.reward;
     totalGoldEarned += def.reward;
-    spawnPopParticles(bloom.x, bloom.y, def.color === 'rainbow' ? randomRainbowColor() : def.color, def.moabClass ? 12 : 5);
+    const popColor = def.color === 'rainbow' ? randomRainbowColor() : def.color;
+    const popCount = def.moabClass ? (bloom.type === 'bfb' ? 25 : 15) : bloom.type === 'ceramic' ? 15 : 8;
+    spawnPopParticles(bloom.x, bloom.y, popColor, popCount);
+    // White sparks
+    spawnPopParticles(bloom.x, bloom.y, '#ffffff', Math.floor(popCount * 0.4));
+    // MOAB/BFB death: screen shake + debris
+    if (def.moabClass) {
+      shakeMag = bloom.type === 'bfb' ? 10 : 6; shakeTime = 0.4;
+      spawnRingParticle(bloom.x, bloom.y, bloom.size * (cellSize/40) * 2, '#ffffff');
+      for (let d = 0; d < 6 && particles.length < MAX_PARTICLES; d++) {
+        const da = Math.random()*Math.PI*2, ds = 20+Math.random()*60;
+        particles.push({ x:bloom.x, y:bloom.y, vx:Math.cos(da)*ds, vy:Math.sin(da)*ds, life:0.6+Math.random()*0.3, maxLife:0.8, size:2+Math.random()*2, color:Math.random()>0.5?'#888':'#ff8800', type:'debris' });
+      }
+    }
     playPopSound(bloom.type);
 
     for (const childType of def.children) {
@@ -681,6 +730,7 @@ function createProjectile(tower, target, stats, angle) {
     target, tower,
     speed: stats.projSpeed * (cellSize / 40),
     color: TOWER_DEFS[tower.defIndex].projColor,
+    towerId: TOWER_DEFS[tower.defIndex].id,
     dead: false,
     damage: stats.damage,
     pierce: stats.pierce,
@@ -838,6 +888,7 @@ function resize() {
   C.style.width = w + 'px';
   C.style.height = h + 'px';
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  initNebula(w, h);
 
   // Position send-wave button above shop bar
   const swb = $('sendWaveBtn');
@@ -867,154 +918,304 @@ resize();
 
 function drawGrid() {
   const m = MAPS[selectedMap];
+  const w = C.width / DPR, h = C.height / DPR;
+  const now = Date.now();
+
+  // Space background
   ctx.fillStyle = '#0d0a1a';
-  ctx.fillRect(0, 0, C.width / DPR, C.height / DPR);
+  ctx.fillRect(0, 0, w, h);
+
+  // Nebula
+  if (nebulaCanvas) ctx.drawImage(nebulaCanvas, 0, 0);
+
+  // Starfield
+  for (const s of stars) {
+    let a = s.alpha;
+    if (s.twinkle) a *= 0.5 + 0.5 * Math.sin(now * 0.003 + s.phase);
+    ctx.fillStyle = `rgba(255,255,255,${a})`;
+    ctx.fillRect(s.x * w, s.y * h, s.size, s.size);
+  }
 
   for (let r = 0; r < m.rows; r++) {
     for (let c = 0; c < m.cols; c++) {
       const x = gridOffX + c * cellSize, y = gridOffY + r * cellSize;
       const v = grid[r][c];
-      if (v === 1 || v === 3 || v === 4) {
-        ctx.fillStyle = '#1a1232';
+      if (v === 1) {
+        // Path cell — metallic panels
+        ctx.fillStyle = '#1a1a2e';
         ctx.fillRect(x, y, cellSize, cellSize);
-        ctx.strokeStyle = 'rgba(179,136,255,0.07)';
+        ctx.strokeStyle = 'rgba(100,120,150,0.08)';
         ctx.lineWidth = 0.5;
         ctx.strokeRect(x+0.5, y+0.5, cellSize-1, cellSize-1);
+        if ((r + c) % 2 === 0) {
+          ctx.strokeStyle = 'rgba(100,120,150,0.03)';
+          ctx.beginPath();
+          ctx.moveTo(x, y); ctx.lineTo(x + cellSize, y + cellSize);
+          ctx.moveTo(x + cellSize, y); ctx.lineTo(x, y + cellSize);
+          ctx.stroke();
+        }
       } else if (v === 0) {
-        // Build cell
+        // Build cell — durasteel
         const isHover = (placementCell && placementCell.row === r && placementCell.col === c);
-        ctx.fillStyle = isHover && shopSelection >= 0 ? 'rgba(118,255,3,0.12)' : '#141024';
+        ctx.fillStyle = isHover && shopSelection >= 0 ? 'rgba(68,255,68,0.12)' : '#151525';
         ctx.fillRect(x, y, cellSize, cellSize);
-        ctx.strokeStyle = 'rgba(184,169,212,0.05)';
+        ctx.strokeStyle = 'rgba(100,120,150,0.06)';
         ctx.lineWidth = 0.5;
         ctx.strokeRect(x+0.5, y+0.5, cellSize-1, cellSize-1);
-        // When shop selected, show buildable hint
         if (shopSelection >= 0) {
-          ctx.fillStyle = 'rgba(118,255,3,0.04)';
+          ctx.fillStyle = 'rgba(68,255,68,0.04)';
           ctx.fillRect(x, y, cellSize, cellSize);
         }
       } else if (v === 5) {
-        ctx.fillStyle = '#181230';
-        ctx.fillRect(x, y, cellSize, cellSize);
-      } else if (v === 2) {
-        ctx.fillStyle = '#0e0b1c';
+        ctx.fillStyle = '#151525';
         ctx.fillRect(x, y, cellSize, cellSize);
       }
+      // v === 2: border — stars show through, no fill
+
       if (v === 3) {
-        ctx.fillStyle = 'rgba(68,255,68,0.15)';
+        // Entry — holographic rings
+        ctx.fillStyle = '#1a1a2e';
         ctx.fillRect(x, y, cellSize, cellSize);
-        ctx.fillStyle = '#44ff44';
-        ctx.font = `${Math.floor(cellSize*0.45)}px sans-serif`;
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText('▶', x + cellSize/2, y + cellSize/2);
+        const cx2 = x + cellSize/2, cy2 = y + cellSize/2;
+        for (let ring = 0; ring < 3; ring++) {
+          const radius = cellSize * (0.15 + ring * 0.1) + Math.sin(now * 0.003 + ring) * 2;
+          ctx.strokeStyle = `rgba(68,255,68,${0.3 - ring * 0.08})`;
+          ctx.lineWidth = 1.5;
+          ctx.beginPath(); ctx.arc(cx2, cy2, radius, 0, Math.PI*2); ctx.stroke();
+        }
+        const eg = ctx.createRadialGradient(cx2, cy2, 0, cx2, cy2, cellSize*0.5);
+        eg.addColorStop(0, 'rgba(68,255,68,0.12)');
+        eg.addColorStop(1, 'rgba(68,255,68,0)');
+        ctx.fillStyle = eg; ctx.fillRect(x, y, cellSize, cellSize);
       }
       if (v === 4) {
-        ctx.fillStyle = 'rgba(255,68,68,0.15)';
+        // Exit — red warning zone
+        ctx.fillStyle = '#1a1a2e';
         ctx.fillRect(x, y, cellSize, cellSize);
-        ctx.fillStyle = '#ff4444';
-        ctx.font = `${Math.floor(cellSize*0.45)}px sans-serif`;
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText('■', x + cellSize/2, y + cellSize/2);
+        const cx2 = x + cellSize/2, cy2 = y + cellSize/2;
+        const pulse = 0.1 + Math.sin(now * 0.004) * 0.05;
+        const xg = ctx.createRadialGradient(cx2, cy2, 0, cx2, cy2, cellSize*0.5);
+        xg.addColorStop(0, `rgba(255,68,68,${pulse})`);
+        xg.addColorStop(1, 'rgba(255,68,68,0)');
+        ctx.fillStyle = xg; ctx.fillRect(x, y, cellSize, cellSize);
+        ctx.save();
+        ctx.beginPath(); ctx.rect(x, y, cellSize, cellSize); ctx.clip();
+        ctx.globalAlpha = 0.1; ctx.strokeStyle = '#ff4444'; ctx.lineWidth = 1;
+        for (let i = -cellSize; i < cellSize*2; i += 6) {
+          ctx.beginPath(); ctx.moveTo(x+i, y); ctx.lineTo(x+i+cellSize, y+cellSize); ctx.stroke();
+        }
+        ctx.restore();
       }
     }
   }
 
-  // Path direction dots
+  // Path chevrons
   const step = Math.max(Math.floor(pathPoints.length / 20), 1);
-  for (let i = 0; i < pathPoints.length - 1; i += step) {
+  for (let i = 0; i < pathPoints.length - step; i += step) {
     const p = pathPoints[i];
-    ctx.fillStyle = 'rgba(179,136,255,0.1)';
-    ctx.beginPath(); ctx.arc(p.x, p.y, 1.5, 0, Math.PI*2); ctx.fill();
+    const next = pathPoints[Math.min(i + step, pathPoints.length - 1)];
+    const ang = Math.atan2(next.y - p.y, next.x - p.x);
+    ctx.save();
+    ctx.translate(p.x, p.y); ctx.rotate(ang);
+    ctx.fillStyle = `rgba(68,170,255,${0.12 + Math.sin(now*0.002+i*0.1)*0.04})`;
+    ctx.font = `${Math.floor(cellSize*0.22)}px sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('▸', 0, 0);
+    ctx.restore();
   }
 }
 
+function drawTowerWeapon(def, sz, angle) {
+  // Draws weapon centered at 0,0, rotated by angle
+  ctx.save();
+  ctx.rotate(angle);
+  const r = sz * 0.35;
+  switch(def.id) {
+    case 'thorn': // Blaster — twin barrels
+      ctx.fillStyle = '#aaa';
+      ctx.fillRect(-r*0.2, -r*1.8, r*0.2, r*1.4);
+      ctx.fillRect(r*0.05, -r*1.8, r*0.2, r*1.4);
+      ctx.fillStyle = `rgba(${def.accentRGB},0.6)`;
+      ctx.beginPath(); ctx.arc(0.03*r, -r*1.8, r*0.25, 0, Math.PI*2); ctx.fill();
+      break;
+    case 'tack': // Ion Scatter — center + 8 dots
+      ctx.fillStyle = def.accent;
+      ctx.beginPath(); ctx.arc(0, 0, r*0.3, 0, Math.PI*2); ctx.fill();
+      for (let i = 0; i < 8; i++) {
+        const a = (i/8)*Math.PI*2;
+        ctx.beginPath(); ctx.arc(Math.cos(a)*r*0.85, Math.sin(a)*r*0.85, r*0.12, 0, Math.PI*2); ctx.fill();
+      }
+      break;
+    case 'frost': // Cryo — concentric arcs
+      ctx.strokeStyle = def.accent; ctx.lineWidth = 1.5;
+      for (let i = 0; i < 3; i++) {
+        const startA = i * 2.1; const endA = startA + 1.5;
+        ctx.beginPath(); ctx.arc(0, 0, r*(0.4+i*0.25), startA, endA); ctx.stroke();
+      }
+      break;
+    case 'solar': // Thermal Det — circle + spikes
+      ctx.fillStyle = def.accent;
+      ctx.beginPath(); ctx.arc(0, 0, r*0.35, 0, Math.PI*2); ctx.fill();
+      for (let i = 0; i < 6; i++) {
+        const a = (i/6)*Math.PI*2;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a)*r*0.45, Math.sin(a)*r*0.45);
+        ctx.lineTo(Math.cos(a-0.2)*r*0.85, Math.sin(a-0.2)*r*0.85);
+        ctx.lineTo(Math.cos(a+0.2)*r*0.85, Math.sin(a+0.2)*r*0.85);
+        ctx.closePath(); ctx.fill();
+      }
+      break;
+    case 'cannon': // Proton — thick barrel
+      ctx.fillStyle = '#999';
+      ctx.fillRect(-r*0.2, -r*1.6, r*0.4, r*1.3);
+      ctx.fillStyle = `rgba(${def.accentRGB},0.7)`;
+      ctx.beginPath(); ctx.arc(0, -r*1.6, r*0.3, 0, Math.PI*2); ctx.fill();
+      break;
+    case 'laser': // Death Ray — orb + orbiting wisps
+      ctx.fillStyle = def.accent;
+      ctx.beginPath(); ctx.arc(0, 0, r*0.35, 0, Math.PI*2); ctx.fill();
+      const t2 = Date.now() * 0.004;
+      ctx.strokeStyle = def.accent; ctx.lineWidth = 1.5;
+      for (let i = 0; i < 3; i++) {
+        const wa = t2 + i * 2.09;
+        ctx.beginPath(); ctx.arc(0, 0, r*0.75, wa, wa+1.2); ctx.stroke();
+      }
+      break;
+    case 'storm': // Force Lightning — zigzag bolt
+      ctx.strokeStyle = def.accent; ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, -r*0.9);
+      ctx.lineTo(r*0.25, -r*0.3);
+      ctx.lineTo(-r*0.15, -r*0.1);
+      ctx.lineTo(r*0.15, r*0.5);
+      ctx.lineTo(-r*0.1, r*0.9);
+      ctx.stroke();
+      break;
+  }
+  ctx.restore();
+}
+
 function drawTowers() {
+  const now = Date.now();
   for (const t of towers) {
     const def = TOWER_DEFS[t.defIndex];
     const stats = getTowerStats(t);
     const sz = cellSize * 0.42;
 
-    // Base circle
-    ctx.fillStyle = 'rgba(30,24,50,0.9)';
+    // Ground glow
+    ctx.save(); ctx.globalAlpha = 0.1;
+    const gg = ctx.createRadialGradient(t.x, t.y, 0, t.x, t.y, cellSize*0.6);
+    gg.addColorStop(0, def.accent); gg.addColorStop(1, 'transparent');
+    ctx.fillStyle = gg;
+    ctx.beginPath(); ctx.arc(t.x, t.y, cellSize*0.6, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+
+    // Metallic base
+    const bg = ctx.createRadialGradient(t.x, t.y, 0, t.x, t.y, sz);
+    bg.addColorStop(0, '#3a3550'); bg.addColorStop(1, '#1a1525');
+    ctx.fillStyle = bg;
     ctx.beginPath(); ctx.arc(t.x, t.y, sz, 0, Math.PI*2); ctx.fill();
 
     // Level ring
     const totalLvl = t.pathA + t.pathB;
-    const ringColors = ['rgba(179,136,255,0.2)','rgba(179,136,255,0.35)','rgba(179,136,255,0.5)','rgba(179,136,255,0.7)','rgba(118,255,3,0.8)'];
-    ctx.strokeStyle = ringColors[Math.min(totalLvl, ringColors.length - 1)];
+    ctx.strokeStyle = `rgba(${def.accentRGB},${0.2 + totalLvl * 0.15})`;
     ctx.lineWidth = totalLvl > 2 ? 2 : 1.5;
     ctx.beginPath(); ctx.arc(t.x, t.y, sz, 0, Math.PI*2); ctx.stroke();
 
-    // Upgrade pips
+    // Weapon drawing
+    ctx.save(); ctx.translate(t.x, t.y);
+    drawTowerWeapon(def, sz, t.angle || 0);
+    ctx.restore();
+
+    // Upgrade chevrons
     for (let i = 0; i < t.pathA; i++) {
       ctx.fillStyle = '#76ff03';
-      ctx.beginPath();
-      ctx.arc(t.x - sz*0.3 + i*5, t.y - sz - 3, 2, 0, Math.PI*2);
-      ctx.fill();
+      const cx = t.x - sz*0.4 + i*6, cy = t.y - sz - 4;
+      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx+3, cy+2.5); ctx.lineTo(cx, cy+5); ctx.fill();
     }
     for (let i = 0; i < t.pathB; i++) {
       ctx.fillStyle = '#40c4ff';
-      ctx.beginPath();
-      ctx.arc(t.x + sz*0.3 - i*5, t.y - sz - 3, 2, 0, Math.PI*2);
-      ctx.fill();
+      const cx = t.x + sz*0.4 - i*6, cy = t.y - sz - 4;
+      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx-3, cy+2.5); ctx.lineTo(cx, cy+5); ctx.fill();
     }
 
-    // Icon
-    ctx.font = `${Math.floor(sz * 1.1)}px sans-serif`;
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(def.icon, t.x, t.y + 1);
-
-    // Selected range circle
+    // Selected range
     if (selectedTower === t) {
       const range = stats.range * (cellSize / 40);
-      ctx.strokeStyle = 'rgba(179,136,255,0.2)';
-      ctx.lineWidth = 1;
-      ctx.setLineDash([4, 4]);
+      ctx.strokeStyle = `rgba(${def.accentRGB},0.2)`;
+      ctx.lineWidth = 1; ctx.setLineDash([4,4]);
       ctx.beginPath(); ctx.arc(t.x, t.y, range, 0, Math.PI*2); ctx.stroke();
       ctx.setLineDash([]);
-      // Highlight
-      ctx.fillStyle = 'rgba(179,136,255,0.08)';
-      ctx.beginPath(); ctx.arc(t.x, t.y, sz + 2, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = `rgba(${def.accentRGB},0.08)`;
+      ctx.beginPath(); ctx.arc(t.x, t.y, sz+2, 0, Math.PI*2); ctx.fill();
     }
 
     // Ring of fire visual
     if (stats.ringOfFire) {
       ctx.save();
-      ctx.globalAlpha = 0.2 + Math.sin(Date.now() * 0.005) * 0.1;
-      const grad = ctx.createRadialGradient(t.x, t.y, sz, t.x, t.y, stats.range * (cellSize / 40) * 0.5);
-      grad.addColorStop(0, 'rgba(255,100,0,0.4)');
-      grad.addColorStop(1, 'rgba(255,100,0,0)');
-      ctx.fillStyle = grad;
-      ctx.beginPath(); ctx.arc(t.x, t.y, stats.range * (cellSize/40) * 0.5, 0, Math.PI*2); ctx.fill();
+      ctx.globalAlpha = 0.2 + Math.sin(now * 0.005) * 0.1;
+      const rfg = ctx.createRadialGradient(t.x, t.y, sz, t.x, t.y, stats.range*(cellSize/40)*0.5);
+      rfg.addColorStop(0, 'rgba(255,100,0,0.4)'); rfg.addColorStop(1, 'rgba(255,100,0,0)');
+      ctx.fillStyle = rfg;
+      ctx.beginPath(); ctx.arc(t.x, t.y, stats.range*(cellSize/40)*0.5, 0, Math.PI*2); ctx.fill();
       ctx.restore();
     }
 
-    // Beam rendering
+    // Beam rendering — spectacular
     if (def.type === 'beam' && t.beamTargets && t.beamTargets.length > 0) {
+      const pulse = Math.sin(now * 0.008) * 1.5;
       ctx.save();
-      ctx.strokeStyle = def.projColor;
-      ctx.lineWidth = 2 + Math.sin(Date.now() * 0.01) * 0.5;
-      ctx.shadowColor = def.projColor;
-      ctx.shadowBlur = 8;
       for (const bt of t.beamTargets) {
-        if (!bt.dead) {
-          ctx.beginPath(); ctx.moveTo(t.x, t.y); ctx.lineTo(bt.x, bt.y); ctx.stroke();
+        if (bt.dead) continue;
+        // Outer glow
+        ctx.strokeStyle = `rgba(${def.accentRGB},0.15)`;
+        ctx.lineWidth = 8 + pulse;
+        ctx.beginPath(); ctx.moveTo(t.x, t.y); ctx.lineTo(bt.x, bt.y); ctx.stroke();
+        // Inner glow
+        ctx.globalAlpha = 0.7;
+        ctx.strokeStyle = def.accent; ctx.lineWidth = 3 + pulse*0.5;
+        ctx.beginPath(); ctx.moveTo(t.x, t.y); ctx.lineTo(bt.x, bt.y); ctx.stroke();
+        ctx.globalAlpha = 1;
+        // Core
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 1;
+        ctx.shadowColor = def.accent; ctx.shadowBlur = 8;
+        ctx.beginPath(); ctx.moveTo(t.x, t.y); ctx.lineTo(bt.x, bt.y); ctx.stroke();
+        ctx.shadowBlur = 0;
+        // Edge sparkles
+        const bdx = bt.x-t.x, bdy = bt.y-t.y;
+        for (let i = 0; i < 3; i++) {
+          const f = Math.random();
+          ctx.fillStyle = '#fff'; ctx.globalAlpha = 0.4+Math.random()*0.6;
+          ctx.beginPath(); ctx.arc(t.x+bdx*f+(Math.random()-0.5)*4, t.y+bdy*f+(Math.random()-0.5)*4, 1, 0, Math.PI*2); ctx.fill();
         }
+        ctx.globalAlpha = 1;
+        // Impact ring
+        const ir = 3+Math.sin(now*0.01)*2;
+        ctx.strokeStyle = def.accent; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.arc(bt.x, bt.y, ir, 0, Math.PI*2); ctx.stroke();
       }
       ctx.restore();
     }
 
-    // Chain lightning
+    // Chain lightning — spectacular
     if (def.type === 'chain' && t.chainTargets && t.chainTargets.length > 0) {
       ctx.save();
-      ctx.strokeStyle = '#aaddff';
-      ctx.lineWidth = 1.5;
-      ctx.shadowColor = '#aaddff';
-      ctx.shadowBlur = 6;
+      // Outer glow layer
+      ctx.strokeStyle = 'rgba(100,160,255,0.25)'; ctx.lineWidth = 3;
       let prev = { x: t.x, y: t.y };
+      for (const ct of t.chainTargets) {
+        if (!ct.dead) { drawLightning(prev.x, prev.y, ct.x, ct.y); prev = ct; }
+      }
+      // Core layer
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 1;
+      ctx.shadowColor = '#aaccff'; ctx.shadowBlur = 8;
+      prev = { x: t.x, y: t.y };
       for (const ct of t.chainTargets) {
         if (!ct.dead) {
           drawLightning(prev.x, prev.y, ct.x, ct.y);
+          // Spark at impact
+          ctx.fillStyle = '#fff';
+          ctx.beginPath(); ctx.arc(ct.x, ct.y, 3, 0, Math.PI*2); ctx.fill();
           prev = ct;
         }
       }
@@ -1027,34 +1228,69 @@ function drawTowers() {
     const def = TOWER_DEFS[shopSelection];
     const pos = cellCenter(placementCell.row, placementCell.col);
     const range = def.range * (cellSize / 40);
-    ctx.save();
-    ctx.globalAlpha = 0.3;
-    ctx.strokeStyle = '#b388ff';
-    ctx.lineWidth = 1;
-    ctx.setLineDash([4, 4]);
+    const sz = cellSize * 0.42;
+    ctx.save(); ctx.globalAlpha = 0.3;
+    ctx.strokeStyle = def.accent; ctx.lineWidth = 1; ctx.setLineDash([4,4]);
     ctx.beginPath(); ctx.arc(pos.x, pos.y, range, 0, Math.PI*2); ctx.stroke();
     ctx.setLineDash([]);
-    ctx.font = `${Math.floor(cellSize * 0.5)}px sans-serif`;
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.globalAlpha = 0.6;
-    ctx.fillText(def.icon, pos.x, pos.y);
+    ctx.globalAlpha = 0.5;
+    // Ghost base
+    const gbg = ctx.createRadialGradient(pos.x, pos.y, 0, pos.x, pos.y, sz);
+    gbg.addColorStop(0, '#3a3550'); gbg.addColorStop(1, '#1a1525');
+    ctx.fillStyle = gbg;
+    ctx.beginPath(); ctx.arc(pos.x, pos.y, sz, 0, Math.PI*2); ctx.fill();
+    ctx.translate(pos.x, pos.y);
+    drawTowerWeapon(def, sz, 0);
     ctx.restore();
   }
 }
 
 function drawLightning(x1, y1, x2, y2) {
   const seg = 5;
-  const dx = (x2 - x1) / seg, dy = (y2 - y1) / seg;
-  ctx.beginPath(); ctx.moveTo(x1, y1);
-  for (let i = 1; i < seg; i++) {
-    const j = (Math.random() - 0.5) * 8;
-    ctx.lineTo(x1 + dx*i + j, y1 + dy*i + j);
+  const dx = (x2-x1)/seg, dy = (y2-y1)/seg;
+  const len = Math.sqrt((x2-x1)**2+(y2-y1)**2) || 1;
+  const nx = -(y2-y1)/len*3, ny = (x2-x1)/len*3;
+  for (let b = -1; b <= 1; b++) {
+    const ox = nx*b, oy = ny*b;
+    ctx.beginPath(); ctx.moveTo(x1+ox, y1+oy);
+    for (let i = 1; i < seg; i++) {
+      ctx.lineTo(x1+dx*i+(Math.random()-0.5)*8+ox, y1+dy*i+(Math.random()-0.5)*8+oy);
+    }
+    ctx.lineTo(x2+ox, y2+oy); ctx.stroke();
   }
-  ctx.lineTo(x2, y2); ctx.stroke();
+}
+
+function drawTIEShape(x, y, sz, color, variant) {
+  // TIE fighter top-down: cockpit + vertical wing bars
+  ctx.fillStyle = color;
+  // Cockpit
+  ctx.beginPath(); ctx.arc(x, y, sz*0.5, 0, Math.PI*2); ctx.fill();
+  // Wings (perpendicular bars)
+  const wt = sz*0.25, wh = sz*1.6;
+  if (variant === 'angular') {
+    // Shadow Squad — pointed wings
+    ctx.beginPath();
+    ctx.moveTo(x, y-wh*0.5); ctx.lineTo(x-wt*1.5, y); ctx.lineTo(x, y+wh*0.5); ctx.closePath(); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(x, y-wh*0.5); ctx.lineTo(x+wt*1.5, y); ctx.lineTo(x, y+wh*0.5); ctx.closePath(); ctx.fill();
+  } else if (variant === 'rounded') {
+    // Snow Squad — elliptical wings
+    ctx.beginPath(); ctx.ellipse(x-sz*0.7, y, wt*0.4, wh*0.45, 0, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(x+sz*0.7, y, wt*0.4, wh*0.45, 0, 0, Math.PI*2); ctx.fill();
+  } else {
+    // Standard rectangular wings
+    ctx.fillRect(x-sz*0.8, y-wh*0.5, wt*0.4, wh);
+    ctx.fillRect(x+sz*0.6, y-wh*0.5, wt*0.4, wh);
+  }
+  // Struts
+  ctx.strokeStyle = color; ctx.lineWidth = 0.8;
+  ctx.beginPath();
+  ctx.moveTo(x-sz*0.5, y); ctx.lineTo(x-sz*0.65, y);
+  ctx.moveTo(x+sz*0.5, y); ctx.lineTo(x+sz*0.65, y);
+  ctx.stroke();
 }
 
 function drawBlooms() {
-  // Sort by path progress so closer blooms render on top
   const sorted = enemies.filter(e => !e.dead);
   sorted.sort((a, b) => a.pathProgress - b.pathProgress);
 
@@ -1064,88 +1300,126 @@ function drawBlooms() {
     e.x = pos.x; e.y = pos.y;
     const sz = e.size * (cellSize / 40);
 
+    // Compute facing angle
+    const dx2 = e.x - (e.prevX || e.x), dy2 = e.y - (e.prevY || e.y);
+    const eAngle = (dx2 || dy2) ? Math.atan2(dy2, dx2) : (e.angle || 0);
+    e.prevX = e.x; e.prevY = e.y; e.angle = eAngle;
+
     ctx.save();
 
     if (def.moabClass) {
-      // MOAB/BFB: draw as blimp shape
+      // Star Destroyer / Super Star Destroyer — wedge shape
       const w = sz * 2.2, h = sz * 1.2;
+      const isBFB = e.type === 'bfb';
+      ctx.save(); ctx.translate(e.x, e.y); ctx.rotate(eAngle);
       ctx.fillStyle = def.color;
-      ctx.shadowColor = def.color;
-      ctx.shadowBlur = 10;
       ctx.beginPath();
-      ctx.ellipse(e.x, e.y, w, h, 0, 0, Math.PI*2);
+      ctx.moveTo(w, 0); ctx.lineTo(-w*0.8, -h); ctx.lineTo(-w, -h*0.5);
+      ctx.lineTo(-w, h*0.5); ctx.lineTo(-w*0.8, h); ctx.closePath();
       ctx.fill();
-      // Metallic band
-      ctx.fillStyle = 'rgba(255,255,255,0.15)';
-      ctx.beginPath();
-      ctx.ellipse(e.x, e.y - h*0.2, w*0.9, h*0.3, 0, 0, Math.PI*2);
-      ctx.fill();
+      // Bridge
+      ctx.fillStyle = isBFB ? '#445566' : '#5a7888';
+      ctx.fillRect(-w*0.2, -h*0.6, w*0.15, h*0.3);
+      // Engine glow
+      const ec = isBFB ? '#ff4444' : '#4488ff';
+      ctx.fillStyle = ec; ctx.shadowColor = ec; ctx.shadowBlur = 4;
+      for (let i = -1; i <= 1; i++) {
+        ctx.beginPath(); ctx.arc(-w*0.9, i*h*0.3, isBFB?3:2, 0, Math.PI*2); ctx.fill();
+      }
+      ctx.shadowBlur = 0;
+      ctx.restore();
       // HP bar
       const hpPct = e.hp / e.maxHp;
-      const barW = w * 2, barH = 3;
+      const barW = w*2, barH = 3;
       ctx.fillStyle = 'rgba(0,0,0,0.5)';
-      ctx.fillRect(e.x - barW/2, e.y - h - 6, barW, barH);
-      ctx.fillStyle = hpPct > 0.5 ? '#44dd44' : hpPct > 0.25 ? '#ffdd00' : '#ff4444';
-      ctx.fillRect(e.x - barW/2, e.y - h - 6, barW * hpPct, barH);
-      // Name
-      ctx.fillStyle = 'rgba(255,255,255,0.6)';
-      ctx.font = `bold ${Math.floor(sz*0.7)}px sans-serif`;
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(def.name, e.x, e.y + 1);
-    } else {
-      // Regular bloom: colored circle
-      if (def.color === 'rainbow') {
-        // Rainbow gradient
-        const grad = ctx.createLinearGradient(e.x - sz, e.y - sz, e.x + sz, e.y + sz);
-        grad.addColorStop(0, '#ff4444');
-        grad.addColorStop(0.17, '#ff8800');
-        grad.addColorStop(0.33, '#ffdd00');
-        grad.addColorStop(0.5, '#44dd44');
-        grad.addColorStop(0.67, '#4488ff');
-        grad.addColorStop(0.83, '#aa44ff');
-        grad.addColorStop(1, '#ff44aa');
-        ctx.fillStyle = grad;
+      ctx.fillRect(e.x-barW/2, e.y-h-8, barW, barH);
+      const hpGrad = ctx.createLinearGradient(e.x-barW/2, 0, e.x-barW/2+barW*hpPct, 0);
+      hpGrad.addColorStop(0, hpPct>0.5?'#44dd44':hpPct>0.25?'#ffdd00':'#ff4444');
+      hpGrad.addColorStop(1, hpPct>0.5?'#22aa22':hpPct>0.25?'#ccaa00':'#cc2222');
+      ctx.fillStyle = hpGrad;
+      ctx.fillRect(e.x-barW/2, e.y-h-8, barW*hpPct, barH);
+      // Shield shimmer (MOAB) / warning glow (BFB)
+      if (isBFB) {
+        ctx.strokeStyle = `rgba(255,68,68,${0.15+Math.sin(Date.now()*0.006)*0.1})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(e.x, e.y, w*1.1, 0, Math.PI*2); ctx.stroke();
       } else {
-        ctx.fillStyle = def.color;
+        ctx.strokeStyle = `rgba(68,136,255,${0.08+Math.sin(Date.now()*0.005)*0.05})`;
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.arc(e.x, e.y, w*1.1, 0, Math.PI*2); ctx.stroke();
       }
-      ctx.shadowColor = def.color === 'rainbow' ? '#ffffff' : def.color;
-      ctx.shadowBlur = 5;
-      ctx.beginPath(); ctx.arc(e.x, e.y, sz, 0, Math.PI*2); ctx.fill();
-
-      // Highlight
-      ctx.fillStyle = 'rgba(255,255,255,0.2)';
-      ctx.beginPath(); ctx.arc(e.x - sz*0.2, e.y - sz*0.2, sz*0.35, 0, Math.PI*2); ctx.fill();
-
-      // Ceramic HP ring
-      if (e.type === 'ceramic' && e.hp > 1) {
-        ctx.strokeStyle = '#ffcc88';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.arc(e.x, e.y, sz + 2, 0, Math.PI * 2 * (e.hp / e.maxHp));
-        ctx.stroke();
+    } else if (e.type === 'lead') {
+      // AT-ST walker
+      ctx.save(); ctx.translate(e.x, e.y);
+      ctx.fillStyle = '#778899'; ctx.strokeStyle = '#556677'; ctx.lineWidth = 1;
+      ctx.fillRect(-sz*0.3, -sz*0.5, sz*0.6, sz*0.5);
+      ctx.strokeRect(-sz*0.3, -sz*0.5, sz*0.6, sz*0.5);
+      ctx.fillRect(-sz*0.2, -sz*0.7, sz*0.4, sz*0.25);
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(-sz*0.15, 0); ctx.lineTo(-sz*0.35, sz*0.6);
+      ctx.moveTo(sz*0.15, 0); ctx.lineTo(sz*0.35, sz*0.6);
+      ctx.stroke();
+      ctx.restore();
+    } else if (e.type === 'ceramic') {
+      // AT-AT walker
+      ctx.save(); ctx.translate(e.x, e.y);
+      ctx.fillStyle = '#998866'; ctx.strokeStyle = '#887755'; ctx.lineWidth = 1;
+      ctx.fillRect(-sz*0.5, -sz*0.3, sz, sz*0.4);
+      ctx.strokeRect(-sz*0.5, -sz*0.3, sz, sz*0.4);
+      ctx.fillRect(sz*0.3, -sz*0.55, sz*0.25, sz*0.25);
+      ctx.lineWidth = 1.5;
+      const legs = [-0.35,-0.15,0.15,0.35];
+      for (const lx of legs) {
+        ctx.beginPath(); ctx.moveTo(lx*sz, sz*0.1); ctx.lineTo(lx*sz, sz*0.6); ctx.stroke();
       }
-
-      // Lead: metallic sheen
-      if (e.type === 'lead') {
-        ctx.fillStyle = 'rgba(200,200,220,0.15)';
-        ctx.beginPath(); ctx.arc(e.x, e.y, sz, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+      // Shield ring (HP)
+      if (e.hp > 1) {
+        ctx.strokeStyle = '#4488ff'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(e.x, e.y, sz+3, 0, Math.PI*2*(e.hp/e.maxHp)); ctx.stroke();
       }
+    } else {
+      // TIE fighters — all small enemy types
+      let color = def.color;
+      if (def.color === 'rainbow') {
+        const hue = (Date.now() * 0.1) % 360;
+        color = `hsl(${hue},80%,60%)`;
+      }
+      const variant = e.type === 'black' ? 'angular' : e.type === 'white' ? 'rounded' : 'standard';
+      ctx.save(); ctx.translate(e.x, e.y); ctx.rotate(eAngle);
+      drawTIEShape(0, 0, sz, color, variant);
+      ctx.restore();
+      // Engine trail
+      ctx.fillStyle = `rgba(68,136,255,0.2)`;
+      ctx.beginPath();
+      ctx.arc(e.x-Math.cos(eAngle)*sz*1.5, e.y-Math.sin(eAngle)*sz*1.5, sz*0.3, 0, Math.PI*2);
+      ctx.fill();
     }
 
     ctx.restore();
 
-    // Status effects
+    // Status effects — freeze
     if (e.frozen || e.freezeTimer > 0) {
-      ctx.strokeStyle = 'rgba(136,221,255,0.8)';
-      ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.arc(e.x, e.y, sz + 2, 0, Math.PI*2); ctx.stroke();
+      // Ice crystal overlay
+      ctx.save(); ctx.translate(e.x, e.y);
+      ctx.strokeStyle = 'rgba(200,240,255,0.8)'; ctx.lineWidth = 1;
+      for (let i = 0; i < 3; i++) {
+        const a = i*Math.PI/3;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a)*sz*-1.2, Math.sin(a)*sz*-1.2);
+        ctx.lineTo(Math.cos(a)*sz*1.2, Math.sin(a)*sz*1.2);
+        ctx.stroke();
+      }
+      ctx.restore();
+      // Frost particles
+      if (animFrame % 4 === 0 && particles.length < MAX_PARTICLES) {
+        particles.push({ x:e.x+(Math.random()-0.5)*sz, y:e.y, vx:(Math.random()-0.5)*10, vy:-15-Math.random()*20, life:0.4, maxLife:0.4, size:1.5, color:'rgba(200,240,255,0.7)', type:'pop' });
+      }
     }
     if (e.slowTimer > 0 && !e.frozen) {
-      ctx.strokeStyle = 'rgba(136,221,255,0.35)';
-      ctx.lineWidth = 1;
-      ctx.setLineDash([2,2]);
-      ctx.beginPath(); ctx.arc(e.x, e.y, sz + 2, 0, Math.PI*2); ctx.stroke();
-      ctx.setLineDash([]);
+      ctx.strokeStyle = 'rgba(136,238,255,0.35)'; ctx.lineWidth = 1; ctx.setLineDash([2,2]);
+      ctx.beginPath(); ctx.arc(e.x, e.y, sz+2, 0, Math.PI*2); ctx.stroke(); ctx.setLineDash([]);
     }
     if (e.stunTimer > 0) {
       ctx.fillStyle = '#ffff00';
@@ -1153,8 +1427,19 @@ function drawBlooms() {
       ctx.textAlign = 'center';
       ctx.fillText('✦', e.x, e.y - sz - 3);
     }
-    if (e.burnTimer > 0 && animFrame % 3 === 0) {
-      spawnPopParticles(e.x + (Math.random()-0.5)*4, e.y - 2, Math.random() > 0.5 ? '#ff6633' : '#ffaa00', 1);
+    // Burn — enhanced
+    if (e.burnTimer > 0 && animFrame % 2 === 0) {
+      const bc = ['#ff3300','#ff6600','#ffaa00','#ffcc00'][Math.floor(Math.random()*4)];
+      if (particles.length < MAX_PARTICLES) {
+        particles.push({ x:e.x+(Math.random()-0.5)*sz, y:e.y-sz*0.3, vx:(Math.random()-0.5)*20, vy:-30-Math.random()*30, life:0.35, maxLife:0.35, size:2+Math.random()*2, color:bc, type:'pop' });
+      }
+      // Glow halo
+      ctx.save(); ctx.globalAlpha = 0.15;
+      const bgg = ctx.createRadialGradient(e.x, e.y, 0, e.x, e.y, sz*1.5);
+      bgg.addColorStop(0, '#ff6600'); bgg.addColorStop(1, 'transparent');
+      ctx.fillStyle = bgg;
+      ctx.beginPath(); ctx.arc(e.x, e.y, sz*1.5, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
     }
   }
 }
@@ -1162,11 +1447,47 @@ function drawBlooms() {
 function drawProjectiles() {
   for (const p of projectiles) {
     if (p.dead) continue;
+    const angle = p.isTack ? p.angle : Math.atan2(p.ty - p.y, p.tx - p.x);
     ctx.save();
-    ctx.fillStyle = p.color;
-    ctx.shadowColor = p.color;
-    ctx.shadowBlur = 4;
-    ctx.beginPath(); ctx.arc(p.x, p.y, p.isSplash ? 4 : 3, 0, Math.PI*2); ctx.fill();
+
+    if (p.isFreeze) {
+      // Cryo — diamond shape
+      ctx.translate(p.x, p.y); ctx.rotate(angle);
+      ctx.fillStyle = '#88eeff'; ctx.shadowColor = '#88eeff'; ctx.shadowBlur = 4;
+      ctx.beginPath();
+      ctx.moveTo(4, 0); ctx.lineTo(0, -2); ctx.lineTo(-4, 0); ctx.lineTo(0, 2); ctx.closePath();
+      ctx.fill();
+    } else if (p.towerId === 'thorn') {
+      // Blaster bolt — elongated red rectangle
+      ctx.translate(p.x, p.y); ctx.rotate(angle);
+      ctx.shadowColor = '#ff4444'; ctx.shadowBlur = 6;
+      ctx.fillStyle = '#ff4444'; ctx.fillRect(-3, -1, 6, 2);
+      ctx.fillStyle = '#fff'; ctx.fillRect(-2, -0.5, 4, 1);
+    } else if (p.towerId === 'tack') {
+      // Ion bolt — blue-white dot with trail
+      ctx.fillStyle = '#44aaff'; ctx.shadowColor = '#44aaff'; ctx.shadowBlur = 4;
+      ctx.beginPath(); ctx.arc(p.x, p.y, 2, 0, Math.PI*2); ctx.fill();
+      ctx.globalAlpha = 0.3;
+      ctx.beginPath(); ctx.arc(p.x-Math.cos(angle)*3, p.y-Math.sin(angle)*3, 1.5, 0, Math.PI*2); ctx.fill();
+    } else if (p.towerId === 'solar') {
+      // Thermal detonator — orange orb with glow
+      ctx.fillStyle = '#ff8800'; ctx.shadowColor = '#ff8800'; ctx.shadowBlur = 6;
+      ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#ffcc00';
+      ctx.beginPath(); ctx.arc(p.x, p.y, 1.5, 0, Math.PI*2); ctx.fill();
+    } else if (p.towerId === 'cannon') {
+      // Proton ball — green energy
+      ctx.shadowColor = '#44ff44'; ctx.shadowBlur = 8;
+      const pg = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 4);
+      pg.addColorStop(0, '#aaffaa'); pg.addColorStop(1, '#44ff44');
+      ctx.fillStyle = pg;
+      ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI*2); ctx.fill();
+    } else {
+      // Default
+      ctx.fillStyle = p.color; ctx.shadowColor = p.color; ctx.shadowBlur = 4;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.isSplash ? 4 : 3, 0, Math.PI*2); ctx.fill();
+    }
+
     ctx.restore();
   }
 }
@@ -1177,16 +1498,22 @@ function drawParticles() {
     ctx.save();
     ctx.globalAlpha = alpha;
     if (p.type === 'ring') {
-      ctx.strokeStyle = p.color;
-      ctx.lineWidth = 2;
-      ctx.globalAlpha = alpha * 0.5;
-      const radius = p.size * (1 - alpha) * 3 + p.size;
-      ctx.beginPath(); ctx.arc(p.x, p.y, radius, 0, Math.PI*2); ctx.stroke();
+      // Shockwave — double ring
+      ctx.strokeStyle = p.color; ctx.lineWidth = 2; ctx.globalAlpha = alpha * 0.5;
+      const r1 = p.size * (1-alpha) * 3 + p.size;
+      ctx.beginPath(); ctx.arc(p.x, p.y, r1, 0, Math.PI*2); ctx.stroke();
+      ctx.globalAlpha = alpha * 0.25;
+      ctx.beginPath(); ctx.arc(p.x, p.y, r1*1.4, 0, Math.PI*2); ctx.stroke();
     } else if (p.type === 'chain') {
-      ctx.strokeStyle = p.color;
-      ctx.lineWidth = 2 * alpha;
+      ctx.strokeStyle = p.color; ctx.lineWidth = 2*alpha;
       ctx.shadowColor = p.color; ctx.shadowBlur = 4;
       drawLightning(p.x, p.y, p.tx, p.ty);
+    } else if (p.type === 'debris') {
+      // Angular debris particle
+      ctx.fillStyle = p.color;
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.life * 10);
+      ctx.fillRect(-p.size*0.5, -p.size*0.5, p.size, p.size);
+      ctx.restore();
     } else {
       ctx.fillStyle = p.color;
       ctx.beginPath(); ctx.arc(p.x, p.y, p.size * alpha, 0, Math.PI*2); ctx.fill();
@@ -1199,11 +1526,11 @@ function drawHUDCanvas() {
   if (popCombo > 5 && comboTimer > 0) {
     ctx.save();
     ctx.globalAlpha = Math.min(comboTimer * 2, 1);
-    ctx.fillStyle = '#b388ff';
+    ctx.fillStyle = '#44aaff';
     ctx.font = `bold ${Math.floor(cellSize * 0.6)}px sans-serif`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.shadowColor = 'rgba(179,136,255,0.6)'; ctx.shadowBlur = 15;
-    ctx.fillText(`${popCombo} POPS!`, C.width / DPR / 2, gridOffY - 8);
+    ctx.shadowColor = 'rgba(68,170,255,0.6)'; ctx.shadowBlur = 15;
+    ctx.fillText(`${popCombo} KILLS!`, C.width / DPR / 2, gridOffY - 8);
     ctx.restore();
   }
 }
@@ -1293,7 +1620,7 @@ function update(dt) {
   if (STATE === 'between_waves') {
     waveCountdown -= dt;
     const btn = $('sendWaveBtn');
-    if (btn) btn.textContent = `Send Wave (+$25) [${Math.ceil(Math.max(waveCountdown, 0))}s]`;
+    if (btn) btn.textContent = `Launch Assault (+25CR) [${Math.ceil(Math.max(waveCountdown, 0))}s]`;
     if (waveCountdown <= 0) startWave();
   }
 
@@ -1375,10 +1702,11 @@ function update(dt) {
         }
       }
       t.beamTargets = newTargets;
+      if (newTargets.length > 0) t.angle = Math.atan2(newTargets[0].y - t.y, newTargets[0].x - t.x);
       if (newTargets.length === 0) t.fireTimer = 0;
 
     } else if (def.type === 'freeze') {
-      // Frost Bloom: AoE slow/freeze around tower
+      // Cryo Emitter: AoE slow/freeze around tower
       t.fireTimer = (t.fireTimer || 0) - sDt;
       if (t.fireTimer <= 0) {
         t.fireTimer = 0.5; // tick every 0.5s
@@ -1415,12 +1743,13 @@ function update(dt) {
       }
 
     } else if (def.type === 'chain') {
-      // Storm Spire
+      // Force Lightning
       t.fireTimer = (t.fireTimer || 0) - sDt;
       t.chainTargets = t.chainTargets || [];
       if (t.fireTimer <= 0) {
         const tgt = findTarget(t, stats, t.targeting || 'first');
         if (tgt) {
+          t.angle = Math.atan2(tgt.y - t.y, tgt.x - t.x);
           const chainRange = scaledRange * 0.8;
           const targets = findChainTargets(tgt, chainRange * chainRange, stats.chains);
           t.chainTargets = targets;
@@ -1480,6 +1809,7 @@ function update(dt) {
       if (t.fireTimer <= 0) {
         const tgt = findTarget(t, stats, t.targeting || 'first');
         if (tgt) {
+          t.angle = Math.atan2(tgt.y - t.y, tgt.x - t.x);
           const numShots = stats.missiles || 1;
           for (let s = 0; s < numShots; s++) {
             const proj = createProjectile(t, tgt, stats);
@@ -1574,7 +1904,7 @@ function update(dt) {
   // Update particles
   for (const p of particles) {
     p.life -= dt;
-    if (p.type === 'pop') { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 100 * dt; }
+    if (p.type === 'pop' || p.type === 'debris') { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += (p.type === 'debris' ? 40 : 100) * dt; }
   }
 
   // Cleanup
@@ -1616,16 +1946,16 @@ function startWave() {
 
   // Banner
   const banner = $('waveBanner');
-  banner.textContent = `Wave ${currentWave}`;
+  banner.textContent = `Assault Wave ${currentWave}`;
   banner.classList.add('visible');
   setTimeout(() => banner.classList.remove('visible'), 1500);
 
-  // MOAB warning
+  // Capital ship warning
   const hasMoab = spawnQueue.some(t => BLOOM_TYPES[t].moabClass);
   if (hasMoab) {
     const bw = $('moabWarning');
     const hasBfb = spawnQueue.includes('bfb');
-    bw.textContent = hasBfb ? '⚠ B.F.B. INCOMING ⚠' : '⚠ M.O.A.B. INCOMING ⚠';
+    bw.textContent = hasBfb ? '⚠ SUPER STAR DESTROYER ⚠' : '⚠ STAR DESTROYER INCOMING ⚠';
     bw.classList.add('visible');
     setTimeout(() => bw.classList.remove('visible'), 2500);
     shakeMag = 4; shakeTime = 0.5;
@@ -1704,10 +2034,10 @@ function gameOver() {
   ArcadeData.earnPetals(currentWave * 3);
 
   $('roTitle').textContent = 'Defeat';
-  $('roTitle').style.color = '#ff6b9d';
+  $('roTitle').style.color = '#ff4444';
   $('roScore').textContent = score;
   $('roStats').innerHTML =
-    `Waves: ${currentWave}/${TOTAL_WAVES}<br>Pops: ${totalPops}<br>Gold Earned: $${totalGoldEarned}<br>Petals: +${currentWave * 3}` +
+    `Assault Waves: ${currentWave}/${TOTAL_WAVES}<br>Kills: ${totalPops}<br>Credits Earned: ${totalGoldEarned}CR<br>Credits: +${currentWave * 3}` +
     (isNewBest ? '<br><span style="color:#ffd740">New Best!</span>' : '');
   $('resultOverlay').classList.remove('hidden');
   $('sendWaveBtn').classList.remove('visible');
@@ -1724,7 +2054,7 @@ function victory() {
   $('roTitle').style.color = '#76ff03';
   $('roScore').textContent = score;
   $('roStats').innerHTML =
-    `All ${TOTAL_WAVES} Waves Cleared!<br>Pops: ${totalPops}<br>Gold Earned: $${totalGoldEarned}<br>Petals: +${TOTAL_WAVES * 5}` +
+    `All ${TOTAL_WAVES} Assault Waves Cleared!<br>Kills: ${totalPops}<br>Credits Earned: ${totalGoldEarned}CR<br>Credits: +${TOTAL_WAVES * 5}` +
     (isNewBest ? '<br><span style="color:#ffd740">New Best!</span>' : '');
   $('resultOverlay').classList.remove('hidden');
   $('sendWaveBtn').classList.remove('visible');
@@ -1757,7 +2087,8 @@ function buildShopBar() {
     const el = document.createElement('div');
     el.className = 'shop-item';
     if (gold < d.baseCost) el.classList.add('cant-afford');
-    el.innerHTML = `<span class="si-icon">${d.icon}</span><span class="si-cost">$${d.baseCost}</span><span class="si-name">${d.name.split(' ')[0]}</span>`;
+    el.innerHTML = `<span class="si-icon" style="color:${d.accent};text-shadow:0 0 6px ${d.accent}">◆</span><span class="si-cost">${d.baseCost}CR</span><span class="si-name">${d.name.split(' ')[0]}</span>`;
+    el.style.setProperty('--ta', d.accent);
     el.dataset.idx = i;
     el.addEventListener('pointerdown', (e) => {
       e.stopPropagation();
@@ -1828,7 +2159,7 @@ function refreshTowerPanel() {
   } else {
     const upg = def.pathA[t.pathA];
     const canAfford = gold >= upg.cost;
-    pathAHtml += `<div class="tp-upgrade-btn ${canAfford ? '' : 'locked'}" data-path="a">${upg.name} ($${upg.cost})</div>`;
+    pathAHtml += `<div class="tp-upgrade-btn ${canAfford ? '' : 'locked'}" data-path="a">${upg.name} (${upg.cost}CR)</div>`;
     pathAHtml += `<div class="tp-upgrade-desc">${upg.desc}</div>`;
   }
 
@@ -1839,7 +2170,7 @@ function refreshTowerPanel() {
   } else {
     const upg = def.pathB[t.pathB];
     const canAfford = gold >= upg.cost;
-    pathBHtml += `<div class="tp-upgrade-btn ${canAfford ? '' : 'locked'}" data-path="b">${upg.name} ($${upg.cost})</div>`;
+    pathBHtml += `<div class="tp-upgrade-btn ${canAfford ? '' : 'locked'}" data-path="b">${upg.name} (${upg.cost}CR)</div>`;
     pathBHtml += `<div class="tp-upgrade-desc">${upg.desc}</div>`;
   }
 
@@ -1847,7 +2178,7 @@ function refreshTowerPanel() {
 
   panel.innerHTML = `
     <div class="tp-header">
-      <span class="tp-name">${def.icon} ${def.name}</span>
+      <span class="tp-name" style="color:${def.accent}">${def.name}</span>
       <span class="tp-targeting" id="targetCycle">${targetingLabel} ▾</span>
     </div>
     <div class="tp-stats">${statsHtml}</div>
@@ -1856,7 +2187,7 @@ function refreshTowerPanel() {
       <div class="tp-path" id="pathBPanel">${pathBHtml}</div>
     </div>
     <div class="tp-actions">
-      <div class="tp-btn sell" id="sellBtn">Sell ($${sellAmt})</div>
+      <div class="tp-btn sell" id="sellBtn">Sell (${sellAmt}CR)</div>
       <div class="tp-btn" id="closeBtn">Close</div>
     </div>
   `;
@@ -1936,7 +2267,7 @@ function buildTower(defIndex, row, col) {
     defIndex, pathA: 0, pathB: 0,
     row, col, x: pos.x, y: pos.y,
     fireTimer: 0, cryoTimer: 0,
-    targeting: 'first',
+    targeting: 'first', angle: 0,
     beamTargets: [], chainTargets: []
   };
   towers.push(tower);
@@ -1961,12 +2292,11 @@ function getCellFromPixel(px, py) {
 }
 
 C.addEventListener('pointerdown', (e) => {
+  if (STATE === 'gameover' || STATE === 'victory' || STATE === 'menu') return;
   e.preventDefault();
   const rect = C.getBoundingClientRect();
   const px = e.clientX - rect.left;
   const py = e.clientY - rect.top;
-
-  if (STATE === 'gameover' || STATE === 'victory' || STATE === 'menu') return;
 
   const cell = getCellFromPixel(px, py);
 
@@ -2039,20 +2369,20 @@ $('pauseBtn').addEventListener('pointerdown', () => {
     $('pauseOverlay').classList.remove('hidden');
   }
 });
-$('resumeBtn').addEventListener('pointerdown', () => {
+$('resumeBtn').addEventListener('click', () => {
   $('pauseOverlay').classList.add('hidden');
   STATE = waveActive ? 'playing' : 'between_waves';
   lastTime = performance.now();
 });
-$('restartBtn').addEventListener('pointerdown', () => {
+$('restartBtn').addEventListener('click', () => {
   $('pauseOverlay').classList.add('hidden');
   startGame();
 });
-$('exitBtn').addEventListener('pointerdown', () => { window.location.href = '../index.html'; });
+$('exitBtn').addEventListener('click', () => { window.location.href = '../index.html'; });
 
 // Result buttons
-$('roRetry').addEventListener('pointerdown', () => startGame());
-$('roMenu').addEventListener('pointerdown', () => {
+$('roRetry').addEventListener('click', () => startGame());
+$('roMenu').addEventListener('click', () => {
   $('resultOverlay').classList.add('hidden');
   $('hud').style.display = 'none';
   $('shopBar').style.display = 'none';
@@ -2060,10 +2390,10 @@ $('roMenu').addEventListener('pointerdown', () => {
   $('startMenu').classList.remove('hidden');
   STATE = 'menu';
 });
-$('roExit').addEventListener('pointerdown', () => { window.location.href = '../index.html'; });
+$('roExit').addEventListener('click', () => { window.location.href = '../index.html'; });
 
-// Start
-$('startBtn').addEventListener('pointerdown', () => startGame());
+// Start — use click for mobile compatibility
+$('startBtn').addEventListener('click', (e) => { e.preventDefault(); startGame(); });
 
 // ═══════════════════════════════════════
 //  MAP SELECTOR
@@ -2085,7 +2415,7 @@ function initMapSelector() {
     for (let r = 0; r < m.rows; r++) {
       for (let c = 0; c < m.cols; c++) {
         const v = tempGrid[r][c];
-        pCtx.fillStyle = (v===1||v===3||v===4) ? '#2a2048' : v===0 ? '#1a1530' : '#100e1e';
+        pCtx.fillStyle = (v===1||v===3||v===4) ? '#1a1a2e' : v===0 ? '#151525' : '#050510';
         pCtx.fillRect(c*pCW, r*pCH, pCW, pCH);
         if (v===3) { pCtx.fillStyle = 'rgba(68,255,68,0.3)'; pCtx.fillRect(c*pCW, r*pCH, pCW, pCH); }
         if (v===4) { pCtx.fillStyle = 'rgba(255,68,68,0.3)'; pCtx.fillRect(c*pCW, r*pCH, pCW, pCH); }
@@ -2107,8 +2437,17 @@ initMapSelector();
 
 function drawMenuBG() {
   if (STATE !== 'menu') return;
+  const w = C.width/DPR, h = C.height/DPR;
   ctx.fillStyle = '#0d0a1a';
-  ctx.fillRect(0, 0, C.width/DPR, C.height/DPR);
+  ctx.fillRect(0, 0, w, h);
+  if (nebulaCanvas) ctx.drawImage(nebulaCanvas, 0, 0);
+  const now = Date.now();
+  for (const s of stars) {
+    let a = s.alpha;
+    if (s.twinkle) a *= 0.5 + 0.5 * Math.sin(now * 0.003 + s.phase);
+    ctx.fillStyle = `rgba(255,255,255,${a})`;
+    ctx.fillRect(s.x * w, s.y * h, s.size, s.size);
+  }
   requestAnimationFrame(drawMenuBG);
 }
 drawMenuBG();
