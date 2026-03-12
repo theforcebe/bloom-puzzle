@@ -157,11 +157,15 @@ html,body{overflow:hidden;position:fixed;inset:0;width:100%;height:100dvh;touch-
 .back-btn:active{background:rgba(74,63,107,0.5)}
 
 /* ── Combat Log ── */
-#combat-log{position:fixed;left:clamp(4px,1vw,8px);top:50%;transform:translateY(-50%);z-index:18;width:min(160px,35vw);max-height:30dvh;background:rgba(10,8,20,0.75);border:1px solid rgba(184,169,212,0.08);border-radius:10px;padding:clamp(4px,0.6dvh,8px);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:none;overflow:hidden;pointer-events:none}
+#combat-log{position:fixed;left:clamp(4px,1vw,8px);top:50%;transform:translateY(-50%);z-index:18;width:min(160px,35vw);max-height:30dvh;background:rgba(10,8,20,0.88);border:1px solid rgba(184,169,212,0.1);border-radius:10px;padding:clamp(4px,0.6dvh,8px);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:none;overflow:hidden;pointer-events:none}
 #combat-log.visible{display:block}
 #combat-log .cl-title{font-family:'Quicksand',sans-serif;font-size:clamp(8px,0.9dvh,10px);font-weight:700;color:var(--iris-mid);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px}
 #combat-log .cl-entry{font-family:'Quicksand',sans-serif;font-size:clamp(8px,0.95dvh,10px);color:var(--iris-light);line-height:1.4;padding:1px 0;opacity:0.8}
-#combat-log .cl-entry:last-child{opacity:1;color:var(--moon-glow)}
+#combat-log .cl-entry:last-child{opacity:1;color:var(--moon-glow);text-shadow:0 0 6px rgba(255,255,255,0.2)}
+#combat-log .cl-entry.cl-damage{color:#ff6666}
+#combat-log .cl-entry.cl-heal{color:#66ff88}
+#combat-log .cl-entry.cl-move{color:#66aaff}
+#combat-log .cl-entry.cl-crit{color:#ffd740;font-weight:700}
 
 /* ── Damage Numbers ── */
 .dmg-float{position:fixed;z-index:35;pointer-events:none;font-family:'Cormorant Garamond',serif;font-weight:700;text-shadow:0 2px 6px rgba(0,0,0,0.8);animation:dmgFloat 1.2s ease-out forwards}
@@ -1094,37 +1098,198 @@ let floats = [];
 let playerAnimOff = { x:0, y:0, opacity:1 };
 let enemyAnimOff = { x:0, y:0, opacity:1 };
 
-function triggerShake(pow) { shakePow = pow; }
+let shakeDirX = 0, shakeDirY = 0;
+function triggerShake(pow, dirX, dirY) {
+  shakePow = pow;
+  shakeDirX = dirX || 0; shakeDirY = dirY || 0;
+}
 function updateShake() {
   if (shakePow > 0.5) {
-    shakeX = (Math.random()-0.5)*shakePow;
-    shakeY = (Math.random()-0.5)*shakePow;
-    shakePow *= 0.82;
+    const dirBias = 0.6;
+    shakeX = ((Math.random()-0.5)*(1-dirBias) + shakeDirX*dirBias) * shakePow;
+    shakeY = ((Math.random()-0.5)*(1-dirBias) + shakeDirY*dirBias) * shakePow;
+    shakePow *= shakePow > 8 ? 0.88 : 0.82;
   } else { shakeX=0; shakeY=0; shakePow=0; }
 }
 
-function spawnParts(x, y, color, count, spread) {
-  for (let i=0; i<(count||8); i++) {
+// ── Particle types: circle, spark, debris, ring, trail ──
+const PART_CAP = 120;
+function spawnParts(x, y, color, count, spread, type) {
+  const n = count || 20;
+  const sp = spread || 8;
+  const t = type || 'circle';
+  for (let i = 0; i < n && combatParts.length < PART_CAP; i++) {
     combatParts.push({
-      x, y, vx:(Math.random()-0.5)*(spread||6), vy:(Math.random()-0.5)*(spread||6)-2,
-      life:1, decay:0.02+Math.random()*0.02, color, size:2+Math.random()*3,
+      x, y,
+      vx: (Math.random()-0.5) * sp,
+      vy: (Math.random()-0.5) * sp - 2,
+      life: 1, decay: 0.015 + Math.random() * 0.02,
+      color, size: 3 + Math.random() * 7,
+      type: t,
+      rot: Math.random() * Math.PI * 2,
+      rotV: (Math.random()-0.5) * 0.2,
     });
   }
 }
 
 function updateParts() {
   combatParts = combatParts.filter(p => {
-    p.x+=p.vx; p.y+=p.vy; p.vy+=0.08; p.life-=p.decay;
-    return p.life>0;
+    p.x += p.vx; p.y += p.vy;
+    p.vy += (p.type === 'ring' ? 0 : 0.08);
+    p.life -= p.decay;
+    p.rot += (p.rotV || 0);
+    p.size *= (p.type === 'ring' ? 1.04 : 0.995);
+    return p.life > 0;
   });
 }
 
 function drawParts(ctx) {
   combatParts.forEach(p => {
-    ctx.globalAlpha=p.life; ctx.fillStyle=p.color;
-    ctx.beginPath(); ctx.arc(p.x,p.y,p.size,0,Math.PI*2); ctx.fill();
+    ctx.globalAlpha = p.life * 0.9;
+    ctx.fillStyle = p.color;
+    ctx.save();
+    if (p.type === 'spark') {
+      // Elongated rotating rectangle
+      ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      ctx.shadowColor = p.color; ctx.shadowBlur = 6;
+      ctx.fillRect(-p.size*1.5, -1, p.size*3, 2);
+      ctx.shadowBlur = 0;
+    } else if (p.type === 'debris') {
+      // Angular polygon
+      ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      ctx.beginPath();
+      ctx.moveTo(-p.size*0.5, -p.size*0.6);
+      ctx.lineTo(p.size*0.5, -p.size*0.3);
+      ctx.lineTo(p.size*0.4, p.size*0.5);
+      ctx.lineTo(-p.size*0.3, p.size*0.4);
+      ctx.fill();
+    } else if (p.type === 'ring') {
+      // Expanding circle outline
+      ctx.strokeStyle = p.color; ctx.lineWidth = 2;
+      ctx.shadowColor = p.color; ctx.shadowBlur = 8;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.stroke();
+      ctx.shadowBlur = 0;
+    } else if (p.type === 'trail') {
+      // Fading line
+      ctx.strokeStyle = p.color; ctx.lineWidth = p.size * 0.5;
+      ctx.shadowColor = p.color; ctx.shadowBlur = 4;
+      ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - p.vx*3, p.y - p.vy*3); ctx.stroke();
+      ctx.shadowBlur = 0;
+    } else {
+      // Circle with glow
+      ctx.shadowColor = p.color; ctx.shadowBlur = p.size > 5 ? 8 : 4;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI*2); ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+    ctx.restore();
   });
-  ctx.globalAlpha=1;
+  ctx.globalAlpha = 1;
+}
+
+// ── Slash Trail VFX ──
+let slashTrails = [];
+function spawnSlashTrail(fromX, fromY, toX, toY, color) {
+  slashTrails.push({
+    fromX, fromY, toX, toY, color,
+    life: 1, decay: 0.04,
+  });
+}
+function drawSlashTrails(ctx) {
+  slashTrails = slashTrails.filter(s => {
+    s.life -= s.decay;
+    return s.life > 0;
+  });
+  slashTrails.forEach(s => {
+    ctx.save();
+    // Wide dim outer stroke
+    ctx.globalAlpha = s.life * 0.3;
+    ctx.strokeStyle = s.color;
+    ctx.lineWidth = 12;
+    ctx.shadowColor = s.color; ctx.shadowBlur = 20;
+    ctx.lineCap = 'round';
+    const midX = (s.fromX + s.toX) / 2 + (s.toY - s.fromY) * 0.3 * s.life;
+    const midY = (s.fromY + s.toY) / 2 - Math.abs(s.toX - s.fromX) * 0.2 * s.life;
+    ctx.beginPath(); ctx.moveTo(s.fromX, s.fromY);
+    ctx.quadraticCurveTo(midX, midY, s.toX, s.toY); ctx.stroke();
+    // Narrow bright core
+    ctx.globalAlpha = s.life * 0.8;
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = '#fff';
+    ctx.shadowBlur = 10;
+    ctx.beginPath(); ctx.moveTo(s.fromX, s.fromY);
+    ctx.quadraticCurveTo(midX, midY, s.toX, s.toY); ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.restore();
+  });
+}
+
+// ── Impact Flash VFX ──
+let impactFlashes = [];
+function spawnImpactFlash(x, y, color, size) {
+  impactFlashes.push({ x, y, color, size: size || 40, life: 1, decay: 0.05 });
+}
+function drawImpactFlashes(ctx) {
+  impactFlashes = impactFlashes.filter(f => {
+    f.life -= f.decay;
+    return f.life > 0;
+  });
+  impactFlashes.forEach(f => {
+    ctx.save();
+    const r = f.size * (1 - f.life * 0.5);
+    // Outer glow
+    ctx.globalAlpha = f.life * 0.15;
+    ctx.fillStyle = f.color;
+    ctx.shadowColor = f.color; ctx.shadowBlur = 25;
+    ctx.beginPath(); ctx.arc(f.x, f.y, r * 1.5, 0, Math.PI*2); ctx.fill();
+    // Mid ring
+    ctx.globalAlpha = f.life * 0.4;
+    ctx.beginPath(); ctx.arc(f.x, f.y, r, 0, Math.PI*2); ctx.fill();
+    // Bright core
+    ctx.globalAlpha = f.life * 0.9;
+    ctx.fillStyle = '#fff';
+    ctx.shadowBlur = 15;
+    ctx.beginPath(); ctx.arc(f.x, f.y, r * 0.3, 0, Math.PI*2); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.restore();
+  });
+}
+
+// ── Screen Flash System ──
+let screenFlash = null;
+function triggerScreenFlash(color, duration) {
+  screenFlash = { color, life: 1, decay: 1 / (duration || 15) };
+}
+function drawScreenFlash(ctx, w, h) {
+  if (!screenFlash) return;
+  screenFlash.life -= screenFlash.decay;
+  if (screenFlash.life <= 0) { screenFlash = null; return; }
+  ctx.save();
+  ctx.globalAlpha = screenFlash.life * 0.2;
+  ctx.fillStyle = screenFlash.color;
+  ctx.fillRect(0, 0, w, h);
+  ctx.restore();
+}
+
+// ── Status Effect Ambient Particles ──
+function spawnStatusParticles(x, y, charH, statuses) {
+  if (!statuses || combatParts.length >= PART_CAP - 5) return;
+  const now = Date.now();
+  if (now % 6 !== 0) return; // Throttle: ~1 per 6 frames
+  if (statuses.burning) {
+    combatParts.push({ x: x + (Math.random()-0.5)*30, y: y + charH*0.3 + Math.random()*charH*0.4,
+      vx: (Math.random()-0.5)*1.5, vy: -1.5 - Math.random()*2, life: 0.8, decay: 0.03,
+      color: '#ff6600', size: 2+Math.random()*3, type: 'spark', rot: Math.random()*6.28, rotV: 0.1 });
+  }
+  if (statuses.frozen) {
+    combatParts.push({ x: x + (Math.random()-0.5)*30, y: y + charH*0.2 + Math.random()*charH*0.5,
+      vx: (Math.random()-0.5)*0.8, vy: -0.5 - Math.random(), life: 0.9, decay: 0.025,
+      color: '#88ddff', size: 3+Math.random()*3, type: 'debris', rot: Math.random()*6.28, rotV: 0.05 });
+  }
+  if (statuses.poisoned) {
+    combatParts.push({ x: x + (Math.random()-0.5)*25, y: y + charH*0.4 + Math.random()*charH*0.3,
+      vx: (Math.random()-0.5)*1, vy: -1 - Math.random()*1.5, life: 0.7, decay: 0.02,
+      color: '#44ff44', size: 2+Math.random()*4, type: 'trail', rot: 0, rotV: 0 });
+  }
 }
 
 function showFloat(text, x, y, color, big) {
@@ -1199,7 +1364,7 @@ function calcDamage(attacker, defender, mult, isSpell, spell) {
 // ── Apply Damage ──
 function applyResult(target, result, atkName, tgtName) {
   if (result.dodged) {
-    addLog(`${tgtName} dodges!`);
+    addLog(`${tgtName} dodges!`, 'move');
     Snd.dodge();
     const x = target===player ? gameCanvas.width*0.3 : gameCanvas.width*0.7;
     showFloat('DODGE', x, gameCanvas.height*0.25, '#44aaff', false);
@@ -1208,7 +1373,7 @@ function applyResult(target, result, atkName, tgtName) {
   }
   target.hp = Math.max(0, target.hp - result.dmg);
   const pre = result.crit ? 'CRIT! ' : result.blocked ? 'Blocked! ' : '';
-  addLog(`${pre}${atkName} hits ${tgtName} for ${result.dmg}`);
+  addLog(`${pre}${atkName} hits ${tgtName} for ${result.dmg}`, result.crit ? 'crit' : 'damage');
   if (result.crit) Snd.heavyHit(); else Snd.swordHit();
   const x = target===player ? gameCanvas.width*0.3 : gameCanvas.width*0.7;
   showFloat((result.crit?'!':'')+result.dmg, x, gameCanvas.height*0.25, result.crit?'#ff4444':result.blocked?'#ffaa44':'#fff', result.crit);
@@ -1223,7 +1388,7 @@ function processStatusTicks(fighter) {
     if (e?.tick) {
       fighter.hp = Math.max(0, fighter.hp - e.tick);
       const name = fighter===player ? 'You' : fighter.name;
-      addLog(`${name} takes ${e.tick} ${s.id} damage`);
+      addLog(`${name} takes ${e.tick} ${s.id} damage`, 'damage');
       const x = fighter===player ? gameCanvas.width*0.3 : gameCanvas.width*0.7;
       showFloat(e.tick.toString(), x, gameCanvas.height*0.3, e.color, false);
     }
@@ -1237,15 +1402,20 @@ function processStatusTicks(fighter) {
 }
 
 // ── Combat Log ──
-function addLog(msg) {
-  combat.log.push(msg); if(combat.log.length>30) combat.log.shift();
+function addLog(msg, type) {
+  combat.log.push({ text: msg, type: type || '' });
+  if (combat.log.length > 30) combat.log.shift();
   updateCombatLog();
 }
 function updateCombatLog() {
   const el = document.getElementById('cl-entries');
   if (!el) return;
   const entries = combat.log.slice(-6);
-  el.innerHTML = entries.map(e => `<div class="cl-entry">${e}</div>`).join('');
+  el.innerHTML = entries.map(e => {
+    const entry = typeof e === 'string' ? { text: e, type: '' } : e;
+    const cls = entry.type ? ` cl-${entry.type}` : '';
+    return `<div class="cl-entry${cls}">${entry.text}</div>`;
+  }).join('');
   el.scrollTop = el.scrollHeight;
 }
 
@@ -1341,6 +1511,7 @@ function endTurn() {
 
   combat.playerTurn = !combat.playerTurn;
   combat.turn++;
+  showTurnIndicator(combat.playerTurn);
   updateCombatHUD();
   setTimeout(() => beginTurn(), 400);
 }
@@ -1381,14 +1552,14 @@ function pAdvance() {
   const steps=Math.min(3, combat.distance); if(!steps)return;
   if(player.stamina<steps)return;
   player.stamina-=steps; combat.distance=Math.max(0,combat.distance-steps);
-  addLog(`Advance ${steps}. Dist: ${combat.distance}`);
+  addLog(`Advance ${steps}. Dist: ${combat.distance}`, 'move');
   animMove(true, steps, ()=>endTurn());
 }
 function pRetreat() {
   const steps=Math.min(3, 10-combat.distance); if(!steps)return;
   if(player.stamina<steps)return;
   player.stamina-=steps; combat.distance=Math.min(10,combat.distance+steps);
-  addLog(`Retreat ${steps}. Dist: ${combat.distance}`);
+  addLog(`Retreat ${steps}. Dist: ${combat.distance}`, 'move');
   animMove(true, -steps, ()=>endTurn());
 }
 function pLightAtk() {
@@ -1500,7 +1671,7 @@ function pCastSpell(spellId) {
   } else if(sp.type==='heal') {
     const amt=Math.floor(sp.base+player.stats.MAG*sp.scale);
     player.hp=Math.min(player.hp+amt, player.maxHp);
-    addLog(`Heal: +${amt} HP`); Snd.heal();
+    addLog(`Heal: +${amt} HP`, 'heal'); Snd.heal();
     showFloat('+'+amt, gameCanvas.width*0.3, gameCanvas.height*0.3, '#44ff44', false);
     endTurn();
   } else if(sp.type==='buff') {
@@ -1780,20 +1951,50 @@ function combatDefeat() {
 function arena() { return progression.arena; }
 
 // ── Animations ──
+// Shield dome state for defend rendering
+let shieldDome = null;
+
+function getCharPositions() {
+  const w = window.innerWidth, h = window.innerHeight;
+  const dist = combat.distance || 5;
+  const floorY = h * 0.72;
+  const charH = Math.min(h * 0.45, 300);
+  return {
+    pX: w * (0.5 - dist * 0.035), eX: w * (0.5 + dist * 0.035),
+    midY: floorY - charH * 0.5, floorY, charH, w, h
+  };
+}
+
 function animAttack(isPlayer, heavy, cb) {
   combat.animating = true;
   const off = isPlayer ? playerAnimOff : enemyAnimOff;
   const dir = isPlayer ? 1 : -1;
-  const dist = heavy ? 50 : 30;
-  let t = 0;
-  const dur = heavy ? 400 : 250;
+  const pos = getCharPositions();
+  const lungeDist = Math.min(30 + combat.distance * 8, heavy ? 80 : 50);
+  const dur = heavy ? 450 : 280;
   const start = performance.now();
+  let impactDone = false;
   function step(now) {
-    t = Math.min((now-start)/dur, 1);
-    if(t<0.4) off.x = dir*dist*(t/0.4);
-    else if(t<0.5) off.x = dir*dist;
-    else off.x = dir*dist*(1-(t-0.5)/0.5);
-    if(t>=1) { off.x=0; combat.animating=false; if(cb) cb(); return; }
+    const t = Math.min((now-start)/dur, 1);
+    if (t < 0.4) {
+      off.x = dir * lungeDist * (t/0.4);
+    } else if (t < 0.5) {
+      off.x = dir * lungeDist;
+      if (!impactDone) {
+        impactDone = true;
+        const targetX = isPlayer ? pos.eX : pos.pX;
+        const slashFromX = (isPlayer ? pos.pX : pos.eX) + dir * lungeDist;
+        spawnSlashTrail(slashFromX, pos.midY - 30, targetX, pos.midY + 20, heavy ? '#ff4444' : '#ffaa44');
+        spawnImpactFlash(targetX, pos.midY, heavy ? '#ff2222' : '#ffaa44', heavy ? 50 : 30);
+        spawnParts(targetX, pos.midY, '#ff6644', heavy ? 30 : 18, heavy ? 12 : 8, 'spark');
+        triggerShake(heavy ? 12 : 6, dir, 0);
+        if (heavy) triggerScreenFlash('#ffffff', 12);
+        haptic(heavy ? 'heavy' : 'medium');
+      }
+    } else {
+      off.x = dir * lungeDist * (1 - (t-0.5)/0.5);
+    }
+    if (t >= 1) { off.x = 0; combat.animating = false; if (cb) cb(); return; }
     requestAnimationFrame(step);
   }
   requestAnimationFrame(step);
@@ -1803,11 +2004,21 @@ function animMove(isPlayer, steps, cb) {
   combat.animating = true;
   const off = isPlayer ? playerAnimOff : enemyAnimOff;
   const dir = steps > 0 ? (isPlayer ? 1 : -1) : (isPlayer ? -1 : 1);
+  const pos = getCharPositions();
+  const charX = isPlayer ? pos.pX : pos.eX;
   const start = performance.now();
+  let dustSpawned = false;
   function step(now) {
-    const t = Math.min((now-start)/300, 1);
-    off.x = dir*20*Math.sin(t*Math.PI);
-    if(t>=1) { off.x=0; combat.animating=false; if(cb) cb(); return; }
+    const t = Math.min((now-start)/350, 1);
+    off.x = dir * 25 * Math.sin(t * Math.PI);
+    // Hop via Y offset
+    off.y = -8 * Math.sin(t * Math.PI);
+    // Dust puff at feet
+    if (t > 0.3 && t < 0.35 && !dustSpawned) {
+      dustSpawned = true;
+      spawnParts(charX, pos.floorY, '#8a7a6a', 8, 4, 'circle');
+    }
+    if (t >= 1) { off.x = 0; off.y = 0; combat.animating = false; if (cb) cb(); return; }
     requestAnimationFrame(step);
   }
   requestAnimationFrame(step);
@@ -1817,17 +2028,28 @@ function animDodge(isPlayer, cb) {
   combat.animating = true;
   const off = isPlayer ? playerAnimOff : enemyAnimOff;
   const dir = isPlayer ? -1 : 1;
+  const pos = getCharPositions();
+  const charX = isPlayer ? pos.pX : pos.eX;
   const start = performance.now();
+  // Store afterimage position
+  let afterimageX = 0;
   function step(now) {
-    const t = Math.min((now-start)/250, 1);
-    if (t < 0.5) {
-      off.x = dir*30*(t/0.5);
-      off.opacity = 1 - t*0.6;
+    const t = Math.min((now-start)/300, 1);
+    if (t < 0.4) {
+      off.x = dir * 40 * (t/0.4);
+      off.y = -5 * Math.sin(t/0.4 * Math.PI); // Crouch then rise
+      off.opacity = 1 - t * 0.5;
+      afterimageX = off.x;
     } else {
-      off.x = dir*30*(1-(t-0.5)/0.5);
-      off.opacity = 0.7 + (t-0.5)*0.6;
+      off.x = dir * 40 * (1 - (t-0.4)/0.6);
+      off.y = 0;
+      off.opacity = 0.5 + (t-0.4)/0.6 * 0.5;
     }
-    if (t>=1) { off.x=0; off.opacity=1; combat.animating=false; if(cb) cb(); return; }
+    // Whoosh particles
+    if (t > 0.1 && t < 0.4 && Math.random() < 0.4) {
+      spawnParts(charX + afterimageX*0.5, pos.midY, 'rgba(180,180,220,0.5)', 2, 3, 'trail');
+    }
+    if (t >= 1) { off.x = 0; off.y = 0; off.opacity = 1; combat.animating = false; if (cb) cb(); return; }
     requestAnimationFrame(step);
   }
   requestAnimationFrame(step);
@@ -1836,22 +2058,44 @@ function animDodge(isPlayer, cb) {
 function animDeath(isPlayer, cb) {
   combat.animating = true;
   const off = isPlayer ? playerAnimOff : enemyAnimOff;
+  const pos = getCharPositions();
+  const cx = isPlayer ? pos.pX : pos.eX;
+  const cy = pos.midY;
   const start = performance.now();
-  const cx = isPlayer ? window.innerWidth*0.22 : window.innerWidth*0.78;
-  const cy = window.innerHeight*0.45;
-  spawnParts(cx, cy, '#ff2222', 20, 15);
-  spawnParts(cx, cy, '#880000', 10, 10);
+  const dur = 1200;
+  let burstDone = false;
   function step(now) {
-    const t = Math.min((now-start)/800, 1);
-    if (t < 0.2) {
-      off.x = (Math.random()-0.5)*12;
-      off.y = (Math.random()-0.5)*8;
+    const t = Math.min((now-start)/dur, 1);
+    if (t < 0.15) {
+      // Stage 1: Impact recoil
+      off.x = (Math.random()-0.5) * 15;
+      off.y = (Math.random()-0.5) * 10;
+    } else if (t < 0.35) {
+      // Stage 2: Kneel (scaleY would be done via y-offset)
+      off.x = (Math.random()-0.5) * 6;
+      off.y = 15 * ((t-0.15)/0.2);
+    } else if (t < 0.6) {
+      // Stage 3: Collapse
+      const ct = (t-0.35)/0.25;
+      off.x = (isPlayer ? -1 : 1) * 20 * ct;
+      off.y = 15 + 50 * ct;
+      off.opacity = 1 - ct * 0.4;
     } else {
-      off.x = (Math.random()-0.5)*4*(1-t);
-      off.y = 40*(t-0.2)/0.8;
-      off.opacity = 1 - (t-0.2)/0.8;
+      // Stage 4: Final fade
+      const ct = (t-0.6)/0.4;
+      off.y = 65 + 10*ct;
+      off.opacity = 0.6 - ct * 0.6;
+      if (!burstDone) {
+        burstDone = true;
+        spawnParts(cx, cy, '#ff2222', 35, 18, 'spark');
+        spawnParts(cx, cy, '#880000', 20, 12, 'debris');
+        spawnParts(cx, cy, '#ff6644', 10, 15, 'ring');
+        spawnImpactFlash(cx, cy, '#ff0000', 60);
+        triggerScreenFlash('#ff0000', 20);
+        triggerShake(15, 0, 0);
+      }
     }
-    if (t>=1) { off.x=0; off.y=0; off.opacity=0; combat.animating=false; if(cb) cb(); return; }
+    if (t >= 1) { off.x = 0; off.y = 0; off.opacity = 0; combat.animating = false; if (cb) cb(); return; }
     requestAnimationFrame(step);
   }
   requestAnimationFrame(step);
@@ -1861,32 +2105,58 @@ function animSpell(isPlayer, spell, cb) {
   combat.animating = true;
   const off = isPlayer ? playerAnimOff : enemyAnimOff;
   const start = performance.now();
-  const spColor = spell?.element==='fire'?'#ff6600':spell?.element==='ice'?'#44ccff':spell?.element==='lightning'?'#ffff44':spell?.element==='dark'?'#8844cc':'#4488ff';
-  const fromX = isPlayer ? window.innerWidth*0.22 : window.innerWidth*0.78;
-  const toX = isPlayer ? window.innerWidth*0.78 : window.innerWidth*0.22;
-  const midY = window.innerHeight*0.4;
+  const elem = spell?.element || 'arcane';
+  const spColor = elem==='fire'?'#ff6600':elem==='ice'?'#44ccff':elem==='lightning'?'#ffff44':elem==='dark'?'#8844cc':'#4488ff';
+  const pos = getCharPositions();
+  const fromX = isPlayer ? pos.pX : pos.eX;
+  const toX = isPlayer ? pos.eX : pos.pX;
+  const midY = pos.midY;
+  let impactDone = false;
+  const dur = 700;
   function step(now) {
-    const t = Math.min((now-start)/600, 1);
+    const t = Math.min((now-start)/dur, 1);
     // Caster pulses
     if (t < 0.3) {
-      const pulse = Math.sin(t/0.3*Math.PI*3)*0.15;
+      const pulse = Math.sin(t/0.3*Math.PI*3)*0.2;
       off.opacity = 1 + pulse;
+      // Charge-up particles around caster
+      if (Math.random() < 0.5) spawnParts(fromX + (Math.random()-0.5)*30, midY + (Math.random()-0.5)*40, spColor, 1, 2, 'circle');
     } else {
       off.opacity = 1;
     }
-    // Projectile particles
-    if (t > 0.2 && t < 0.8) {
-      const pt = (t-0.2)/0.6;
+    // Rendered projectile beam
+    if (t > 0.25 && t < 0.8) {
+      const pt = (t-0.25)/0.55;
       const px = fromX + (toX-fromX)*pt;
-      const py = midY + Math.sin(pt*Math.PI)*-30;
-      spawnParts(px, py, spColor, 2, 4);
+      const py = midY + Math.sin(pt*Math.PI)*-35;
+      // Different trail types per element
+      if (elem === 'fire') {
+        spawnParts(px, py, '#ff6600', 3, 5, 'spark');
+        spawnParts(px, py, '#ff3300', 1, 3, 'circle');
+      } else if (elem === 'ice') {
+        spawnParts(px, py, '#88ddff', 2, 4, 'debris');
+        spawnParts(px, py, '#44ccff', 2, 3, 'spark');
+      } else if (elem === 'lightning') {
+        // Zigzag bolt segments
+        spawnParts(px + (Math.random()-0.5)*20, py + (Math.random()-0.5)*20, '#ffff44', 2, 6, 'spark');
+        spawnParts(px, py, '#ffffff', 1, 2, 'circle');
+      } else if (elem === 'dark') {
+        spawnParts(px, py, '#8844cc', 2, 5, 'trail');
+        spawnParts(px + (Math.random()-0.5)*15, py, '#440066', 1, 3, 'circle');
+      } else {
+        spawnParts(px, py, spColor, 3, 4, 'circle');
+      }
     }
-    // Impact burst
-    if (t > 0.75 && t < 0.78) {
-      spawnParts(toX, midY, spColor, 12, 10);
-      triggerShake(6);
+    // Impact burst at target
+    if (t > 0.78 && !impactDone) {
+      impactDone = true;
+      spawnParts(toX, midY, spColor, 25, 12, 'spark');
+      spawnParts(toX, midY, '#ffffff', 8, 8, 'circle');
+      spawnImpactFlash(toX, midY, spColor, 45);
+      triggerScreenFlash(spColor, 15);
+      triggerShake(8, isPlayer ? 1 : -1, 0);
     }
-    if (t>=1) { off.opacity=1; combat.animating=false; if(cb) cb(); return; }
+    if (t >= 1) { off.opacity = 1; combat.animating = false; if (cb) cb(); return; }
     requestAnimationFrame(step);
   }
   requestAnimationFrame(step);
@@ -1896,18 +2166,51 @@ function animDefend(isPlayer, cb) {
   combat.animating = true;
   const off = isPlayer ? playerAnimOff : enemyAnimOff;
   const dir = isPlayer ? -1 : 1;
-  const cx = isPlayer ? window.innerWidth*0.22 : window.innerWidth*0.78;
-  const cy = window.innerHeight*0.4;
+  const pos = getCharPositions();
+  const cx = isPlayer ? pos.pX : pos.eX;
+  const cy = pos.midY;
   const start = performance.now();
+  // Create shield dome
+  shieldDome = { x: cx, y: cy, radius: 40, life: 1, isPlayer };
   function step(now) {
-    const t = Math.min((now-start)/300, 1);
-    off.x = dir*8*Math.sin(t*Math.PI*0.5);
-    // Shield glow particles
-    if (t > 0.1 && t < 0.5) spawnParts(cx, cy, '#4488ff', 1, 3);
-    if (t>=1) { off.x=0; combat.animating=false; if(cb) cb(); return; }
+    const t = Math.min((now-start)/400, 1);
+    off.x = dir * 6 * Math.sin(t * Math.PI * 0.5);
+    // Shield dome animation
+    if (shieldDome) {
+      shieldDome.life = t < 0.3 ? t/0.3 : (t < 0.7 ? 1 : 1 - (t-0.7)/0.3);
+      shieldDome.radius = 35 + 10 * Math.sin(t * Math.PI);
+    }
+    // Shield sparkle particles
+    if (t > 0.1 && t < 0.6 && Math.random() < 0.3) {
+      const angle = Math.random() * Math.PI * 2;
+      spawnParts(cx + Math.cos(angle)*35, cy + Math.sin(angle)*25, '#88bbff', 1, 2, 'spark');
+    }
+    if (t >= 1) { off.x = 0; shieldDome = null; combat.animating = false; if (cb) cb(); return; }
     requestAnimationFrame(step);
   }
   requestAnimationFrame(step);
+}
+
+// Draw shield dome (called from game loop)
+function drawShieldDome(ctx) {
+  if (!shieldDome) return;
+  const s = shieldDome;
+  ctx.save();
+  ctx.globalAlpha = s.life * 0.35;
+  ctx.strokeStyle = '#88bbff';
+  ctx.lineWidth = 3;
+  ctx.shadowColor = '#4488ff'; ctx.shadowBlur = 20;
+  ctx.beginPath();
+  ctx.arc(s.x, s.y, s.radius, Math.PI, 0);
+  ctx.stroke();
+  // Dome fill
+  ctx.globalAlpha = s.life * 0.08;
+  ctx.fillStyle = '#4488ff';
+  ctx.beginPath();
+  ctx.arc(s.x, s.y, s.radius, Math.PI, 0);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.restore();
 }
 
 // END PHASE 2
@@ -2695,371 +2998,876 @@ function drawBackground() {
     drawDistanceBar(ctx, w, h, floorY, accent);
   }
 
+  // Menu background
+  if (gameState === ST.MENU || gameState === ST.CREATE ||
+      gameState === ST.GAME_OVER || gameState === ST.VICTORY) {
+    drawMenuBackground(ctx, w, h, now);
+  }
+
   // Town background
   if (gameState === ST.TOWN || gameState === ST.SHOP || gameState === ST.TEMPLE ||
       gameState === ST.TAVERN || gameState === ST.TRAINING || gameState === ST.ARENA_GATE ||
-      gameState === ST.INVENTORY) {
+      gameState === ST.INVENTORY || gameState === ST.PRE_COMBAT || gameState === ST.POST_COMBAT ||
+      gameState === ST.LEVEL_UP) {
     drawTown(ctx, w, h, now);
   }
 }
 
-// ── Slave Pits — underground cave with torches and chains ──
-function drawSlavePits(ctx, w, h, floorY, now) {
-  // Cave walls
-  ctx.fillStyle = '#1a0e0e';
+// ── Shared Arena Helpers ──
+function drawFloorPerspective(ctx, w, h, floorY, color1, color2) {
+  const vanX = w * 0.5, vanY = floorY * 0.3;
+  ctx.save();
+  ctx.globalAlpha = 0.15;
+  ctx.strokeStyle = color1; ctx.lineWidth = 0.5;
+  // Converging lines
+  for (let i = 0; i <= 10; i++) {
+    const bx = w * (i / 10);
+    ctx.beginPath(); ctx.moveTo(bx, h); ctx.lineTo(vanX, vanY); ctx.stroke();
+  }
+  // Horizontal lines (perspective scaled)
+  ctx.strokeStyle = color2;
+  for (let i = 1; i <= 6; i++) {
+    const t = i / 6;
+    const y = floorY + (h - floorY) * t;
+    ctx.globalAlpha = 0.08 + t * 0.1;
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawArenaVignette(ctx, w, h, color) {
+  ctx.save();
+  const grad = ctx.createRadialGradient(w*0.5, h*0.45, Math.min(w,h)*0.2, w*0.5, h*0.45, Math.max(w,h)*0.75);
+  grad.addColorStop(0, 'transparent');
+  grad.addColorStop(0.6, 'transparent');
+  grad.addColorStop(1, color || 'rgba(0,0,0,0.6)');
+  ctx.fillStyle = grad;
   ctx.fillRect(0, 0, w, h);
-  // Rough cave ceiling
-  ctx.fillStyle = '#120808';
-  ctx.beginPath(); ctx.moveTo(0,0);
-  for (let x=0; x<=w; x+=30) ctx.lineTo(x, 20+Math.sin(x*0.03+1)*15+Math.sin(x*0.07)*8);
-  ctx.lineTo(w,0); ctx.fill();
+  ctx.restore();
+}
+
+// ── Torch helper (3-layer glow) ──
+function drawTorch(ctx, x, y, now, color) {
+  ctx.save();
+  // Sconce bracket
+  ctx.fillStyle = '#4a3a2a';
+  ctx.fillRect(x-5, y, 10, 18);
+  ctx.fillRect(x-8, y+15, 16, 5);
+  // Fire
+  const flicker = Math.sin(now*8)*3 + Math.sin(now*13)*2;
+  // Outer glow (largest, dimmest)
+  const outerGrad = ctx.createRadialGradient(x+flicker*0.3, y-8, 0, x, y-4, 50);
+  outerGrad.addColorStop(0, color + 'cc');
+  outerGrad.addColorStop(0.3, color + '44');
+  outerGrad.addColorStop(1, 'transparent');
+  ctx.globalAlpha = 0.3;
+  ctx.fillStyle = outerGrad;
+  ctx.beginPath(); ctx.arc(x, y-4, 50, 0, Math.PI*2); ctx.fill();
+  // Mid glow
+  const midGrad = ctx.createRadialGradient(x+flicker*0.5, y-6, 1, x, y-4, 25);
+  midGrad.addColorStop(0, color);
+  midGrad.addColorStop(0.5, color + '88');
+  midGrad.addColorStop(1, 'transparent');
+  ctx.globalAlpha = 0.5;
+  ctx.fillStyle = midGrad;
+  ctx.beginPath(); ctx.arc(x+flicker*0.5, y-6, 25, 0, Math.PI*2); ctx.fill();
+  // Bright core
+  ctx.globalAlpha = 0.9;
+  ctx.shadowColor = color; ctx.shadowBlur = 20;
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(x+flicker*0.3, y-8, 4, 0, Math.PI*2); ctx.fill();
+  ctx.shadowBlur = 0;
+  // Light cast on surroundings
+  const lightGrad = ctx.createRadialGradient(x, y, 5, x, y, 120);
+  lightGrad.addColorStop(0, color + '30');
+  lightGrad.addColorStop(0.5, color + '12');
+  lightGrad.addColorStop(1, 'transparent');
+  ctx.globalAlpha = 0.6;
+  ctx.fillStyle = lightGrad;
+  ctx.fillRect(x-120, y-120, 240, 240);
+  ctx.restore();
+}
+
+// ── Slave Pits — red cave, bright torches, chains, glowing cracks ──
+function drawSlavePits(ctx, w, h, floorY, now) {
+  // Rich red cave fill
+  const caveGrad = ctx.createLinearGradient(0, 0, 0, h);
+  caveGrad.addColorStop(0, '#1a0808');
+  caveGrad.addColorStop(0.5, '#2a1210');
+  caveGrad.addColorStop(1, '#1a0a08');
+  ctx.fillStyle = caveGrad;
+  ctx.fillRect(0, 0, w, h);
+  // Rough cave ceiling with depth
+  ctx.fillStyle = '#120606';
+  ctx.beginPath(); ctx.moveTo(0, 0);
+  for (let x = 0; x <= w; x += 20) ctx.lineTo(x, 25 + Math.sin(x*0.03+1)*18 + Math.sin(x*0.07)*10);
+  ctx.lineTo(w, 0); ctx.fill();
+  // Stalactites
+  for (let i = 0; i < 8; i++) {
+    const sx = w * (0.1 + i * 0.1) + Math.sin(i*3.7)*20;
+    const sl = 15 + i%3 * 12;
+    ctx.fillStyle = '#150808';
+    ctx.beginPath(); ctx.moveTo(sx-4, 0); ctx.lineTo(sx, sl); ctx.lineTo(sx+4, 0); ctx.fill();
+  }
   // Stone floor
-  ctx.fillStyle = '#221410';
-  ctx.fillRect(0, floorY, w, h-floorY);
-  // Floor cracks
-  ctx.strokeStyle = '#0e0806'; ctx.lineWidth = 1; ctx.globalAlpha = 0.6;
-  for (let i=0; i<8; i++) {
+  ctx.fillStyle = '#2a1810';
+  ctx.fillRect(0, floorY, w, h - floorY);
+  drawFloorPerspective(ctx, w, h, floorY, '#3a2018', '#2a1510');
+  // Glowing floor cracks (orange magma beneath)
+  ctx.save();
+  ctx.strokeStyle = '#ff4400'; ctx.lineWidth = 2; ctx.globalAlpha = 0.4;
+  ctx.shadowColor = '#ff4400'; ctx.shadowBlur = 8;
+  for (let i = 0; i < 8; i++) {
     const sx = w*0.1 + Math.sin(i*2.3)*w*0.35;
     ctx.beginPath(); ctx.moveTo(sx, floorY+5);
     ctx.lineTo(sx+20+i*5, floorY+15+i*3); ctx.lineTo(sx+10+i*8, floorY+30+i*2); ctx.stroke();
   }
-  ctx.globalAlpha = 1;
-  // Puddles on floor
-  ctx.globalAlpha = 0.15;
+  ctx.shadowBlur = 0;
+  ctx.restore();
+  // Reflective puddles
+  ctx.save();
+  ctx.globalAlpha = 0.25;
   ctx.fillStyle = '#334466';
-  ctx.beginPath(); ctx.ellipse(w*0.25, floorY+20, 30, 5, 0, 0, Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.ellipse(w*0.7, floorY+25, 20, 4, 0.2, 0, Math.PI*2); ctx.fill();
-  ctx.globalAlpha = 1;
-  // Hanging chains
-  for (let i=0; i<4; i++) {
+  ctx.beginPath(); ctx.ellipse(w*0.25, floorY+20, 35, 7, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(w*0.7, floorY+25, 25, 5, 0.2, 0, Math.PI*2); ctx.fill();
+  // Puddle highlights
+  ctx.globalAlpha = 0.1;
+  ctx.fillStyle = '#ff6633';
+  ctx.beginPath(); ctx.ellipse(w*0.25, floorY+18, 20, 3, 0, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+  // Hanging chains with metallic gleam
+  for (let i = 0; i < 4; i++) {
     const cx = w*0.15 + i*w*0.22;
-    const swing = Math.sin(now*0.8+i*1.5)*3;
-    ctx.strokeStyle = '#555'; ctx.lineWidth = 2; ctx.globalAlpha = 0.5;
+    const swing = Math.sin(now*0.8+i*1.5)*4;
+    ctx.save();
+    ctx.strokeStyle = '#888'; ctx.lineWidth = 2.5; ctx.globalAlpha = 0.6;
     ctx.beginPath();
-    for (let j=0; j<8; j++) {
-      const ly = 10+j*12; const lx = cx+swing+Math.sin(j*0.5)*2;
+    for (let j = 0; j < 10; j++) {
+      const ly = 10+j*14; const lx = cx+swing+Math.sin(j*0.5)*3;
       if (j===0) ctx.moveTo(lx, ly); else ctx.lineTo(lx, ly);
     }
     ctx.stroke();
-    ctx.globalAlpha = 1;
+    // Metallic gleam on chain links
+    ctx.strokeStyle = '#ccc'; ctx.lineWidth = 1; ctx.globalAlpha = 0.3;
+    for (let j = 0; j < 10; j += 2) {
+      const ly = 10+j*14; const lx = cx+swing+Math.sin(j*0.5)*3;
+      ctx.beginPath(); ctx.arc(lx, ly, 3, 0, Math.PI*2); ctx.stroke();
+    }
+    ctx.restore();
   }
-  // Torches on walls
-  drawTorch(ctx, w*0.08, h*0.25, now, '#ff6633');
-  drawTorch(ctx, w*0.92, h*0.25, now, '#ff6633');
-  drawTorch(ctx, w*0.5, h*0.12, now, '#ff5522');
+  // Torches — bright orange pools
+  drawTorch(ctx, w*0.08, h*0.22, now, '#ff6633');
+  drawTorch(ctx, w*0.92, h*0.22, now, '#ff6633');
+  drawTorch(ctx, w*0.5, h*0.10, now, '#ff5522');
+  drawArenaVignette(ctx, w, h, 'rgba(10,4,4,0.6)');
 }
 
-// ── Iron Gate — iron bars, crowd silhouettes, torch sconces ──
+// ── Iron Gate — stone blocks, iron bars, animated crowd, combat ring ──
 function drawIronGate(ctx, w, h, floorY, now) {
   // Dark blue stone walls
-  ctx.fillStyle = '#0a0a1a';
+  ctx.fillStyle = '#0c0c22';
   ctx.fillRect(0, 0, w, h);
-  // Stone blocks on walls
-  ctx.strokeStyle = '#151530'; ctx.lineWidth = 1; ctx.globalAlpha = 0.4;
-  for (let y=0; y<floorY; y+=25) {
-    const off = (Math.floor(y/25)%2)*20;
-    for (let x=-off; x<w; x+=40) {
-      ctx.strokeRect(x, y, 40, 25);
+  // Visible stone blocks
+  ctx.save();
+  ctx.strokeStyle = '#1a1a40'; ctx.lineWidth = 1; ctx.globalAlpha = 0.6;
+  for (let y = 0; y < floorY; y += 28) {
+    const off = (Math.floor(y/28)%2)*22;
+    for (let x = -off; x < w; x += 44) {
+      ctx.strokeRect(x, y, 44, 28);
+      // Occasional stone detail
+      if ((x+y) % 132 === 0) {
+        ctx.fillStyle = '#0e0e28'; ctx.globalAlpha = 0.3;
+        ctx.fillRect(x+2, y+2, 40, 24);
+        ctx.globalAlpha = 0.6;
+      }
     }
   }
-  ctx.globalAlpha = 1;
+  ctx.restore();
   // Arena floor — dark stone
-  ctx.fillStyle = '#12121f';
+  ctx.fillStyle = '#141428';
   ctx.fillRect(0, floorY, w, h-floorY);
-  // Iron bars on sides
-  ctx.strokeStyle = '#556'; ctx.lineWidth = 3;
-  for (let i=0; i<5; i++) {
-    const bx = 8+i*12;
+  drawFloorPerspective(ctx, w, h, floorY, '#1a1a40', '#141430');
+  // Glowing combat ring on floor
+  ctx.save();
+  ctx.strokeStyle = '#8888cc'; ctx.lineWidth = 2; ctx.globalAlpha = 0.25;
+  ctx.shadowColor = '#8888cc'; ctx.shadowBlur = 15;
+  ctx.beginPath(); ctx.ellipse(w*0.5, floorY + (h-floorY)*0.4, w*0.3, (h-floorY)*0.25, 0, 0, Math.PI*2); ctx.stroke();
+  ctx.shadowBlur = 0;
+  ctx.restore();
+  // Iron bars on sides (thicker, with highlight)
+  ctx.save();
+  for (let i = 0; i < 6; i++) {
+    const bx = 6+i*11;
+    ctx.strokeStyle = '#556'; ctx.lineWidth = 4;
     ctx.beginPath(); ctx.moveTo(bx, 0); ctx.lineTo(bx, floorY); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(w-bx, 0); ctx.lineTo(w-bx, floorY); ctx.stroke();
+    // Blue highlight on bars
+    ctx.strokeStyle = '#8888cc'; ctx.lineWidth = 1; ctx.globalAlpha = 0.2;
+    ctx.beginPath(); ctx.moveTo(bx+1, 0); ctx.lineTo(bx+1, floorY); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(w-bx+1, 0); ctx.lineTo(w-bx+1, floorY); ctx.stroke();
+    ctx.globalAlpha = 1;
   }
   // Cross bars
-  ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(0, floorY*0.3); ctx.lineTo(60, floorY*0.3); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(w-60, floorY*0.3); ctx.lineTo(w, floorY*0.3); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(0, floorY*0.7); ctx.lineTo(60, floorY*0.7); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(w-60, floorY*0.7); ctx.lineTo(w, floorY*0.7); ctx.stroke();
-  // Crowd silhouettes at top
-  ctx.fillStyle = '#08081a';
-  for (let i=0; i<20; i++) {
-    const cx = w*0.1 + i*w*0.042;
-    const cy = 15 + Math.sin(i*1.7+now*1.5)*3;
-    ctx.beginPath(); ctx.arc(cx, cy, 6, 0, Math.PI*2); ctx.fill();
-    ctx.fillRect(cx-4, cy+5, 8, 10);
+  ctx.strokeStyle = '#556'; ctx.lineWidth = 3;
+  [0.3, 0.7].forEach(pct => {
+    ctx.beginPath(); ctx.moveTo(0, floorY*pct); ctx.lineTo(70, floorY*pct); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(w-70, floorY*pct); ctx.lineTo(w, floorY*pct); ctx.stroke();
+  });
+  ctx.restore();
+  // Animated bobbing crowd
+  ctx.save();
+  for (let i = 0; i < 24; i++) {
+    const cx = w*0.08 + i*w*0.037;
+    const bob = Math.sin(now*1.5+i*1.7)*3 + Math.cos(now*2.3+i*0.9)*1.5;
+    ctx.globalAlpha = 0.25 + Math.sin(i*2.1)*0.08;
+    ctx.fillStyle = '#181840';
+    // Head
+    ctx.beginPath(); ctx.arc(cx, 18+bob, 7, 0, Math.PI*2); ctx.fill();
+    // Body
+    ctx.fillRect(cx-5, 24+bob, 10, 14);
+    // Occasional arm wave
+    if (i % 4 === Math.floor(now*2) % 4) {
+      ctx.fillRect(cx+5, 22+bob, 4, 8);
+    }
   }
-  // Torch sconces
-  drawTorch(ctx, w*0.15, h*0.35, now, '#8888cc');
-  drawTorch(ctx, w*0.85, h*0.35, now, '#8888cc');
+  ctx.restore();
+  // Torch sconces — blue-white
+  drawTorch(ctx, w*0.15, h*0.3, now, '#8888cc');
+  drawTorch(ctx, w*0.85, h*0.3, now, '#8888cc');
+  drawTorch(ctx, w*0.5, h*0.08, now, '#9999dd');
+  drawArenaVignette(ctx, w, h, 'rgba(5,5,20,0.5)');
 }
 
-// ── Burning Sands — desert ruins, sun, pillars ──
+// ── Burning Sands — blazing sun, heat shimmer, dunes, pillars ──
 function drawBurningSands(ctx, w, h, floorY, now) {
-  // Sky gradient
-  const skyGrad = ctx.createLinearGradient(0,0,0,floorY);
-  skyGrad.addColorStop(0, '#1a1400');
-  skyGrad.addColorStop(0.5, '#2a1e08');
-  skyGrad.addColorStop(1, '#3a2a10');
+  // Sky gradient — richer
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, floorY);
+  skyGrad.addColorStop(0, '#1a1200');
+  skyGrad.addColorStop(0.3, '#2e2008');
+  skyGrad.addColorStop(0.7, '#3e2e10');
+  skyGrad.addColorStop(1, '#4a3818');
   ctx.fillStyle = skyGrad;
   ctx.fillRect(0, 0, w, floorY);
-  // Sun disc
+  // Blazing sun with 3-layer glow
   const sunX = w*0.8, sunY = h*0.12;
-  const sunGrad = ctx.createRadialGradient(sunX, sunY, 5, sunX, sunY, 60);
-  sunGrad.addColorStop(0, 'rgba(255,200,80,0.9)');
-  sunGrad.addColorStop(0.3, 'rgba(255,160,40,0.4)');
-  sunGrad.addColorStop(1, 'rgba(255,100,20,0)');
-  ctx.fillStyle = sunGrad;
-  ctx.fillRect(sunX-60, sunY-60, 120, 120);
-  // Heat shimmer
-  ctx.globalAlpha = 0.04;
+  ctx.save();
+  // Outer glow
+  const outerSun = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, 100);
+  outerSun.addColorStop(0, 'rgba(255,200,80,0.15)');
+  outerSun.addColorStop(1, 'transparent');
+  ctx.fillStyle = outerSun;
+  ctx.beginPath(); ctx.arc(sunX, sunY, 100, 0, Math.PI*2); ctx.fill();
+  // Mid glow
+  const midSun = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, 50);
+  midSun.addColorStop(0, 'rgba(255,180,60,0.5)');
+  midSun.addColorStop(1, 'transparent');
+  ctx.fillStyle = midSun;
+  ctx.beginPath(); ctx.arc(sunX, sunY, 50, 0, Math.PI*2); ctx.fill();
+  // Bright core
+  ctx.shadowColor = '#ffcc44'; ctx.shadowBlur = 30;
+  ctx.fillStyle = 'rgba(255,220,100,0.9)';
+  ctx.beginPath(); ctx.arc(sunX, sunY, 12, 0, Math.PI*2); ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.restore();
+  // Heat shimmer (visible)
+  ctx.save();
+  ctx.globalAlpha = 0.2;
   ctx.fillStyle = '#ffcc66';
-  for (let i=0; i<6; i++) {
-    const sy = floorY - 20 + Math.sin(now*2+i*1.3)*8;
-    ctx.fillRect(0, sy, w, 3);
+  for (let i = 0; i < 8; i++) {
+    const sy = floorY - 30 + Math.sin(now*2+i*1.3)*12;
+    ctx.fillRect(0, sy, w, 2);
   }
-  ctx.globalAlpha = 1;
-  // Sand floor
-  ctx.fillStyle = '#3a2e1a';
+  ctx.restore();
+  // Dune-textured sand floor
+  const sandGrad = ctx.createLinearGradient(0, floorY, 0, h);
+  sandGrad.addColorStop(0, '#4a3e20');
+  sandGrad.addColorStop(0.5, '#3a2e18');
+  sandGrad.addColorStop(1, '#2a2010');
+  ctx.fillStyle = sandGrad;
   ctx.fillRect(0, floorY, w, h-floorY);
-  // Sand texture
-  ctx.globalAlpha = 0.15;
-  ctx.fillStyle = '#4a3e2a';
-  for (let i=0; i<30; i++) {
-    const sx = (i*37+15)%w, sy = floorY + 3 + (i*13)%(h-floorY-10);
-    ctx.beginPath(); ctx.ellipse(sx, sy, 8+i%5, 2, i*0.3, 0, Math.PI*2); ctx.fill();
+  // Sand dune undulations
+  ctx.save();
+  ctx.fillStyle = '#4a3e2a'; ctx.globalAlpha = 0.3;
+  for (let i = 0; i < 3; i++) {
+    ctx.beginPath(); ctx.moveTo(0, floorY + 10 + i*15);
+    for (let x = 0; x <= w; x += 20) ctx.lineTo(x, floorY + 10 + i*15 + Math.sin(x*0.01+i*2)*8);
+    ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.fill();
   }
-  ctx.globalAlpha = 1;
-  // Crumbling pillars
-  ctx.fillStyle = '#2a2215'; ctx.strokeStyle = '#1a1508'; ctx.lineWidth = 1;
-  // Left pillar (broken)
-  ctx.fillRect(w*0.12-8, h*0.2, 16, floorY-h*0.2);
-  ctx.fillRect(w*0.12-12, h*0.2, 24, 6);
-  ctx.fillRect(w*0.12-12, floorY-3, 24, 6);
-  // Right pillar (partially standing)
-  ctx.fillRect(w*0.88-8, h*0.15, 16, floorY-h*0.15);
-  ctx.fillRect(w*0.88-12, h*0.15, 24, 6);
-  ctx.fillRect(w*0.88-12, floorY-3, 24, 6);
-  // Broken stones on ground
-  ctx.globalAlpha = 0.4;
-  ctx.fillStyle = '#2a2215';
-  ctx.fillRect(w*0.14, floorY+5, 12, 8);
-  ctx.fillRect(w*0.16, floorY+8, 8, 6);
-  ctx.globalAlpha = 1;
+  ctx.restore();
+  drawFloorPerspective(ctx, w, h, floorY, '#5a4e30', '#3a2e18');
+  // Fully rendered pillars with shadows
+  const pillars = [[w*0.12, h*0.18, floorY], [w*0.88, h*0.13, floorY]];
+  pillars.forEach(([px, py, fy], idx) => {
+    ctx.save();
+    // Pillar shadow
+    ctx.globalAlpha = 0.2;
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.moveTo(px+10, fy); ctx.lineTo(px+60, fy+30); ctx.lineTo(px+50, fy+35); ctx.lineTo(px+8, fy+5);
+    ctx.fill();
+    // Pillar body
+    ctx.globalAlpha = 1;
+    const pilGrad = ctx.createLinearGradient(px-10, 0, px+10, 0);
+    pilGrad.addColorStop(0, '#2a2215');
+    pilGrad.addColorStop(0.5, '#3a3225');
+    pilGrad.addColorStop(1, '#2a2215');
+    ctx.fillStyle = pilGrad;
+    ctx.fillRect(px-10, py, 20, fy-py);
+    // Capital and base
+    ctx.fillStyle = '#3a3020';
+    ctx.fillRect(px-14, py, 28, 8);
+    ctx.fillRect(px-14, fy-4, 28, 8);
+    // Cracks on pillar
+    if (idx === 0) {
+      ctx.strokeStyle = '#1a1508'; ctx.lineWidth = 1; ctx.globalAlpha = 0.5;
+      ctx.beginPath(); ctx.moveTo(px-3, py+30); ctx.lineTo(px+5, py+60); ctx.lineTo(px-2, py+80); ctx.stroke();
+    }
+    ctx.restore();
+  });
+  // Broken stones
+  ctx.save(); ctx.globalAlpha = 0.5; ctx.fillStyle = '#2a2215';
+  ctx.fillRect(w*0.14, floorY+5, 14, 10);
+  ctx.fillRect(w*0.16, floorY+10, 10, 7);
+  ctx.fillRect(w*0.13, floorY+8, 6, 6);
+  ctx.restore();
+  // Blowing sandstorm particles
+  ctx.save();
+  for (let i = 0; i < 15; i++) {
+    const sx = (now*40*(i+1)*0.7) % (w+100) - 50;
+    const sy = floorY - 60 + Math.sin(now+i*2.1)*40;
+    ctx.globalAlpha = 0.15 + Math.sin(i*1.3)*0.08;
+    ctx.fillStyle = '#c8a060';
+    ctx.beginPath(); ctx.arc(sx, sy, 1.5+i%2, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
+  drawArenaVignette(ctx, w, h, 'rgba(15,10,0,0.5)');
 }
 
-// ── Shadow Arena — obsidian floor, spectral audience, purple mist ──
+// ── Shadow Arena — vivid purple mist, soul wisps, obsidian, rune circles ──
 function drawShadowArena(ctx, w, h, floorY, now) {
-  ctx.fillStyle = '#050510';
+  ctx.fillStyle = '#060514';
   ctx.fillRect(0, 0, w, h);
-  // Obsidian floor with reflections
+  // Reflective obsidian floor
   const floorGrad = ctx.createLinearGradient(0, floorY, 0, h);
-  floorGrad.addColorStop(0, '#0a0818');
+  floorGrad.addColorStop(0, '#0c0a20');
+  floorGrad.addColorStop(0.5, '#080618');
   floorGrad.addColorStop(1, '#050510');
   ctx.fillStyle = floorGrad;
   ctx.fillRect(0, floorY, w, h-floorY);
-  // Floor reflection lines
-  ctx.strokeStyle = '#1a1030'; ctx.lineWidth = 1; ctx.globalAlpha = 0.3;
-  for (let i=0; i<12; i++) {
-    const lx = w*0.05 + i*w*0.08;
-    ctx.beginPath(); ctx.moveTo(lx, floorY); ctx.lineTo(lx+10, h); ctx.stroke();
+  // Obsidian reflection highlights
+  ctx.save();
+  ctx.globalAlpha = 0.08;
+  ctx.fillStyle = '#8844cc';
+  for (let i = 0; i < 6; i++) {
+    const rx = w*(0.1+i*0.15);
+    ctx.beginPath(); ctx.ellipse(rx, floorY+15, 30, 5, 0, 0, Math.PI*2); ctx.fill();
   }
-  ctx.globalAlpha = 1;
-  // Purple mist
-  for (let i=0; i<5; i++) {
-    const mx = w*(0.1+i*0.2) + Math.sin(now*0.5+i*2)*30;
-    const my = floorY - 10 + Math.sin(now*0.3+i)*15;
-    const mistGrad = ctx.createRadialGradient(mx, my, 5, mx, my, 60+i*10);
-    mistGrad.addColorStop(0, 'rgba(100,50,160,0.12)');
-    mistGrad.addColorStop(1, 'rgba(100,50,160,0)');
+  ctx.restore();
+  drawFloorPerspective(ctx, w, h, floorY, '#1a1035', '#0a0818');
+  // Rotating rune circles on floor
+  ctx.save();
+  ctx.strokeStyle = '#8844cc'; ctx.lineWidth = 1; ctx.globalAlpha = 0.2;
+  ctx.translate(w*0.5, floorY + (h-floorY)*0.4);
+  ctx.rotate(now*0.3);
+  ctx.beginPath(); ctx.arc(0, 0, Math.min(w*0.25, 100), 0, Math.PI*2); ctx.stroke();
+  // Inner rune circle
+  ctx.rotate(-now*0.5);
+  ctx.beginPath(); ctx.arc(0, 0, Math.min(w*0.15, 60), 0, Math.PI*2); ctx.stroke();
+  // Rune marks
+  for (let i = 0; i < 8; i++) {
+    const a = i*Math.PI/4;
+    const r = Math.min(w*0.2, 80);
+    ctx.beginPath(); ctx.moveTo(Math.cos(a)*r*0.8, Math.sin(a)*r*0.8);
+    ctx.lineTo(Math.cos(a)*r, Math.sin(a)*r); ctx.stroke();
+  }
+  ctx.restore();
+  // Vivid purple mist (much higher alpha)
+  for (let i = 0; i < 7; i++) {
+    const mx = w*(0.08+i*0.14) + Math.sin(now*0.5+i*2)*40;
+    const my = floorY - 20 + Math.sin(now*0.3+i)*20;
+    const mistGrad = ctx.createRadialGradient(mx, my, 5, mx, my, 80+i*12);
+    mistGrad.addColorStop(0, 'rgba(120,60,200,0.35)');
+    mistGrad.addColorStop(0.5, 'rgba(100,40,180,0.15)');
+    mistGrad.addColorStop(1, 'transparent');
     ctx.fillStyle = mistGrad;
-    ctx.fillRect(mx-70, my-70, 140, 140);
+    ctx.fillRect(mx-90, my-90, 180, 180);
   }
-  // Spectral audience (ghostly figures)
-  ctx.globalAlpha = 0.12;
-  for (let i=0; i<16; i++) {
-    const gx = w*0.08 + i*w*0.055;
-    const gy = 20 + Math.sin(i*1.1+now*0.8)*5;
-    const bob = Math.sin(now*1.2+i*0.7)*2;
+  // Spectral audience (higher visibility)
+  ctx.save();
+  for (let i = 0; i < 18; i++) {
+    const gx = w*0.06 + i*w*0.05;
+    const gy = 22 + Math.sin(i*1.1+now*0.8)*5;
+    const bob = Math.sin(now*1.2+i*0.7)*3;
+    ctx.globalAlpha = 0.3;
     ctx.fillStyle = '#8844cc';
-    ctx.beginPath(); ctx.arc(gx, gy+bob, 5, 0, Math.PI*2); ctx.fill();
-    ctx.fillRect(gx-3, gy+bob+4, 6, 12);
+    // Ghost head
+    ctx.beginPath(); ctx.arc(gx, gy+bob, 6, 0, Math.PI*2); ctx.fill();
+    // Ghost body fading down
+    ctx.globalAlpha = 0.2;
+    ctx.fillRect(gx-4, gy+bob+5, 8, 14);
+    // Eyes
+    ctx.globalAlpha = 0.5;
+    ctx.fillStyle = '#cc88ff';
+    ctx.beginPath(); ctx.arc(gx-2, gy+bob-1, 1, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(gx+2, gy+bob-1, 1, 0, Math.PI*2); ctx.fill();
   }
-  ctx.globalAlpha = 1;
-  // Soul wisps
-  for (let i=0; i<6; i++) {
-    const wx = w*(0.15+i*0.14) + Math.sin(now*1.5+i*2.5)*20;
-    const wy = h*0.3 + Math.cos(now*0.8+i*1.8)*40;
-    const wGrad = ctx.createRadialGradient(wx, wy, 0, wx, wy, 8);
-    wGrad.addColorStop(0, 'rgba(140,80,220,0.4)');
-    wGrad.addColorStop(1, 'rgba(140,80,220,0)');
-    ctx.fillStyle = wGrad;
-    ctx.beginPath(); ctx.arc(wx, wy, 8, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+  // Soul wisps with 3-layer glow trails
+  for (let i = 0; i < 8; i++) {
+    const wx = w*(0.12+i*0.11) + Math.sin(now*1.5+i*2.5)*25;
+    const wy = h*0.25 + Math.cos(now*0.8+i*1.8)*50;
+    ctx.save();
+    // Outer glow
+    const wOuter = ctx.createRadialGradient(wx, wy, 0, wx, wy, 20);
+    wOuter.addColorStop(0, 'rgba(140,80,220,0.12)');
+    wOuter.addColorStop(1, 'transparent');
+    ctx.fillStyle = wOuter;
+    ctx.beginPath(); ctx.arc(wx, wy, 20, 0, Math.PI*2); ctx.fill();
+    // Mid glow
+    ctx.globalAlpha = 0.5;
+    const wMid = ctx.createRadialGradient(wx, wy, 0, wx, wy, 10);
+    wMid.addColorStop(0, 'rgba(160,100,240,0.5)');
+    wMid.addColorStop(1, 'transparent');
+    ctx.fillStyle = wMid;
+    ctx.beginPath(); ctx.arc(wx, wy, 10, 0, Math.PI*2); ctx.fill();
+    // Bright core
+    ctx.shadowColor = '#aa66ff'; ctx.shadowBlur = 8;
+    ctx.fillStyle = 'rgba(200,150,255,0.8)';
+    ctx.beginPath(); ctx.arc(wx, wy, 3, 0, Math.PI*2); ctx.fill();
+    ctx.shadowBlur = 0;
+    // Trail
+    ctx.strokeStyle = 'rgba(140,80,220,0.2)'; ctx.lineWidth = 2;
+    const prevX = wx - Math.cos(now*1.5+i*2.5)*8;
+    const prevY = wy + Math.sin(now*0.8+i*1.8)*8;
+    ctx.beginPath(); ctx.moveTo(wx, wy); ctx.lineTo(prevX, prevY); ctx.stroke();
+    ctx.restore();
   }
+  drawArenaVignette(ctx, w, h, 'rgba(5,3,15,0.6)');
 }
 
-// ── Dark Throne — lava rivers, volcanic rock, ember rain, throne ──
+// ── Dark Throne — bright lava, detailed throne, large embers ──
 function drawDarkThrone(ctx, w, h, floorY, now) {
-  ctx.fillStyle = '#1a0800';
+  // Deep volcanic background
+  const bgGrad = ctx.createLinearGradient(0, 0, 0, h);
+  bgGrad.addColorStop(0, '#1a0800');
+  bgGrad.addColorStop(0.5, '#200c04');
+  bgGrad.addColorStop(1, '#140600');
+  ctx.fillStyle = bgGrad;
   ctx.fillRect(0, 0, w, h);
-  // Volcanic rock walls
+  // Volcanic rock walls with jagged edges
+  ctx.save();
   ctx.fillStyle = '#120600';
-  ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0, floorY);
-  for (let y=floorY; y>0; y-=20) ctx.lineTo(15+Math.sin(y*0.04)*8, y);
+  ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, floorY);
+  for (let y = floorY; y > 0; y -= 15) ctx.lineTo(18+Math.sin(y*0.04)*10+Math.cos(y*0.08)*5, y);
   ctx.fill();
-  ctx.beginPath(); ctx.moveTo(w,0); ctx.lineTo(w, floorY);
-  for (let y=floorY; y>0; y-=20) ctx.lineTo(w-15-Math.sin(y*0.05+1)*8, y);
+  ctx.beginPath(); ctx.moveTo(w, 0); ctx.lineTo(w, floorY);
+  for (let y = floorY; y > 0; y -= 15) ctx.lineTo(w-18-Math.sin(y*0.05+1)*10-Math.cos(y*0.07)*5, y);
   ctx.fill();
+  // Wall cracks with orange glow underneath
+  ctx.strokeStyle = '#ff4400'; ctx.lineWidth = 2; ctx.globalAlpha = 0.3;
+  ctx.shadowColor = '#ff4400'; ctx.shadowBlur = 10;
+  for (let i = 0; i < 5; i++) {
+    const wy = h*0.1 + i*floorY*0.2;
+    ctx.beginPath(); ctx.moveTo(3, wy); ctx.lineTo(8+Math.sin(i)*5, wy+15); ctx.lineTo(5, wy+30); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(w-3, wy+10); ctx.lineTo(w-10-Math.cos(i)*4, wy+25); ctx.stroke();
+  }
+  ctx.shadowBlur = 0;
+  ctx.restore();
   // Cracked floor
-  ctx.fillStyle = '#1a0c04';
+  ctx.fillStyle = '#1e0e06';
   ctx.fillRect(0, floorY, w, h-floorY);
-  ctx.strokeStyle = '#ff2200'; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.2;
-  for (let i=0; i<6; i++) {
-    const sx = w*0.1+i*w*0.15;
+  drawFloorPerspective(ctx, w, h, floorY, '#2a1408', '#1a0a04');
+  // Floor cracks with lava glow
+  ctx.save();
+  ctx.strokeStyle = '#ff2200'; ctx.lineWidth = 2; ctx.globalAlpha = 0.5;
+  ctx.shadowColor = '#ff4400'; ctx.shadowBlur = 8;
+  for (let i = 0; i < 8; i++) {
+    const sx = w*0.08+i*w*0.12;
     ctx.beginPath(); ctx.moveTo(sx, floorY+3);
     ctx.lineTo(sx+10+i*3, floorY+20+i*4); ctx.lineTo(sx-5+i*6, floorY+35); ctx.stroke();
   }
-  ctx.globalAlpha = 1;
-  // Lava rivers
-  const lavaGlow = 0.5 + Math.sin(now*3)*0.15;
-  ctx.globalAlpha = lavaGlow * 0.5;
+  ctx.shadowBlur = 0;
+  ctx.restore();
+  // Bright lava rivers
+  const lavaGlow = 0.6 + Math.sin(now*3)*0.2;
+  ctx.save();
+  // Lava body
+  ctx.globalAlpha = lavaGlow * 0.7;
   ctx.fillStyle = '#ff2200';
-  ctx.beginPath();
-  ctx.moveTo(0, floorY+8);
-  for (let x=0; x<=w; x+=10) ctx.lineTo(x, floorY+8+Math.sin(x*0.02+now*2)*3);
-  ctx.lineTo(w, floorY+14);
-  for (let x=w; x>=0; x-=10) ctx.lineTo(x, floorY+14+Math.sin(x*0.025+now*2.5)*2);
+  ctx.shadowColor = '#ff4400'; ctx.shadowBlur = 15;
+  ctx.beginPath(); ctx.moveTo(0, floorY+6);
+  for (let x = 0; x <= w; x += 8) ctx.lineTo(x, floorY+6+Math.sin(x*0.02+now*2)*4);
+  ctx.lineTo(w, floorY+16);
+  for (let x = w; x >= 0; x -= 8) ctx.lineTo(x, floorY+16+Math.sin(x*0.025+now*2.5)*3);
   ctx.fill();
-  ctx.globalAlpha = 1;
-  // Lava glow
-  const lavaGrad = ctx.createRadialGradient(w*0.5, floorY+10, 10, w*0.5, floorY+10, w*0.5);
-  lavaGrad.addColorStop(0, 'rgba(255,34,0,0.08)');
-  lavaGrad.addColorStop(1, 'rgba(255,34,0,0)');
+  // Bright lava highlights
+  ctx.globalAlpha = lavaGlow * 0.4;
+  ctx.fillStyle = '#ff8800';
+  ctx.beginPath(); ctx.moveTo(w*0.2, floorY+9);
+  for (let x = w*0.2; x <= w*0.8; x += 10) ctx.lineTo(x, floorY+9+Math.sin(x*0.03+now*3)*2);
+  ctx.lineTo(w*0.8, floorY+13);
+  for (let x = w*0.8; x >= w*0.2; x -= 10) ctx.lineTo(x, floorY+13+Math.sin(x*0.04+now*3.5)*1.5);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.restore();
+  // Lava ambient glow
+  const lavaGrad = ctx.createRadialGradient(w*0.5, floorY+10, 10, w*0.5, floorY+10, w*0.45);
+  lavaGrad.addColorStop(0, 'rgba(255,60,0,0.15)');
+  lavaGrad.addColorStop(0.5, 'rgba(255,34,0,0.06)');
+  lavaGrad.addColorStop(1, 'transparent');
   ctx.fillStyle = lavaGrad;
-  ctx.fillRect(0, floorY-30, w, 80);
-  // Throne silhouette at top center
+  ctx.fillRect(0, floorY-50, w, 120);
+  // Detailed throne at top center
+  ctx.save();
+  const tx = w*0.5, ty = h*0.04;
+  // Throne base
   ctx.fillStyle = '#0d0400';
   ctx.beginPath();
-  const tx = w*0.5, ty = h*0.05;
-  ctx.moveTo(tx-25, ty+60); ctx.lineTo(tx-30, ty); ctx.lineTo(tx-15, ty-10);
-  ctx.lineTo(tx, ty-15); ctx.lineTo(tx+15, ty-10); ctx.lineTo(tx+30, ty);
-  ctx.lineTo(tx+25, ty+60);
+  ctx.moveTo(tx-35, ty+70); ctx.lineTo(tx-40, ty+10); ctx.lineTo(tx-25, ty-5);
+  ctx.lineTo(tx-15, ty-15); ctx.lineTo(tx, ty-20);
+  ctx.lineTo(tx+15, ty-15); ctx.lineTo(tx+25, ty-5);
+  ctx.lineTo(tx+40, ty+10); ctx.lineTo(tx+35, ty+70);
   ctx.fill();
-  // Ember rain (extra)
-  ctx.globalAlpha = 0.6;
-  for (let i=0; i<10; i++) {
-    const ex = (w*0.1+i*w*0.09+now*30*i)%w;
-    const ey = (h*0.1+now*50+i*97)%h;
-    ctx.fillStyle = i%3===0?'#ff6600':'#ff2200';
-    ctx.beginPath(); ctx.arc(ex, ey, 1.5, 0, Math.PI*2); ctx.fill();
+  // Throne detail lines
+  ctx.strokeStyle = '#2a1508'; ctx.lineWidth = 1; ctx.globalAlpha = 0.5;
+  ctx.beginPath(); ctx.moveTo(tx-30, ty+20); ctx.lineTo(tx+30, ty+20); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(tx-25, ty+40); ctx.lineTo(tx+25, ty+40); ctx.stroke();
+  // Glowing eyes on throne
+  ctx.globalAlpha = 0.7 + Math.sin(now*2)*0.3;
+  ctx.shadowColor = '#ff2200'; ctx.shadowBlur = 12;
+  ctx.fillStyle = '#ff2200';
+  ctx.beginPath(); ctx.arc(tx-8, ty+5, 3, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(tx+8, ty+5, 3, 0, Math.PI*2); ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.restore();
+  // Big embers (3-5px, 25+ count)
+  ctx.save();
+  for (let i = 0; i < 28; i++) {
+    const ex = (w*0.05+i*w*0.035+now*20*(i%5+1))%w;
+    const ey = (h*0.05+now*30+i*73)%h;
+    const eSize = 2 + (i%3)*1.5;
+    ctx.globalAlpha = 0.5 + Math.sin(now*3+i)*0.2;
+    ctx.fillStyle = i%3===0 ? '#ff6600' : i%3===1 ? '#ff3300' : '#ffaa00';
+    ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 6;
+    ctx.beginPath(); ctx.arc(ex, ey, eSize, 0, Math.PI*2); ctx.fill();
   }
-  ctx.globalAlpha = 1;
-}
-
-// ── Torch helper ──
-function drawTorch(ctx, x, y, now, color) {
-  // Sconce
-  ctx.fillStyle = '#3a2a1a';
-  ctx.fillRect(x-4, y, 8, 16);
-  ctx.fillRect(x-7, y+14, 14, 4);
-  // Fire
-  const flicker = Math.sin(now*8)*2 + Math.sin(now*13)*1.5;
-  const fireGrad = ctx.createRadialGradient(x+flicker*0.5, y-5, 2, x, y-2, 14);
-  fireGrad.addColorStop(0, color);
-  fireGrad.addColorStop(0.5, color+'88');
-  fireGrad.addColorStop(1, 'transparent');
-  ctx.fillStyle = fireGrad;
-  ctx.beginPath(); ctx.arc(x+flicker*0.5, y-5, 14, 0, Math.PI*2); ctx.fill();
-  // Light cast
-  const lightGrad = ctx.createRadialGradient(x, y, 5, x, y, 80);
-  lightGrad.addColorStop(0, color.slice(0,7)+'18');
-  lightGrad.addColorStop(1, 'transparent');
-  ctx.fillStyle = lightGrad;
-  ctx.fillRect(x-80, y-80, 160, 160);
+  ctx.shadowBlur = 0;
+  ctx.restore();
+  drawArenaVignette(ctx, w, h, 'rgba(10,4,0,0.5)');
 }
 
 // ── Distance Bar on arena floor ──
 function drawDistanceBar(ctx, w, h, floorY, accent) {
-  ctx.globalAlpha = 0.2;
+  ctx.save();
+  const barY = floorY + 8;
+  // Base line (visible)
+  ctx.globalAlpha = 0.6;
   ctx.strokeStyle = accent;
-  ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(w*0.1, floorY); ctx.lineTo(w*0.9, floorY); ctx.stroke();
-  // Distance markers
-  for (let i=0; i<=10; i++) {
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(w*0.1, barY); ctx.lineTo(w*0.9, barY); ctx.stroke();
+  // Distance tick markers
+  ctx.globalAlpha = 0.4;
+  for (let i = 0; i <= 10; i++) {
     const mx = w*0.1 + (w*0.8)*(i/10);
-    ctx.beginPath(); ctx.moveTo(mx, floorY-3); ctx.lineTo(mx, floorY+3); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(mx, barY-4); ctx.lineTo(mx, barY+4); ctx.stroke();
   }
-  // Zone colors
+  // Zone fills (visible)
   const zones = [
-    {start:0, end:1, color:'#44ff44'},  // melee
-    {start:2, end:3, color:'#ffff44'},  // mid
-    {start:4, end:6, color:'#ffaa44'},  // ranged
-    {start:7, end:10, color:'#ff4444'}, // extreme
+    { start:0, end:1, color:'#44ff44', label:'MELEE' },
+    { start:2, end:3, color:'#ffff44', label:'MID' },
+    { start:4, end:6, color:'#ffaa44', label:'RANGED' },
+    { start:7, end:10, color:'#ff4444', label:'EXTREME' },
   ];
   zones.forEach(z => {
-    ctx.globalAlpha = 0.06;
-    ctx.fillStyle = z.color;
     const sx = w*0.1 + (w*0.8)*(z.start/10);
     const ex = w*0.1 + (w*0.8)*((z.end+1)/10);
-    ctx.fillRect(sx, floorY-2, ex-sx, 4);
+    // Zone fill
+    ctx.globalAlpha = 0.15;
+    ctx.fillStyle = z.color;
+    ctx.fillRect(sx, barY-3, ex-sx, 6);
+    // Zone label
+    ctx.globalAlpha = 0.35;
+    ctx.fillStyle = z.color;
+    ctx.font = `${Math.max(7, w*0.015)}px 'Quicksand', sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.fillText(z.label, (sx+ex)/2, barY + 14);
   });
-  // Player & enemy dots
-  ctx.globalAlpha = 0.6;
+  // Player dot with glow
   const pDot = w*0.1 + (w*0.8)*((10-combat.distance)/20);
   const eDot = w*0.1 + (w*0.8)*((10+combat.distance)/20);
+  const now = Date.now();
+  ctx.globalAlpha = 0.8;
+  ctx.shadowColor = '#66aaff'; ctx.shadowBlur = 10;
   ctx.fillStyle = '#66aaff';
-  ctx.beginPath(); ctx.arc(pDot, floorY, 5, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(pDot, barY, 7 + Math.sin(now*0.005)*1, 0, Math.PI*2); ctx.fill();
+  // Enemy dot with glow
+  ctx.shadowColor = '#ff6666';
   ctx.fillStyle = '#ff6666';
-  ctx.beginPath(); ctx.arc(eDot, floorY, 5, 0, Math.PI*2); ctx.fill();
-  ctx.globalAlpha = 1;
+  ctx.beginPath(); ctx.arc(eDot, barY, 7 + Math.sin(now*0.005+1)*1, 0, Math.PI*2); ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.restore();
+}
+
+// ── Turn Indicator ──
+let turnIndicator = null;
+function showTurnIndicator(isPlayerTurn) {
+  turnIndicator = { isPlayer: isPlayerTurn, life: 1, start: Date.now() };
+}
+
+function drawTurnIndicator(ctx, w, h) {
+  if (!turnIndicator) return;
+  const t = turnIndicator;
+  const elapsed = (Date.now() - t.start) / 1000;
+  if (elapsed > 1.2) { turnIndicator = null; return; }
+  const progress = Math.min(elapsed / 0.6, 1);
+  const fade = elapsed > 0.8 ? 1 - (elapsed-0.8)/0.4 : 1;
+  ctx.save();
+  // Light sweep
+  const sweepX = w * progress;
+  const sweepColor = t.isPlayer ? '#4488ff' : '#ff4444';
+  const sweepGrad = ctx.createLinearGradient(sweepX-60, 0, sweepX+30, 0);
+  sweepGrad.addColorStop(0, 'transparent');
+  sweepGrad.addColorStop(0.5, sweepColor);
+  sweepGrad.addColorStop(1, 'transparent');
+  ctx.globalAlpha = fade * 0.15;
+  ctx.fillStyle = sweepGrad;
+  ctx.fillRect(0, 0, w, h);
+  // Turn text
+  if (elapsed < 0.8) {
+    ctx.globalAlpha = fade * 0.7;
+    ctx.font = `bold ${Math.max(14, w*0.03)}px 'Cormorant Garamond', serif`;
+    ctx.textAlign = 'center';
+    ctx.fillStyle = sweepColor;
+    ctx.shadowColor = sweepColor; ctx.shadowBlur = 15;
+    ctx.fillText(t.isPlayer ? 'YOUR TURN' : 'ENEMY TURN', w*0.5, h*0.18);
+    ctx.shadowBlur = 0;
+  }
+  ctx.restore();
+}
+
+// ── Menu Background ──
+function drawMenuBackground(ctx, w, h, now) {
+  // Dark arena atmosphere
+  ctx.fillStyle = '#0a0614';
+  ctx.fillRect(0, 0, w, h);
+  // Slow-panning distant torches
+  const torchOffs = [
+    [w*0.15, h*0.3], [w*0.5, h*0.15], [w*0.85, h*0.3],
+    [w*0.3, h*0.5], [w*0.7, h*0.5]
+  ];
+  torchOffs.forEach(([tx, ty], i) => {
+    const flicker = 0.5 + Math.sin(now*5+i*2.1)*0.15;
+    const grad = ctx.createRadialGradient(tx, ty, 2, tx, ty, 60);
+    grad.addColorStop(0, `rgba(255,60,30,${0.12*flicker})`);
+    grad.addColorStop(0.5, `rgba(255,40,20,${0.04*flicker})`);
+    grad.addColorStop(1, 'transparent');
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.arc(tx, ty, 60, 0, Math.PI*2); ctx.fill();
+  });
+  // Crimson accent pulsing
+  ctx.save();
+  const pulse = 0.03 + Math.sin(now*1.5)*0.02;
+  const crimGrad = ctx.createRadialGradient(w*0.5, h*0.4, 0, w*0.5, h*0.4, w*0.6);
+  crimGrad.addColorStop(0, `rgba(255,40,40,${pulse})`);
+  crimGrad.addColorStop(1, 'transparent');
+  ctx.fillStyle = crimGrad;
+  ctx.fillRect(0, 0, w, h);
+  ctx.restore();
+  // Floating embers
+  for (let i = 0; i < 15; i++) {
+    const ex = (now*15*(i+1)*0.3) % (w+40) - 20;
+    const ey = (h + 20 - (now*20 + i*67) % (h+40));
+    ctx.save();
+    ctx.globalAlpha = 0.3 + Math.sin(now*2+i)*0.15;
+    ctx.fillStyle = i%2 === 0 ? '#ff4422' : '#ff6644';
+    ctx.beginPath(); ctx.arc(ex, ey, 1.5+i%2, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+  // Vignette
+  drawArenaVignette(ctx, w, h, 'rgba(5,3,10,0.7)');
 }
 
 // ── Town Canvas Background ──
 function drawTown(ctx, w, h, now) {
+  // Night sky
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, h*0.6);
+  skyGrad.addColorStop(0, '#0a0818');
+  skyGrad.addColorStop(1, '#15101f');
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0, 0, w, h);
+  // Moon
+  ctx.save();
+  const moonX = w*0.75, moonY = h*0.08;
+  const moonOuter = ctx.createRadialGradient(moonX, moonY, 0, moonX, moonY, 60);
+  moonOuter.addColorStop(0, 'rgba(200,190,220,0.08)');
+  moonOuter.addColorStop(1, 'transparent');
+  ctx.fillStyle = moonOuter;
+  ctx.beginPath(); ctx.arc(moonX, moonY, 60, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = 'rgba(220,210,240,0.5)';
+  ctx.beginPath(); ctx.arc(moonX, moonY, 12, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = 'rgba(240,235,250,0.8)';
+  ctx.beginPath(); ctx.arc(moonX, moonY, 6, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+  // Twinkling stars
+  ctx.save();
+  for (let i = 0; i < 30; i++) {
+    const sx = (i*137+50) % w;
+    const sy = (i*97+20) % (h*0.4);
+    const twinkle = 0.2 + 0.5*(0.5+0.5*Math.sin(now*2+i*3.7));
+    ctx.globalAlpha = twinkle;
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(sx, sy, 0.8+i%2*0.5, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
+  // Building silhouettes
+  ctx.save();
+  ctx.fillStyle = '#0c0818';
+  // Tavern (left)
+  ctx.beginPath();
+  ctx.moveTo(w*0.05, h*0.55); ctx.lineTo(w*0.05, h*0.25);
+  ctx.lineTo(w*0.15, h*0.15); ctx.lineTo(w*0.25, h*0.25);
+  ctx.lineTo(w*0.25, h*0.55);
+  ctx.fill();
+  // Chimney
+  ctx.fillRect(w*0.08, h*0.13, 6, 12);
+  // Shop (center)
+  ctx.beginPath();
+  ctx.moveTo(w*0.35, h*0.55); ctx.lineTo(w*0.35, h*0.28);
+  ctx.lineTo(w*0.45, h*0.22); ctx.lineTo(w*0.55, h*0.22);
+  ctx.lineTo(w*0.65, h*0.28); ctx.lineTo(w*0.65, h*0.55);
+  ctx.fill();
+  // Temple (right, taller)
+  ctx.beginPath();
+  ctx.moveTo(w*0.75, h*0.55); ctx.lineTo(w*0.75, h*0.2);
+  ctx.lineTo(w*0.82, h*0.1); ctx.lineTo(w*0.85, h*0.08);
+  ctx.lineTo(w*0.88, h*0.1); ctx.lineTo(w*0.95, h*0.2);
+  ctx.lineTo(w*0.95, h*0.55);
+  ctx.fill();
+  // Temple spire
+  ctx.fillRect(w*0.84, h*0.03, 3, h*0.05);
+  // Windows (warm glow)
+  const windows = [
+    [w*0.1, h*0.3, 8, 10], [w*0.18, h*0.3, 8, 10],
+    [w*0.42, h*0.3, 10, 8], [w*0.52, h*0.3, 10, 8],
+    [w*0.80, h*0.25, 6, 12], [w*0.90, h*0.25, 6, 12],
+  ];
+  windows.forEach(([wx, wy, ww, wh], i) => {
+    const flicker = 0.6 + Math.sin(now*4+i*1.7)*0.15;
+    ctx.globalAlpha = flicker * 0.5;
+    ctx.fillStyle = '#ffaa44';
+    ctx.fillRect(wx, wy, ww, wh);
+    // Window glow
+    const wGrad = ctx.createRadialGradient(wx+ww/2, wy+wh/2, 2, wx+ww/2, wy+wh/2, 25);
+    wGrad.addColorStop(0, 'rgba(255,170,68,0.15)');
+    wGrad.addColorStop(1, 'transparent');
+    ctx.fillStyle = wGrad;
+    ctx.fillRect(wx-20, wy-20, ww+40, wh+40);
+  });
+  ctx.restore();
   // Cobblestone ground
   ctx.fillStyle = '#15101f';
-  ctx.fillRect(0, 0, w, h);
-  // Stone wall pattern
-  ctx.globalAlpha = 0.08;
-  ctx.strokeStyle = '#2a2040';
-  ctx.lineWidth = 1;
-  for (let y=0; y<h; y+=18) {
-    const off = (Math.floor(y/18)%2)*15;
-    for (let x=-off; x<w; x+=30) {
-      ctx.strokeRect(x, y, 30, 18);
-    }
-  }
-  ctx.globalAlpha = 1;
-  // Cobblestone floor in lower half
-  ctx.globalAlpha = 0.06;
+  ctx.fillRect(0, h*0.55, w, h*0.45);
+  // Warm cobblestone glow from torchlight
+  ctx.save();
+  ctx.globalAlpha = 0.12;
   ctx.fillStyle = '#3a3050';
-  for (let y=h*0.6; y<h; y+=14) {
+  for (let y = h*0.55; y < h; y += 14) {
     const off = (Math.floor(y/14)%2)*10;
-    for (let x=-off; x<w; x+=20) {
-      const rx = x+Math.sin(y*0.1+x*0.05)*2;
+    for (let x = -off; x < w; x += 20) {
+      const rx = x + Math.sin(y*0.1+x*0.05)*2;
       ctx.beginPath();
       if (ctx.roundRect) ctx.roundRect(rx+1, y+1, 18, 12, 3); else ctx.rect(rx+1, y+1, 18, 12);
       ctx.fill();
     }
   }
-  ctx.globalAlpha = 1;
-  // Warm torchlight sources
-  const torchPositions = [[w*0.15, h*0.35], [w*0.85, h*0.35], [w*0.5, h*0.2]];
+  ctx.restore();
+  // Bright torchlight pools
+  const torchPositions = [[w*0.15, h*0.48], [w*0.85, h*0.48], [w*0.5, h*0.18]];
   torchPositions.forEach(([tx, ty], i) => {
     const flicker = 0.8 + Math.sin(now*6+i*2.3)*0.15 + Math.sin(now*9+i)*0.05;
-    const grad = ctx.createRadialGradient(tx, ty, 5, tx, ty, 100);
-    grad.addColorStop(0, `rgba(255,170,80,${0.08*flicker})`);
+    // Large glow pool
+    const grad = ctx.createRadialGradient(tx, ty, 5, tx, ty, 120);
+    grad.addColorStop(0, `rgba(255,170,80,${0.2*flicker})`);
+    grad.addColorStop(0.4, `rgba(255,140,60,${0.08*flicker})`);
     grad.addColorStop(1, 'transparent');
     ctx.fillStyle = grad;
-    ctx.fillRect(tx-100, ty-100, 200, 200);
+    ctx.fillRect(tx-120, ty-120, 240, 240);
+    // Bright torch point
+    ctx.save();
+    ctx.globalAlpha = 0.7;
+    ctx.fillStyle = '#ffaa44';
+    ctx.shadowColor = '#ff8822'; ctx.shadowBlur = 12;
+    ctx.beginPath(); ctx.arc(tx, ty, 3, 0, Math.PI*2); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.restore();
   });
-  // Light fog particles
-  ctx.globalAlpha = 0.04;
+  // Light fog
+  ctx.save();
+  ctx.globalAlpha = 0.06;
   ctx.fillStyle = '#9988bb';
-  for (let i=0; i<8; i++) {
-    const fx = (w*0.5 + Math.sin(now*0.3+i*0.8)*w*0.4);
-    const fy = h*0.3 + Math.cos(now*0.2+i*1.2)*h*0.2;
-    ctx.beginPath(); ctx.arc(fx, fy, 40+i*5, 0, Math.PI*2); ctx.fill();
+  for (let i = 0; i < 6; i++) {
+    const fx = w*0.5 + Math.sin(now*0.3+i*0.8)*w*0.4;
+    const fy = h*0.4 + Math.cos(now*0.2+i*1.2)*h*0.15;
+    ctx.beginPath(); ctx.arc(fx, fy, 50+i*8, 0, Math.PI*2); ctx.fill();
   }
-  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
+// ── Character Drawing Helpers ──
+function drawGroundShadow(ctx, x, floorY, charW, arenaColor) {
+  ctx.save();
+  const grad = ctx.createRadialGradient(x, floorY, 0, x, floorY, charW * 0.7);
+  grad.addColorStop(0, 'rgba(0,0,0,0.25)');
+  grad.addColorStop(0.6, 'rgba(0,0,0,0.1)');
+  grad.addColorStop(1, 'transparent');
+  ctx.fillStyle = grad;
+  ctx.beginPath(); ctx.ellipse(x, floorY, charW * 0.7, charW * 0.15, 0, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+function drawCharacterGlow(ctx, x, y, charW, charH, accentColor, tierLevel, now) {
+  ctx.save();
+  const pulse = tierLevel >= 4 ? (0.15 + Math.sin(now*0.004)*0.1) : 0.18;
+  const grad = ctx.createRadialGradient(x, y + charH*0.4, charW*0.1, x, y + charH*0.4, charW*0.9);
+  grad.addColorStop(0, accentColor + (tierLevel>=4?'40':'25'));
+  grad.addColorStop(0.5, accentColor + '15');
+  grad.addColorStop(1, 'transparent');
+  ctx.globalAlpha = pulse;
+  ctx.fillStyle = grad;
+  ctx.beginPath(); ctx.ellipse(x, y + charH*0.4, charW*0.9, charH*0.55, 0, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+function drawCanvasHealthBar(ctx, x, y, width, current, max, color1, color2) {
+  const barH = 6;
+  const pct = Math.max(0, Math.min(1, current / max));
+  // Background
+  ctx.save();
+  ctx.globalAlpha = 0.5;
+  ctx.fillStyle = '#0d0a1a';
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(x - width/2, y, width, barH, 3);
+  else ctx.rect(x - width/2, y, width, barH);
+  ctx.fill();
+  // Fill
+  ctx.globalAlpha = 0.9;
+  const grad = ctx.createLinearGradient(x - width/2, 0, x - width/2 + width*pct, 0);
+  grad.addColorStop(0, color1);
+  grad.addColorStop(1, color2);
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(x - width/2, y, width*pct, barH, 3);
+  else ctx.rect(x - width/2, y, width*pct, barH);
+  ctx.fill();
+  // Border
+  ctx.globalAlpha = 0.3;
+  ctx.strokeStyle = '#b8a9d4';
+  ctx.lineWidth = 0.5;
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(x - width/2, y, width, barH, 3);
+  else ctx.rect(x - width/2, y, width, barH);
+  ctx.stroke();
+  ctx.restore();
 }
 
 // ── Character Drawing ──
@@ -3067,32 +3875,86 @@ function drawCombatCharacters() {
   if (gameState !== ST.COMBAT || !combat.enemy) return;
   const ctx = gameCtx;
   const w = window.innerWidth, h = window.innerHeight;
+  const now = Date.now();
+  const floorY = h * 0.72;
 
-  // Player position
-  const pX = w * 0.22 + playerAnimOff.x + shakeX;
-  const pY = h * 0.28 + playerAnimOff.y + shakeY;
-  const charH = Math.min(h * 0.38, 240);
+  const charH = Math.min(h * 0.45, 300);
   const charW = charH * 0.55;
+  const barW = charW * 0.9;
 
-  // Draw player
+  // Distance-reactive positions
+  const dist = combat.distance || 5;
+  const pBaseX = w * (0.5 - dist * 0.035);
+  const eBaseX = w * (0.5 + dist * 0.035);
+
+  // Idle breathing animation
+  const breatheScale = 1 + Math.sin(now * 0.003) * 0.015;
+  const breatheY = Math.sin(now * 0.003) * 2;
+
+  // Player
+  const pX = pBaseX + playerAnimOff.x + shakeX;
+  const pY = floorY - charH + playerAnimOff.y + shakeY + breatheY;
+  const arenaAccent = ARENAS[progression.arena]?.accent || '#ff4444';
+
+  // Ground shadow
+  drawGroundShadow(ctx, pX, floorY, charW, arenaAccent);
+
+  // Player glow halo
+  const pTier = Math.min(Math.round(Object.values(player.equipment).filter(Boolean).reduce((s,e)=>s+e.tier,0) / Math.max(1,Object.values(player.equipment).filter(Boolean).length)), 4);
+  const pAccent = ITEM_TIERS[pTier]?.color || '#a0a0a0';
+  drawCharacterGlow(ctx, pX, pY, charW, charH, pAccent, pTier, now);
+
+  // Draw player with breathing
+  ctx.save();
   ctx.globalAlpha = playerAnimOff.opacity;
   const pImg = getCharImg(player.race, getModelLv(player.equipment), player.equipment.weapon?.weaponType||'sword');
   if (pImg.complete && pImg.naturalWidth) {
-    ctx.drawImage(pImg, pX - charW/2, pY, charW, charH);
+    ctx.translate(pX, pY + charH);
+    ctx.scale(1, breatheScale);
+    ctx.drawImage(pImg, -charW/2, -charH, charW, charH);
   }
+  ctx.restore();
 
-  // Draw enemy (flipped)
-  const eX = w * 0.78 + enemyAnimOff.x + shakeX;
-  const eY = h * 0.28 + enemyAnimOff.y + shakeY;
+  // Player health bars
+  const pBarY = pY - 14;
+  drawCanvasHealthBar(ctx, pX, pBarY, barW, player.hp, player.maxHp, '#cc2222', '#ff4444');
+  if (player.maxStamina > 0) drawCanvasHealthBar(ctx, pX, pBarY - 8, barW, player.stamina, player.maxStamina, '#cc8800', '#ffaa00');
+  if (player.maxMana > 0) drawCanvasHealthBar(ctx, pX, pBarY - 16, barW, player.mana, player.maxMana, '#2244cc', '#4488ff');
+
+  // Status particles for player
+  spawnStatusParticles(pX, pY, charH, player.statusEffects);
+
+  // Enemy
+  const eX = eBaseX + enemyAnimOff.x + shakeX;
+  const eY = floorY - charH + enemyAnimOff.y + shakeY + breatheY;
+  const e = combat.enemy;
+
+  // Ground shadow
+  drawGroundShadow(ctx, eX, floorY, charW, arenaAccent);
+
+  // Enemy glow halo
+  const eAccent = ITEM_TIERS[e.equipTier]?.color || '#a0a0a0';
+  drawCharacterGlow(ctx, eX, eY, charW, charH, eAccent, e.equipTier, now);
+
+  // Draw enemy (flipped) with breathing
+  ctx.save();
   ctx.globalAlpha = enemyAnimOff.opacity;
-  const eImg = getCharImg(combat.enemy.race, ITEM_TIERS[combat.enemy.equipTier].modelLv, combat.enemy.weapon);
+  const eImg = getCharImg(e.race, ITEM_TIERS[e.equipTier].modelLv, e.weapon);
   if (eImg.complete && eImg.naturalWidth) {
-    ctx.save();
-    ctx.translate(eX + charW/2, eY);
-    ctx.scale(-1, 1);
-    ctx.drawImage(eImg, 0, 0, charW, charH);
-    ctx.restore();
+    ctx.translate(eX, eY + charH);
+    ctx.scale(-1, breatheScale);
+    ctx.drawImage(eImg, -charW/2, -charH, charW, charH);
   }
+  ctx.restore();
+
+  // Enemy health bars
+  const eBarY = eY - 14;
+  drawCanvasHealthBar(ctx, eX, eBarY, barW, e.hp, e.maxHp, '#cc2222', '#ff4444');
+  if (e.maxStamina > 0) drawCanvasHealthBar(ctx, eX, eBarY - 8, barW, e.stamina, e.maxStamina, '#cc8800', '#ffaa00');
+
+  // Status particles for enemy
+  spawnStatusParticles(eX, eY, charH, e.statusEffects);
+
   ctx.globalAlpha = 1;
 }
 
@@ -3113,7 +3975,12 @@ function gameLoop() {
   drawBackground();
   if (gameState === ST.COMBAT) {
     drawCombatCharacters();
+    drawSlashTrails(partCtx);
+    drawImpactFlashes(partCtx);
+    drawShieldDome(partCtx);
     drawParts(partCtx);
+    drawScreenFlash(partCtx, w, h);
+    drawTurnIndicator(partCtx, w, h);
   }
 
   requestAnimationFrame(gameLoop);
