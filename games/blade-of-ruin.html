@@ -146,14 +146,22 @@ html,body{overflow:hidden;position:fixed;inset:0;width:100%;height:100dvh;touch-
 .ct-turn{text-align:center;font-size:clamp(10px,1.2dvh,12px);color:var(--iris-light);font-weight:600;letter-spacing:1px}
 .ct-distance{text-align:center;font-size:clamp(9px,1dvh,11px);color:var(--iris-mid)}
 
-/* ── Town ── */
-#ov-town{background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none}
-#ov-town .overlay-scroll{background:linear-gradient(180deg,rgba(13,10,26,0.4) 0%,rgba(13,10,26,0.65) 40%,rgba(13,10,26,0.8) 100%)}
-.town-buildings{display:flex;gap:clamp(4px,1vw,10px);justify-content:center;flex-wrap:wrap;margin:clamp(6px,1dvh,12px) 0}
-.town-bldg{background:rgba(30,24,50,0.55);border:1px solid rgba(184,169,212,0.12);border-radius:12px;padding:clamp(10px,1.5dvh,16px) clamp(8px,1.5vw,14px);cursor:pointer;text-align:center;transition:all .2s;width:clamp(70px,18vw,100px);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
-.town-bldg:active{background:rgba(74,63,107,0.4);transform:scale(0.95)}
-.town-bldg .tb-icon{font-size:clamp(24px,4dvh,36px);display:block}
-.town-bldg .tb-name{font-size:clamp(8px,1dvh,10px);color:var(--iris-light);margin-top:4px;font-weight:600}
+/* ── Town HUD (canvas-based town) ── */
+.town-hud{position:fixed;top:env(safe-area-inset-top,0px);left:50%;transform:translateX(-50%);z-index:15;
+  display:flex;align-items:center;gap:clamp(8px,2vw,14px);
+  background:rgba(10,8,20,0.78);border:1px solid rgba(184,169,212,0.12);border-radius:0 0 12px 12px;
+  padding:clamp(5px,0.8dvh,8px) clamp(10px,2.5vw,18px);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  max-width:min(440px,96vw);font-family:'Quicksand',sans-serif}
+.town-hud.hidden{display:none!important}
+.th-name{color:var(--moon-glow);font-weight:700;font-size:clamp(11px,1.4dvh,14px)}
+.th-level{color:var(--iris-light);font-size:clamp(10px,1.2dvh,12px)}
+.th-gold{color:#ffd740;font-weight:700;font-size:clamp(10px,1.2dvh,12px)}
+.th-hp-wrap{flex:0 0 clamp(50px,12vw,70px);height:8px;background:rgba(0,0,0,0.3);border-radius:4px;overflow:hidden}
+.th-hp-fill{height:100%;background:linear-gradient(90deg,#e53935,#ff6e40);border-radius:4px;transition:width .3s}
+.th-btn{background:rgba(74,63,107,0.45);border:1px solid rgba(184,169,212,0.18);border-radius:8px;
+  padding:clamp(3px,0.5dvh,5px) clamp(6px,1vw,10px);cursor:pointer;font-size:clamp(14px,1.8dvh,18px);
+  color:var(--moon-glow);transition:all .15s;line-height:1}
+.th-btn:active{background:rgba(74,63,107,0.7);transform:scale(0.95)}
 
 /* ── Shop / Inventory ── */
 .item-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(clamp(120px,30vw,160px),1fr));gap:clamp(4px,0.8dvh,8px);width:100%;margin:clamp(4px,0.8dvh,8px) 0;max-height:40dvh;overflow-y:auto}
@@ -249,6 +257,15 @@ html,body{overflow:hidden;position:fixed;inset:0;width:100%;height:100dvh;touch-
 <canvas id="bg-canvas"></canvas>
 <canvas id="game-canvas"></canvas>
 <canvas id="particle-canvas"></canvas>
+
+<!-- Town HUD (shown during canvas town) -->
+<div class="town-hud hidden" id="town-hud">
+  <span class="th-name" id="th-name"></span>
+  <span class="th-level" id="th-level"></span>
+  <span class="th-gold" id="th-gold"></span>
+  <div class="th-hp-wrap"><div class="th-hp-fill" id="th-hp-fill"></div></div>
+  <button class="th-btn" id="th-inv-btn" title="Inventory">🎒</button>
+</div>
 
 <!-- Back button (always visible) -->
 <a class="back-btn" onclick="goToHub()" title="Back to Arcade">&#8592;</a>
@@ -1028,6 +1045,19 @@ const ST = {
   BOUNTY_BOARD:'bounty_board', MOONWELL:'moonwell',
   SANCTUM:'sanctum', ARMORY_VAULT:'armory_vault',
 };
+
+// Town building layout — positions relative to canvas (0-1 fractions)
+const TOWN_BUILDINGS = [
+  { id:'shop',     label:'Forge & Smith',   icon:'⚒️',  state:ST.SHOP,         rx:0.00, ry:0.18, rw:0.24, rh:0.37, color:'#ff8844' },
+  { id:'bounty',   label:'Mercenary Hall',  icon:'⚔️',  state:ST.BOUNTY_BOARD, rx:0.00, ry:0.08, rw:0.14, rh:0.14, color:'#ccaa44' },
+  { id:'arena',    label:'Grand Arena',     icon:'🏰',  state:ST.ARENA_GATE,   rx:0.30, ry:0.04, rw:0.40, rh:0.51, color:'#ffd740' },
+  { id:'moonwell', label:'Moonwell Shop',   icon:'🧪',  state:ST.MOONWELL,     rx:0.76, ry:0.28, rw:0.12, rh:0.27, color:'#44bbff' },
+  { id:'sanctum',  label:'Sanctum',         icon:'⛪',  state:ST.SANCTUM,      rx:0.86, ry:0.06, rw:0.14, rh:0.49, color:'#aa88ff' },
+  { id:'armory',   label:'Armory Vault',    icon:'🛡️',  state:ST.ARMORY_VAULT, rx:0.76, ry:0.06, rw:0.12, rh:0.24, color:'#66ccaa' },
+];
+
+let townHoverBldg = null;
+let townTapFeedback = null; // { id, time }
 
 let gameState = ST.MENU;
 let difficulty = 0;
@@ -2810,11 +2840,13 @@ function changeState(st) {
   dial.classList.remove('visible');
   combLog.classList.remove('visible');
   hideSpellMenu();
+  // Hide town HUD unless entering town
+  if (st !== ST.TOWN) document.getElementById('town-hud').classList.add('hidden');
 
   switch(st) {
     case ST.MENU: showOverlay('ov-menu'); renderMenu(); break;
     case ST.CREATE: showOverlay('ov-create'); renderCreate(); break;
-    case ST.TOWN: showOverlay('ov-town'); renderTown(); break;
+    case ST.TOWN: hideAllOverlays(); renderTownHUD(); break;
     case ST.COMBAT: hideAllOverlays(); combTop.classList.add('visible'); combHud.classList.add('visible'); combLog.classList.add('visible'); renderCombatHUD(); break;
     case ST.SHOP: showOverlay('ov-shop'); renderShop(); break;
     case ST.TEMPLE: showOverlay('ov-temple'); renderTemple(); break;
@@ -3021,50 +3053,16 @@ function startNewGame() {
 }
 
 // ── Town ──
-function renderTown() {
-  const el = document.getElementById('town-content');
-  const d = computeDerived(player.stats, player.equipment, player.race);
-  const xpNeeded = xpForLv(player.level);
-  const xpPct = Math.min(player.xp/xpNeeded*100, 100);
-  el.innerHTML = `
-    <div class="section-title">${ARENAS[progression.arena].name}</div>
-    <div class="info-text text-center mb-sm">${ARENAS[progression.arena].desc}</div>
-    <div class="info-text text-center mb-sm" style="color:${ARENAS[progression.arena].accent};font-weight:600">Arena ${progression.arena+1} — Fight ${progression.fight+1}/4 ${progression.fight>=3?'(Champion)':''}</div>
-    <div class="gp w-full">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <span style="color:var(--moon-glow);font-weight:700">${player.name}</span>
-        <span style="color:var(--iris-light)">Lv ${player.level}</span>
-        <span class="gold-text">${player.gold}g</span>
-      </div>
-      <div class="bar-wrap bar-hp"><div class="bar-fill" style="width:${player.hp/player.maxHp*100}%"></div><div class="bar-text">HP ${player.hp}/${player.maxHp}</div></div>
-      <div class="bar-wrap bar-sta mt-sm"><div class="bar-fill" style="width:${player.stamina/player.maxStamina*100}%"></div><div class="bar-text">STA ${player.stamina}/${player.maxStamina}</div></div>
-      <div class="bar-wrap bar-mana mt-sm"><div class="bar-fill" style="width:${player.mana/player.maxMana*100}%"></div><div class="bar-text">MP ${player.mana}/${player.maxMana}</div></div>
-      <div class="bar-wrap bar-xp mt-sm"><div class="bar-fill" style="width:${xpPct}%"></div><div class="bar-text">XP ${player.xp}/${xpNeeded}</div></div>
-    </div>
-    <div class="preview-wrap">${renderCharacter(player.race, getModelLv(player.equipment), player.equipment.weapon?.weaponType||'sword')}</div>
-    <div class="town-buildings" style="display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(4px,1vw,10px);width:min(420px,92vw);margin:clamp(6px,1dvh,12px) 0">
-      <div class="town-bldg" data-bldg="shop"><div class="tb-icon">⚒️</div><div class="tb-name">Forge & Smith</div></div>
-      <div class="town-bldg" data-bldg="bounty"><div class="tb-icon">⚔️</div><div class="tb-name">Mercenary Hall</div></div>
-      <div class="town-bldg" data-bldg="moonwell"><div class="tb-icon">🧪</div><div class="tb-name">Moonwell Shop</div></div>
-      <div class="town-bldg" data-bldg="arena"><div class="tb-icon">🏰</div><div class="tb-name">Grand Arena</div></div>
-      <div class="town-bldg" data-bldg="sanctum"><div class="tb-icon">⛪</div><div class="tb-name">Sanctum</div></div>
-      <div class="town-bldg" data-bldg="armory"><div class="tb-icon">🛡️</div><div class="tb-name">Armory Vault</div></div>
-    </div>
-    <div class="btn-row">
-      <button class="btn btn-sm" id="town-inv">Inventory</button>
-    </div>`;
-  el.querySelectorAll('.town-bldg').forEach(b => b.onclick = () => {
-    Snd.click();
-    const bldg = b.dataset.bldg;
-    if(bldg==='shop') changeState(ST.SHOP);
-    else if(bldg==='bounty') changeState(ST.BOUNTY_BOARD);
-    else if(bldg==='moonwell') changeState(ST.MOONWELL);
-    else if(bldg==='arena') changeState(ST.ARENA_GATE);
-    else if(bldg==='sanctum') changeState(ST.SANCTUM);
-    else if(bldg==='armory') changeState(ST.ARMORY_VAULT);
-  });
-  el.querySelector('#town-inv').onclick = () => { Snd.click(); changeState(ST.INVENTORY); };
+function renderTownHUD() {
+  const hud = document.getElementById('town-hud');
+  hud.classList.remove('hidden');
+  document.getElementById('th-name').textContent = player.name;
+  document.getElementById('th-level').textContent = `Lv ${player.level}`;
+  document.getElementById('th-gold').textContent = `${player.gold}g`;
+  document.getElementById('th-hp-fill').style.width = `${player.hp/player.maxHp*100}%`;
+  document.getElementById('th-inv-btn').onclick = () => { Snd.click(); changeState(ST.INVENTORY); };
 }
+function renderTown() { renderTownHUD(); }
 
 // ── Shop Compare ──
 function shopCompare(item) {
@@ -4723,6 +4721,75 @@ function drawTown(ctx, w, h, now) {
     ctx.beginPath(); ctx.arc(fx, fy, 45+i*8, 0, Math.PI*2); ctx.fill();
   }
   ctx.restore();
+
+  // ── Interactive buildings (only when in TOWN state) ──
+  if (gameState === ST.TOWN) {
+    const now2 = Date.now();
+    TOWN_BUILDINGS.forEach(bldg => {
+      const bx = bldg.rx * w;
+      const by = bldg.ry * h;
+      const bw = bldg.rw * w;
+      const bh = bldg.rh * h;
+      const isHover = townHoverBldg === bldg.id;
+      const isTap = townTapFeedback && townTapFeedback.id === bldg.id && (now2 - townTapFeedback.time < 300);
+
+      // Hover/tap highlight glow on the building
+      if (isHover || isTap) {
+        ctx.save();
+        const glowA = isTap ? 0.3 : 0.15;
+        const grd = ctx.createRadialGradient(bx+bw/2, by+bh/2, 0, bx+bw/2, by+bh/2, Math.max(bw,bh)*0.65);
+        grd.addColorStop(0, bldg.color + '50');
+        grd.addColorStop(1, 'transparent');
+        ctx.globalAlpha = glowA;
+        ctx.fillStyle = grd;
+        ctx.fillRect(bx-15, by-15, bw+30, bh+30);
+        ctx.restore();
+      }
+
+      // Building label — positioned at bottom of building hitbox
+      ctx.save();
+      const fontSize = Math.max(10, Math.min(w*0.028, 14));
+      ctx.font = `700 ${fontSize}px 'Quicksand', sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      const labelX = bx + bw/2;
+      const labelY = by + bh + 4;
+      // Label background pill
+      const labelW = ctx.measureText(bldg.label).width + 12;
+      ctx.fillStyle = 'rgba(10,8,20,0.65)';
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(labelX-labelW/2, labelY-2, labelW, fontSize+6, 4);
+      else ctx.rect(labelX-labelW/2, labelY-2, labelW, fontSize+6);
+      ctx.fill();
+      // Label text
+      ctx.fillStyle = isHover ? bldg.color : 'rgba(245,240,232,0.8)';
+      if (isHover) { ctx.shadowColor = bldg.color; ctx.shadowBlur = 6; }
+      ctx.fillText(bldg.label, labelX, labelY);
+      ctx.restore();
+    });
+
+    // ── Player character standing in town ──
+    if (player.race) {
+      const charH = Math.min(h * 0.16, 100);
+      const charW = charH * 0.55;
+      const px = w * 0.5;
+      const py = h * 0.63;
+      const breathe = Math.sin(Date.now() * 0.003) * 1.5;
+      // Ground shadow
+      ctx.save();
+      ctx.globalAlpha = 0.2;
+      ctx.fillStyle = '#000';
+      ctx.beginPath(); ctx.ellipse(px, py+2, charW*0.6, charW*0.12, 0, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+      // Character image
+      const pImg = getCharImg(player.race, getModelLv(player.equipment), player.equipment.weapon?.weaponType||'sword');
+      if (pImg.complete && pImg.naturalWidth) {
+        ctx.save();
+        ctx.drawImage(pImg, px-charW/2, py-charH+breathe, charW, charH);
+        ctx.restore();
+      }
+    }
+  }
 }
 
 // ── Character Drawing Helpers ──
@@ -4945,6 +5012,48 @@ function init() {
       }
     }
   };
+
+  // Town canvas interaction — tap buildings
+  gameCanvas.addEventListener('pointerup', (e) => {
+    if (gameState !== ST.TOWN) return;
+    const rect = gameCanvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const cw = rect.width;
+    const ch = rect.height;
+    const pad = 8;
+    for (const bldg of TOWN_BUILDINGS) {
+      const bx = bldg.rx * cw;
+      const by = bldg.ry * ch;
+      const bw = bldg.rw * cw;
+      const bh = bldg.rh * ch;
+      if (x >= bx-pad && x <= bx+bw+pad && y >= by-pad && y <= by+bh+pad) {
+        Snd.click();
+        townTapFeedback = { id: bldg.id, time: Date.now() };
+        setTimeout(() => changeState(bldg.state), 120);
+        return;
+      }
+    }
+  });
+  // Town hover tracking (desktop)
+  gameCanvas.addEventListener('pointermove', (e) => {
+    if (gameState !== ST.TOWN) { townHoverBldg = null; return; }
+    const rect = gameCanvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const cw = rect.width;
+    const ch = rect.height;
+    let found = null;
+    for (const bldg of TOWN_BUILDINGS) {
+      const bx = bldg.rx * cw;
+      const by = bldg.ry * ch;
+      const bw = bldg.rw * cw;
+      const bh = bldg.rh * ch;
+      if (x >= bx && x <= bx+bw && y >= by && y <= by+bh) { found = bldg.id; break; }
+    }
+    townHoverBldg = found;
+    gameCanvas.style.cursor = found ? 'pointer' : 'default';
+  });
 
   // Show menu
   changeState(ST.MENU);
