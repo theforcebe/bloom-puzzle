@@ -8,6 +8,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="stylesheet" href="../shared.css">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
 :root{--game-accent:#ff4444;--game-glow:rgba(255,68,68,0.3)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -26,15 +27,20 @@ html,body{overflow:hidden;position:fixed;inset:0;width:100%;height:100dvh;touch-
 .gp{background:rgba(30,24,50,0.7);border:1px solid rgba(184,169,212,0.12);border-radius:14px;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);padding:clamp(10px,2dvh,20px);width:min(420px,92vw)}
 .gp-glow{box-shadow:0 0 30px var(--game-glow),inset 0 0 20px rgba(74,63,107,0.1)}
 
+/* ── Menu Overlay — transparent for canvas background ── */
+#ov-menu{background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none}
+#ov-menu .overlay-scroll{background:transparent}
+
 /* ── Title Styling ── */
-.title-main{font-family:'Cormorant Garamond',serif;font-size:clamp(28px,5.5dvh,48px);font-weight:600;letter-spacing:3px;text-align:center;background:linear-gradient(135deg,#ff4444,#ff8844,#ff4444);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-shadow:none;margin-bottom:4px}
-.title-sub{font-family:'Cormorant Garamond',serif;font-size:clamp(10px,1.4dvh,14px);letter-spacing:5px;text-transform:uppercase;color:var(--iris-light);opacity:.6;margin-bottom:clamp(10px,2dvh,20px);text-align:center}
+.title-main{font-family:'Cinzel','Cormorant Garamond',serif;font-size:clamp(30px,6dvh,54px);font-weight:700;letter-spacing:clamp(3px,0.8vw,8px);text-align:center;background:linear-gradient(135deg,#8b0000,#cc3300,#ff6a00,#cc3300,#8b0000);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-shadow:none;margin-bottom:6px;filter:drop-shadow(0 0 12px rgba(255,80,30,0.4))}
+.title-sub{font-family:'Cinzel','Cormorant Garamond',serif;font-size:clamp(9px,1.2dvh,12px);letter-spacing:clamp(4px,1vw,10px);text-transform:uppercase;color:#b8a9d4;opacity:.55;margin-bottom:clamp(12px,2.5dvh,24px);text-align:center}
 
 /* ── Buttons ── */
-.btn{font-family:'Quicksand',sans-serif;font-size:clamp(13px,1.8dvh,16px);font-weight:600;color:var(--moon-glow);background:rgba(74,63,107,0.4);border:1px solid rgba(184,169,212,0.2);border-radius:10px;padding:clamp(10px,1.5dvh,14px) clamp(20px,4vw,32px);cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:1.5px;min-width:clamp(140px,40vw,200px);text-align:center;display:inline-block}
-.btn:active{transform:scale(0.96);background:rgba(74,63,107,0.7)}
-.btn-accent{border-color:var(--game-accent);background:rgba(255,68,68,0.15);box-shadow:0 0 15px var(--game-glow)}
-.btn-accent:active{background:rgba(255,68,68,0.35)}
+.btn{font-family:'Cinzel','Quicksand',sans-serif;font-size:clamp(13px,1.8dvh,16px);font-weight:600;color:var(--moon-glow);background:rgba(20,16,36,0.55);border:1px solid rgba(184,169,212,0.18);border-radius:8px;padding:clamp(10px,1.5dvh,14px) clamp(20px,4vw,32px);cursor:pointer;transition:all .25s;text-transform:uppercase;letter-spacing:2px;min-width:clamp(140px,40vw,200px);text-align:center;display:inline-block;box-shadow:inset 0 1px 0 rgba(255,255,255,0.04),0 2px 8px rgba(0,0,0,0.3)}
+.btn:active{transform:scale(0.96);background:rgba(74,63,107,0.5)}
+.btn:hover{border-color:rgba(184,169,212,0.35);box-shadow:0 0 14px rgba(184,169,212,0.1),inset 0 1px 0 rgba(255,255,255,0.06)}
+.btn-accent{border-color:rgba(200,60,40,0.5);background:rgba(140,20,0,0.25);box-shadow:0 0 18px var(--game-glow),inset 0 1px 0 rgba(255,100,60,0.08)}
+.btn-accent:active{background:rgba(200,40,20,0.35)}
 .btn-sm{font-size:clamp(10px,1.3dvh,13px);padding:clamp(6px,1dvh,10px) clamp(12px,2vw,20px);min-width:auto;letter-spacing:1px}
 .btn-danger{border-color:#ff4444;color:#ff6666}
 .btn-gold{border-color:#ffd740;color:#ffd740;background:rgba(255,215,64,0.1)}
@@ -246,9 +252,9 @@ html,body{overflow:hidden;position:fixed;inset:0;width:100%;height:100dvh;touch-
 .gold-text{color:#ffd740;font-weight:700}
 .scrollable{max-height:50dvh;overflow-y:auto;width:100%}
 .btn-row{display:flex;gap:clamp(6px,1.5vw,12px);justify-content:center;flex-wrap:wrap;margin-top:clamp(6px,1dvh,12px)}
-.difficulty-row{display:flex;gap:clamp(6px,1.5vw,10px);justify-content:center;margin:clamp(6px,1dvh,12px) 0}
-.diff-btn{padding:clamp(6px,1dvh,10px) clamp(14px,3vw,22px);border-radius:8px;border:1px solid rgba(184,169,212,0.15);background:rgba(30,24,50,0.5);color:var(--iris-light);font-family:'Quicksand',sans-serif;font-size:clamp(10px,1.2dvh,12px);font-weight:600;cursor:pointer;transition:all .2s}
-.diff-btn.selected{border-color:var(--game-accent);color:var(--moon-glow);background:rgba(255,68,68,0.12)}
+.difficulty-row{display:flex;gap:clamp(4px,1vw,8px);justify-content:center;margin:clamp(6px,1dvh,12px) 0}
+.diff-btn{padding:clamp(6px,1dvh,10px) clamp(14px,3vw,22px);border-radius:6px;border:1px solid rgba(184,169,212,0.12);background:rgba(14,10,28,0.5);color:var(--iris-mid);font-family:'Cinzel','Quicksand',sans-serif;font-size:clamp(9px,1.1dvh,11px);font-weight:600;cursor:pointer;transition:all .25s;letter-spacing:1.5px;text-transform:uppercase}
+.diff-btn.selected{border-color:rgba(200,60,40,0.5);color:var(--moon-glow);background:rgba(140,20,0,0.2);box-shadow:0 0 10px rgba(255,68,68,0.15)}
 .preview-wrap{width:clamp(80px,18vw,120px);height:clamp(140px,28dvh,220px);margin:clamp(4px,0.8dvh,8px) auto;display:flex;align-items:center;justify-content:center}
 .preview-wrap img,.preview-wrap svg{max-width:100%;max-height:100%}
 </style>
@@ -277,19 +283,19 @@ html,body{overflow:hidden;position:fixed;inset:0;width:100%;height:100dvh;touch-
 
 <!-- Menu Overlay -->
 <div class="overlay" id="ov-menu">
-  <div class="overlay-scroll flex-col gap-lg">
-    <a class="menu-back-btn" href="../index.html" title="Back to Arcade">&#8592; Arcade</a>
-    <div>
+  <div class="overlay-scroll flex-col" style="justify-content:center;min-height:100dvh;gap:0">
+    <a class="menu-back-btn" href="../index.html" title="Back to Arcade" style="position:absolute;top:clamp(8px,2dvh,16px);left:clamp(8px,2vw,16px)">&#8592; Arcade</a>
+    <div style="margin-bottom:clamp(16px,4dvh,32px)">
       <div class="title-main">Blade of Ruin</div>
       <div class="title-sub">An Arena of Blood and Shadow</div>
     </div>
-    <div class="flex-col gap-md">
-      <button class="btn btn-accent" id="btn-new-game">New Game</button>
+    <div class="flex-col" style="gap:clamp(8px,1.5dvh,14px);align-items:center">
+      <button class="btn btn-accent" id="btn-new-game" style="font-size:clamp(15px,2.2dvh,20px);letter-spacing:3px">New Game</button>
       <button class="btn" id="btn-continue" style="display:none">Continue</button>
-      <button class="btn btn-sm" id="btn-import">Import Save</button>
+      <button class="btn btn-sm" id="btn-import" style="opacity:0.6">Import Save</button>
       <input type="file" id="import-file" accept=".json" style="display:none">
     </div>
-    <div class="difficulty-row">
+    <div class="difficulty-row" style="margin-top:clamp(12px,2.5dvh,20px)">
       <button class="diff-btn selected" data-diff="0">Normal</button>
       <button class="diff-btn" data-diff="1">Hard</button>
       <button class="diff-btn" data-diff="2">Brutal</button>
@@ -1046,18 +1052,26 @@ const ST = {
   SANCTUM:'sanctum', ARMORY_VAULT:'armory_vault',
 };
 
-// Town building layout — positions relative to canvas (0-1 fractions)
+// Town building layout — 3/4 top-down tile positions (pixel offsets from town center)
+// Town virtual size: 400x400, centered on screen, scaled to fit
+const TOWN_W = 400, TOWN_H = 400;
 const TOWN_BUILDINGS = [
-  { id:'shop',     label:'Forge & Smith',   icon:'⚒️',  state:ST.SHOP,         rx:0.00, ry:0.18, rw:0.24, rh:0.37, color:'#ff8844' },
-  { id:'bounty',   label:'Mercenary Hall',  icon:'⚔️',  state:ST.BOUNTY_BOARD, rx:0.00, ry:0.08, rw:0.14, rh:0.14, color:'#ccaa44' },
-  { id:'arena',    label:'Grand Arena',     icon:'🏰',  state:ST.ARENA_GATE,   rx:0.30, ry:0.04, rw:0.40, rh:0.51, color:'#ffd740' },
-  { id:'moonwell', label:'Moonwell Shop',   icon:'🧪',  state:ST.MOONWELL,     rx:0.76, ry:0.28, rw:0.12, rh:0.27, color:'#44bbff' },
-  { id:'sanctum',  label:'Sanctum',         icon:'⛪',  state:ST.SANCTUM,      rx:0.86, ry:0.06, rw:0.14, rh:0.49, color:'#aa88ff' },
-  { id:'armory',   label:'Armory Vault',    icon:'🛡️',  state:ST.ARMORY_VAULT, rx:0.76, ry:0.06, rw:0.12, rh:0.24, color:'#66ccaa' },
+  { id:'sanctum',  label:'Sanctum',         state:ST.SANCTUM,      tx:160, ty:30,  tw:80, th:60,  color:'#aa88ff', doorX:200, doorY:85 },
+  { id:'bounty',   label:'Mercenary Hall',  state:ST.BOUNTY_BOARD, tx:30,  ty:90,  tw:100,th:65,  color:'#cc8844', doorX:80,  doorY:150 },
+  { id:'armory',   label:'Armory Vault',    state:ST.ARMORY_VAULT, tx:270, ty:90,  tw:100,th:65,  color:'#66ccaa', doorX:320, doorY:150 },
+  { id:'shop',     label:'Forge & Smith',   state:ST.SHOP,         tx:30,  ty:270, tw:100,th:65,  color:'#ff8844', doorX:80,  doorY:275 },
+  { id:'moonwell', label:'Moonwell Shop',   state:ST.MOONWELL,     tx:270, ty:270, tw:100,th:65,  color:'#44bbff', doorX:320, doorY:275 },
+  { id:'arena',    label:'Grand Arena',     state:ST.ARENA_GATE,   tx:140, ty:355, tw:120,th:40,  color:'#ffd740', doorX:200, doorY:360 },
 ];
 
+// Player town position (virtual coords) & movement
+let townPX = 200, townPY = 210; // start at fountain
+let townDir = 0; // 0=down,1=left,2=right,3=up
+let townKeys = { up:false, down:false, left:false, right:false };
 let townHoverBldg = null;
-let townTapFeedback = null; // { id, time }
+let townTapFeedback = null;
+let townTapTarget = null; // {x,y} for tap-to-move
+let townPromptBldg = null; // building player is near
 
 let gameState = ST.MENU;
 let difficulty = 0;
@@ -3175,6 +3189,7 @@ function renderSanctum() {
 function renderTavern() { renderBountyBoard(); }
 function renderBountyBoard() {
   const el = document.getElementById('bounty-board-content');
+  if(!progression.bountiesCompleted) progression.bountiesCompleted = [];
   el.innerHTML = `
     <div class="section-title">Mercenary Hall — Bounty Board</div>
     <div class="info-text text-center mb-sm">Hunt dangerous monsters for gold, XP, and rare loot</div>
@@ -4486,310 +4501,606 @@ function drawTurnIndicator(ctx, w, h) {
 
 // ── Menu Background ──
 function drawMenuBackground(ctx, w, h, now) {
-  // Dark arena atmosphere
-  ctx.fillStyle = '#0a0614';
-  ctx.fillRect(0, 0, w, h);
-  // Slow-panning distant torches
-  const torchOffs = [
-    [w*0.15, h*0.3], [w*0.5, h*0.15], [w*0.85, h*0.3],
-    [w*0.3, h*0.5], [w*0.7, h*0.5]
-  ];
-  torchOffs.forEach(([tx, ty], i) => {
-    const flicker = 0.5 + Math.sin(now*5+i*2.1)*0.15;
-    const grad = ctx.createRadialGradient(tx, ty, 2, tx, ty, 60);
-    grad.addColorStop(0, `rgba(255,60,30,${0.12*flicker})`);
-    grad.addColorStop(0.5, `rgba(255,40,20,${0.04*flicker})`);
-    grad.addColorStop(1, 'transparent');
-    ctx.fillStyle = grad;
-    ctx.beginPath(); ctx.arc(tx, ty, 60, 0, Math.PI*2); ctx.fill();
-  });
-  // Crimson accent pulsing
-  ctx.save();
-  const pulse = 0.03 + Math.sin(now*1.5)*0.02;
-  const crimGrad = ctx.createRadialGradient(w*0.5, h*0.4, 0, w*0.5, h*0.4, w*0.6);
-  crimGrad.addColorStop(0, `rgba(255,40,40,${pulse})`);
-  crimGrad.addColorStop(1, 'transparent');
-  ctx.fillStyle = crimGrad;
-  ctx.fillRect(0, 0, w, h);
-  ctx.restore();
-  // Floating embers
-  for (let i = 0; i < 15; i++) {
-    const ex = (now*15*(i+1)*0.3) % (w+40) - 20;
-    const ey = (h + 20 - (now*20 + i*67) % (h+40));
-    ctx.save();
-    ctx.globalAlpha = 0.3 + Math.sin(now*2+i)*0.15;
-    ctx.fillStyle = i%2 === 0 ? '#ff4422' : '#ff6644';
-    ctx.beginPath(); ctx.arc(ex, ey, 1.5+i%2, 0, Math.PI*2); ctx.fill();
-    ctx.restore();
-  }
-  // Vignette
-  drawArenaVignette(ctx, w, h, 'rgba(5,3,10,0.7)');
-}
-
-// ── Town Canvas Background — Lantern Gate ──
-function drawTown(ctx, w, h, now) {
-  // Warm dusk sky — deep amber to purple
-  const skyGrad = ctx.createLinearGradient(0, 0, 0, h*0.55);
-  skyGrad.addColorStop(0, '#0c0810');
-  skyGrad.addColorStop(0.3, '#1a1018');
-  skyGrad.addColorStop(0.6, '#2a1810');
-  skyGrad.addColorStop(1, '#3a2418');
+  // ── Deep starfield sky gradient ──
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, h);
+  skyGrad.addColorStop(0, '#0a0a18');
+  skyGrad.addColorStop(0.3, '#14143a');
+  skyGrad.addColorStop(0.6, '#1f1f56');
+  skyGrad.addColorStop(0.85, '#2a1a40');
+  skyGrad.addColorStop(1, '#1a0c20');
   ctx.fillStyle = skyGrad;
   ctx.fillRect(0, 0, w, h);
-  // Moon — warm tint
+
+  // ── Twinkling stars ──
   ctx.save();
-  const moonX = w*0.8, moonY = h*0.07;
-  const moonOuter = ctx.createRadialGradient(moonX, moonY, 0, moonX, moonY, 55);
-  moonOuter.addColorStop(0, 'rgba(220,200,170,0.1)');
-  moonOuter.addColorStop(1, 'transparent');
-  ctx.fillStyle = moonOuter;
-  ctx.beginPath(); ctx.arc(moonX, moonY, 55, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle = 'rgba(240,220,190,0.5)';
-  ctx.beginPath(); ctx.arc(moonX, moonY, 10, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle = 'rgba(255,240,210,0.8)';
-  ctx.beginPath(); ctx.arc(moonX, moonY, 5, 0, Math.PI*2); ctx.fill();
-  ctx.restore();
-  // Twinkling stars (warm tone)
-  ctx.save();
-  for (let i = 0; i < 25; i++) {
-    const sx = (i*137+50) % w;
-    const sy = (i*97+15) % (h*0.35);
-    const twinkle = 0.15 + 0.4*(0.5+0.5*Math.sin(now*2+i*3.7));
+  for (let i = 0; i < 60; i++) {
+    const sx = (i * 137.5 + 42) % w;
+    const sy = (i * 97.3 + 15) % (h * 0.7);
+    const twinkle = 0.15 + 0.6 * (0.5 + 0.5 * Math.sin(now * 1.5 + i * 3.7));
     ctx.globalAlpha = twinkle;
-    ctx.fillStyle = i%3===0 ? '#ffd080' : '#fff';
-    ctx.beginPath(); ctx.arc(sx, sy, 0.7+i%2*0.5, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = i % 5 === 0 ? '#aaccff' : i % 7 === 0 ? '#ffddaa' : '#ffffff';
+    const sz = 0.5 + (i % 3) * 0.4;
+    ctx.beginPath(); ctx.arc(sx, sy, sz, 0, Math.PI * 2); ctx.fill();
   }
   ctx.restore();
-  // Gate silhouette — large arched gate in center background
+
+  // ── Occasional shooting star ──
+  const shootCycle = (now * 0.15) % 12;
+  if (shootCycle < 0.6) {
+    ctx.save();
+    const sp = shootCycle / 0.6;
+    const sx1 = w * 0.2 + sp * w * 0.5;
+    const sy1 = h * 0.05 + sp * h * 0.2;
+    ctx.globalAlpha = (1 - sp) * 0.6;
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(sx1, sy1); ctx.lineTo(sx1 - 30, sy1 - 8); ctx.stroke();
+    ctx.restore();
+  }
+
+  // ── Nebula clouds — drifting violet/indigo/magenta mist ──
   ctx.save();
-  ctx.fillStyle = '#0e0a08';
-  const gateX = w*0.5, gateW = w*0.35, gateTop = h*0.08;
-  // Left tower
-  ctx.fillRect(gateX-gateW/2-12, gateTop, 22, h*0.47);
-  // Right tower
-  ctx.fillRect(gateX+gateW/2-10, gateTop, 22, h*0.47);
-  // Arch connecting towers
+  for (let i = 0; i < 6; i++) {
+    const nx = w * (0.1 + i * 0.16) + Math.sin(now * 0.08 + i * 1.5) * w * 0.06;
+    const ny = h * (0.2 + i * 0.08) + Math.cos(now * 0.06 + i * 2) * 15;
+    const nRad = 80 + i * 25;
+    const nGrad = ctx.createRadialGradient(nx, ny, 5, nx, ny, nRad);
+    const colors = ['rgba(80,40,140,', 'rgba(60,30,120,', 'rgba(120,40,100,', 'rgba(50,25,100,', 'rgba(100,30,80,', 'rgba(70,35,130,'];
+    nGrad.addColorStop(0, colors[i] + '0.12)');
+    nGrad.addColorStop(0.5, colors[i] + '0.05)');
+    nGrad.addColorStop(1, 'transparent');
+    ctx.fillStyle = nGrad;
+    ctx.beginPath(); ctx.ellipse(nx, ny, nRad, nRad * 0.5, 0.2 * i, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.restore();
+
+  // ── Horizon glow — magenta/pink ──
+  ctx.save();
+  const horizY = h * 0.78;
+  const hGrad = ctx.createLinearGradient(0, horizY - 60, 0, horizY + 20);
+  hGrad.addColorStop(0, 'transparent');
+  hGrad.addColorStop(0.4, 'rgba(140,40,80,0.08)');
+  hGrad.addColorStop(0.7, 'rgba(180,50,90,0.12)');
+  hGrad.addColorStop(1, 'rgba(100,30,60,0.06)');
+  ctx.fillStyle = hGrad;
+  ctx.fillRect(0, horizY - 60, w, 80);
+  ctx.restore();
+
+  // ── Mountain silhouettes ──
+  ctx.save();
+  ctx.fillStyle = '#0a0810';
+  // Far mountains (lighter)
+  ctx.globalAlpha = 0.6;
+  ctx.beginPath(); ctx.moveTo(0, horizY);
+  const farPeaks = [0.08,0.62, 0.18,0.52, 0.28,0.58, 0.38,0.48, 0.50,0.55, 0.58,0.45, 0.68,0.52, 0.78,0.58, 0.88,0.50, 1.0,0.60];
+  for (let i = 0; i < farPeaks.length; i += 2) ctx.lineTo(w * farPeaks[i], h * farPeaks[i+1]);
+  ctx.lineTo(w, horizY); ctx.closePath(); ctx.fill();
+  // Near mountains (darker)
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = '#060510';
+  ctx.beginPath(); ctx.moveTo(0, horizY);
+  const nearPeaks = [0.05,0.72, 0.12,0.60, 0.22,0.68, 0.30,0.56, 0.40,0.65, 0.48,0.52, 0.55,0.62, 0.65,0.54, 0.75,0.64, 0.82,0.58, 0.92,0.66, 1.0,0.70];
+  for (let i = 0; i < nearPeaks.length; i += 2) ctx.lineTo(w * nearPeaks[i], h * nearPeaks[i+1]);
+  ctx.lineTo(w, horizY); ctx.closePath(); ctx.fill();
+  // Moon rim lighting on mountain edges
+  ctx.strokeStyle = 'rgba(140,120,180,0.06)'; ctx.lineWidth = 1.5;
   ctx.beginPath();
-  ctx.moveTo(gateX-gateW/2+10, h*0.55);
-  ctx.lineTo(gateX-gateW/2+10, gateTop+30);
-  ctx.quadraticCurveTo(gateX, gateTop-5, gateX+gateW/2-10, gateTop+30);
-  ctx.lineTo(gateX+gateW/2-10, h*0.55);
-  ctx.fill();
-  // Tower crenellations
-  for (let t = 0; t < 2; t++) {
-    const tx = t===0 ? gateX-gateW/2-12 : gateX+gateW/2-10;
-    for (let c = 0; c < 3; c++) {
-      ctx.fillRect(tx+c*8, gateTop-6, 5, 6);
+  for (let i = 0; i < nearPeaks.length; i += 2) {
+    if (i === 0) ctx.moveTo(w * nearPeaks[i], h * nearPeaks[i+1]);
+    else ctx.lineTo(w * nearPeaks[i], h * nearPeaks[i+1]);
+  }
+  ctx.stroke();
+  ctx.restore();
+
+  // ── Dark treeline at base of mountains ──
+  ctx.save();
+  ctx.fillStyle = '#050408';
+  ctx.beginPath(); ctx.moveTo(0, horizY);
+  for (let x = 0; x <= w; x += 8) {
+    const treeH = 6 + Math.sin(x * 0.03) * 4 + Math.sin(x * 0.08 + 1) * 3;
+    ctx.lineTo(x, horizY - treeH);
+  }
+  ctx.lineTo(w, horizY); ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.closePath(); ctx.fill();
+  ctx.restore();
+
+  // ── Arcane Circle — rotating sigil behind menu ──
+  ctx.save();
+  const cx = w * 0.5, cy = h * 0.42;
+  const circR = Math.min(w, h) * 0.28;
+  const rot = now * 0.12;
+  ctx.translate(cx, cy);
+  ctx.globalAlpha = 0.12;
+  ctx.strokeStyle = '#b8b0d8';
+  ctx.lineWidth = 1.5;
+
+  // Outer ring
+  ctx.beginPath(); ctx.arc(0, 0, circR, 0, Math.PI * 2); ctx.stroke();
+  // Inner ring
+  ctx.beginPath(); ctx.arc(0, 0, circR * 0.68, 0, Math.PI * 2); ctx.stroke();
+  // Innermost ring
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.arc(0, 0, circR * 0.35, 0, Math.PI * 2); ctx.stroke();
+
+  // Rotating triangle
+  ctx.save(); ctx.rotate(rot);
+  ctx.beginPath();
+  for (let i = 0; i < 3; i++) {
+    const a = Math.PI * 2 / 3 * i - Math.PI / 2;
+    const px = Math.cos(a) * circR * 0.82;
+    const py = Math.sin(a) * circR * 0.82;
+    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  }
+  ctx.closePath(); ctx.stroke();
+  // Circles at triangle vertices
+  for (let i = 0; i < 3; i++) {
+    const a = Math.PI * 2 / 3 * i - Math.PI / 2;
+    ctx.beginPath(); ctx.arc(Math.cos(a) * circR * 0.82, Math.sin(a) * circR * 0.82, circR * 0.08, 0, Math.PI * 2); ctx.stroke();
+  }
+  ctx.restore();
+
+  // Counter-rotating triangle
+  ctx.save(); ctx.rotate(-rot * 0.7);
+  ctx.globalAlpha = 0.07;
+  ctx.beginPath();
+  for (let i = 0; i < 3; i++) {
+    const a = Math.PI * 2 / 3 * i;
+    const px = Math.cos(a) * circR * 0.6;
+    const py = Math.sin(a) * circR * 0.6;
+    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  }
+  ctx.closePath(); ctx.stroke();
+  ctx.restore();
+
+  // Rune marks on outer ring
+  ctx.save(); ctx.rotate(rot * 0.4);
+  ctx.globalAlpha = 0.1;
+  for (let i = 0; i < 12; i++) {
+    const a = Math.PI * 2 / 12 * i;
+    const r1 = circR * 0.9;
+    const r2 = circR * 1.02;
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(a) * r1, Math.sin(a) * r1);
+    ctx.lineTo(Math.cos(a) * r2, Math.sin(a) * r2);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // Center orb
+  ctx.globalAlpha = 0.08;
+  ctx.beginPath(); ctx.arc(0, 0, circR * 0.12, 0, Math.PI * 2);
+  ctx.fillStyle = '#8888cc'; ctx.fill();
+
+  // Outer glow halo
+  ctx.globalAlpha = 0.05;
+  const halo = ctx.createRadialGradient(0, 0, circR * 0.8, 0, 0, circR * 1.3);
+  halo.addColorStop(0, 'rgba(140,120,220,0.15)');
+  halo.addColorStop(1, 'transparent');
+  ctx.fillStyle = halo;
+  ctx.beginPath(); ctx.arc(0, 0, circR * 1.3, 0, Math.PI * 2); ctx.fill();
+
+  ctx.restore();
+
+  // ── Floating magic particles ──
+  ctx.save();
+  for (let i = 0; i < 20; i++) {
+    const px = (now * 8 * (i + 1) * 0.3 + i * 47) % (w + 40) - 20;
+    const py = (h + 20 - (now * 12 + i * 83) % (h + 40));
+    ctx.globalAlpha = 0.2 + Math.sin(now * 2 + i) * 0.1;
+    ctx.fillStyle = i % 3 === 0 ? '#cc8844' : i % 3 === 1 ? '#8866cc' : '#6688cc';
+    ctx.beginPath(); ctx.arc(px, py, 1 + i % 2 * 0.5, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.restore();
+
+  // ── Vignette ──
+  drawArenaVignette(ctx, w, h, 'rgba(5,3,10,0.6)');
+}
+
+// ── Town Movement Update ──
+function updateTown() {
+  const spd = 2.2;
+  let dx = 0, dy = 0;
+  // Keyboard
+  if (townKeys.up) { dy = -spd; townDir = 3; }
+  if (townKeys.down) { dy = spd; townDir = 0; }
+  if (townKeys.left) { dx = -spd; townDir = 1; }
+  if (townKeys.right) { dx = spd; townDir = 2; }
+  // Tap-to-move
+  if (townTapTarget && !townKeys.up && !townKeys.down && !townKeys.left && !townKeys.right) {
+    const tdx = townTapTarget.x - townPX;
+    const tdy = townTapTarget.y - townPY;
+    const dist = Math.sqrt(tdx*tdx + tdy*tdy);
+    if (dist > 4) {
+      dx = (tdx / dist) * spd;
+      dy = (tdy / dist) * spd;
+      if (Math.abs(tdx) > Math.abs(tdy)) townDir = tdx > 0 ? 2 : 1;
+      else townDir = tdy > 0 ? 0 : 3;
+    } else {
+      townTapTarget = null;
     }
   }
-  // Gate opening (slightly lighter — passage behind)
-  const gateGrad = ctx.createLinearGradient(0, gateTop+30, 0, h*0.55);
-  gateGrad.addColorStop(0, '#1a1210');
-  gateGrad.addColorStop(1, '#120c08');
-  ctx.fillStyle = gateGrad;
-  ctx.beginPath();
-  ctx.moveTo(gateX-gateW/2+18, h*0.55);
-  ctx.lineTo(gateX-gateW/2+18, gateTop+45);
-  ctx.quadraticCurveTo(gateX, gateTop+12, gateX+gateW/2-18, gateTop+45);
-  ctx.lineTo(gateX+gateW/2-18, h*0.55);
-  ctx.fill();
-  ctx.restore();
-  // Building silhouettes flanking the gate
-  ctx.save();
-  ctx.fillStyle = '#0e0a08';
-  // Left buildings (forge, mercenary hall)
-  ctx.beginPath();
-  ctx.moveTo(0, h*0.55); ctx.lineTo(0, h*0.2);
-  ctx.lineTo(w*0.06, h*0.12); ctx.lineTo(w*0.12, h*0.18);
-  ctx.lineTo(w*0.12, h*0.25); ctx.lineTo(w*0.18, h*0.22);
-  ctx.lineTo(w*0.24, h*0.3); ctx.lineTo(w*0.24, h*0.55);
-  ctx.fill();
-  // Right buildings (sanctum, armory)
-  ctx.beginPath();
-  ctx.moveTo(w, h*0.55); ctx.lineTo(w, h*0.18);
-  ctx.lineTo(w*0.94, h*0.08); ctx.lineTo(w*0.92, h*0.06);
-  ctx.lineTo(w*0.9, h*0.08); ctx.lineTo(w*0.88, h*0.18);
-  ctx.lineTo(w*0.82, h*0.24); ctx.lineTo(w*0.76, h*0.28);
-  ctx.lineTo(w*0.76, h*0.55);
-  ctx.fill();
-  // Sanctum spire
-  ctx.fillRect(w*0.915, h*0.02, 3, h*0.04);
-  // Chimney smoke from forge
-  ctx.globalAlpha = 0.08;
-  ctx.fillStyle = '#887766';
-  for (let i = 0; i < 4; i++) {
-    const sx = w*0.06 + Math.sin(now*0.5+i*1.5)*5;
-    const sy = h*0.08 - i*12;
-    ctx.beginPath(); ctx.arc(sx, sy, 6+i*3, 0, Math.PI*2); ctx.fill();
+  // Apply movement with building collision
+  if (dx !== 0 || dy !== 0) {
+    let nx = townPX + dx, ny = townPY + dy;
+    // Clamp to bounds
+    nx = Math.max(12, Math.min(TOWN_W - 12, nx));
+    ny = Math.max(12, Math.min(TOWN_H - 12, ny));
+    // Building collision (player is ~10px radius)
+    let blocked = false;
+    for (const b of TOWN_BUILDINGS) {
+      if (nx > b.tx + 4 && nx < b.tx + b.tw - 4 && ny > b.ty + 4 && ny < b.ty + b.th - 4) {
+        blocked = true; break;
+      }
+    }
+    if (!blocked) { townPX = nx; townPY = ny; }
   }
-  ctx.globalAlpha = 1;
-  // Windows with warm glow
-  const windows = [
-    [w*0.04, h*0.28, 7, 9], [w*0.14, h*0.32, 7, 9], [w*0.2, h*0.36, 6, 8],
-    [w*0.8, h*0.32, 6, 10], [w*0.88, h*0.24, 5, 10], [w*0.95, h*0.28, 6, 8],
-  ];
-  windows.forEach(([wx, wy, ww, wh], i) => {
-    const flicker = 0.5 + Math.sin(now*4+i*1.7)*0.15;
-    ctx.globalAlpha = flicker * 0.5;
-    ctx.fillStyle = '#ffaa44';
-    ctx.fillRect(wx, wy, ww, wh);
-    const wGrad = ctx.createRadialGradient(wx+ww/2, wy+wh/2, 2, wx+ww/2, wy+wh/2, 22);
-    wGrad.addColorStop(0, 'rgba(255,170,68,0.15)');
-    wGrad.addColorStop(1, 'transparent');
-    ctx.fillStyle = wGrad;
-    ctx.fillRect(wx-18, wy-18, ww+36, wh+36);
-  });
-  ctx.restore();
-  // Cobblestone ground — warmer tones
-  const groundGrad = ctx.createLinearGradient(0, h*0.55, 0, h);
-  groundGrad.addColorStop(0, '#1e1510');
-  groundGrad.addColorStop(1, '#141008');
-  ctx.fillStyle = groundGrad;
-  ctx.fillRect(0, h*0.55, w, h*0.45);
-  // Cobblestone texture
+  // Check proximity to building doors
+  townPromptBldg = null;
+  for (const b of TOWN_BUILDINGS) {
+    const ddx = townPX - b.doorX;
+    const ddy = townPY - b.doorY;
+    if (Math.sqrt(ddx*ddx + ddy*ddy) < 22) { townPromptBldg = b; break; }
+  }
+}
+
+// ── Town Canvas — 3/4 Top-Down Hub ──
+function drawTown(ctx, w, h, now) {
+  // Scale town to fit screen
+  const scale = Math.min(w / TOWN_W, h / TOWN_H) * 0.85;
+  const offX = (w - TOWN_W * scale) / 2;
+  const offY = (h - TOWN_H * scale) / 2;
+  ctx.save();
+  ctx.translate(offX, offY);
+  ctx.scale(scale, scale);
+
+  // ── Sky ──
+  ctx.fillStyle = '#0c0810';
+  ctx.fillRect(-offX/scale, -offY/scale, w/scale+10, h/scale+10);
+
+  // ── Ground — dark cobblestone base ──
+  const gGrad = ctx.createRadialGradient(200, 200, 30, 200, 200, 250);
+  gGrad.addColorStop(0, '#1e1510');
+  gGrad.addColorStop(0.6, '#141008');
+  gGrad.addColorStop(1, '#0a0806');
+  ctx.fillStyle = gGrad;
+  ctx.fillRect(0, 0, TOWN_W, TOWN_H);
+
+  // ── Cobblestone texture ──
   ctx.save();
   ctx.globalAlpha = 0.1;
-  ctx.fillStyle = '#3a2a1a';
-  for (let y = h*0.55; y < h; y += 14) {
-    const off = (Math.floor(y/14)%2)*10;
-    for (let x = -off; x < w; x += 20) {
-      const rx = x + Math.sin(y*0.1+x*0.05)*2;
+  ctx.fillStyle = '#3a2a18';
+  for (let y = 0; y < TOWN_H; y += 12) {
+    const off = (Math.floor(y/12)%2)*7;
+    for (let x = -off; x < TOWN_W; x += 14) {
       ctx.beginPath();
-      if (ctx.roundRect) ctx.roundRect(rx+1, y+1, 18, 12, 3); else ctx.rect(rx+1, y+1, 18, 12);
+      if (ctx.roundRect) ctx.roundRect(x+1, y+1, 12, 10, 2);
+      else ctx.rect(x+1, y+1, 12, 10);
       ctx.fill();
     }
   }
   ctx.restore();
-  // Hanging lanterns — the signature Lantern Gate feature
-  const lanterns = [
-    [w*0.12, h*0.42], [w*0.3, h*0.48], [w*0.42, h*0.35],
-    [w*0.58, h*0.35], [w*0.7, h*0.48], [w*0.88, h*0.42],
-  ];
-  lanterns.forEach(([lx, ly], i) => {
-    const sway = Math.sin(now*0.8+i*1.1)*2;
-    const flicker = 0.7 + Math.sin(now*5+i*2.3)*0.15 + Math.sin(now*8+i)*0.05;
-    // Chain
+
+  // ── Paths — lighter cobblestone connecting buildings ──
+  ctx.save();
+  ctx.fillStyle = 'rgba(50,40,25,0.15)';
+  // Vertical path (fountain to sanctum and arena)
+  ctx.fillRect(190, 30, 20, TOWN_H-30);
+  // Horizontal path (connecting left and right buildings)
+  ctx.fillRect(30, 150, 340, 16);
+  ctx.fillRect(30, 260, 340, 16);
+  ctx.restore();
+
+  // ── Central Fountain ──
+  const fx = 200, fy = 200;
+  // Fountain base
+  ctx.save();
+  ctx.fillStyle = '#2a2218';
+  ctx.beginPath(); ctx.ellipse(fx, fy, 28, 18, 0, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = '#3a3020'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.ellipse(fx, fy, 28, 18, 0, 0, Math.PI*2); ctx.stroke();
+  // Water
+  ctx.fillStyle = 'rgba(60,100,140,0.35)';
+  ctx.beginPath(); ctx.ellipse(fx, fy, 22, 14, 0, 0, Math.PI*2); ctx.fill();
+  // Water shimmer
+  ctx.fillStyle = 'rgba(100,160,220,0.15)';
+  const shimX = Math.sin(now*1.5)*6;
+  ctx.beginPath(); ctx.ellipse(fx+shimX, fy-2, 10, 5, 0, 0, Math.PI*2); ctx.fill();
+  // Center pillar
+  ctx.fillStyle = '#3a3020';
+  ctx.fillRect(fx-3, fy-16, 6, 14);
+  // Water spout effect
+  ctx.fillStyle = 'rgba(120,180,240,0.2)';
+  ctx.beginPath(); ctx.arc(fx, fy-18, 4+Math.sin(now*3)*1, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  // ── Lantern posts ──
+  const lanternPos = [[100,160],[300,160],[100,268],[300,268],[200,120],[200,300]];
+  lanternPos.forEach(([lx,ly], i) => {
+    const flk = 0.7+Math.sin(now*5+i*2.3)*0.2;
+    // Post
+    ctx.fillStyle = '#2a1c0c';
+    ctx.fillRect(lx-1.5, ly-14, 3, 14);
+    // Lantern glow
+    const lg = ctx.createRadialGradient(lx, ly-14, 2, lx, ly-14, 40);
+    lg.addColorStop(0, `rgba(255,180,80,${0.18*flk})`);
+    lg.addColorStop(0.5, `rgba(255,150,50,${0.06*flk})`);
+    lg.addColorStop(1, 'transparent');
+    ctx.fillStyle = lg;
+    ctx.beginPath(); ctx.arc(lx, ly-14, 40, 0, Math.PI*2); ctx.fill();
+    // Flame
+    ctx.fillStyle = `rgba(255,200,80,${0.7*flk})`;
+    ctx.beginPath(); ctx.arc(lx, ly-14, 2, 0, Math.PI*2); ctx.fill();
+  });
+
+  // ── Draw buildings (3/4 top-down) ──
+  TOWN_BUILDINGS.forEach(b => {
+    const isNear = townPromptBldg === b;
+    const isHover = townHoverBldg === b.id;
+
+    // Building shadow
     ctx.save();
-    ctx.strokeStyle = '#554433'; ctx.lineWidth = 1; ctx.globalAlpha = 0.3;
-    ctx.beginPath(); ctx.moveTo(lx, ly-20); ctx.lineTo(lx+sway, ly); ctx.stroke();
+    ctx.fillStyle = 'rgba(0,0,0,0.15)';
+    ctx.fillRect(b.tx+4, b.ty+4, b.tw, b.th);
     ctx.restore();
-    // Lantern body
+
+    // Building body
     ctx.save();
-    ctx.globalAlpha = 0.4;
-    ctx.fillStyle = '#3a2a18';
-    ctx.fillRect(lx+sway-4, ly-2, 8, 10);
-    ctx.strokeStyle = '#554433'; ctx.lineWidth = 0.5;
-    ctx.strokeRect(lx+sway-4, ly-2, 8, 10);
-    ctx.restore();
-    // Lantern light
+    const bGrad = ctx.createLinearGradient(b.tx, b.ty, b.tx, b.ty+b.th);
+    bGrad.addColorStop(0, '#2a2218');
+    bGrad.addColorStop(1, '#1a1610');
+    ctx.fillStyle = bGrad;
+    ctx.fillRect(b.tx, b.ty, b.tw, b.th);
+
+    // Roof (3/4 perspective — trapezoidal top)
+    const roofH = b.th * 0.3;
+    ctx.fillStyle = '#1a1008';
+    ctx.beginPath();
+    ctx.moveTo(b.tx-4, b.ty);
+    ctx.lineTo(b.tx+b.tw/2, b.ty-roofH);
+    ctx.lineTo(b.tx+b.tw+4, b.ty);
+    ctx.closePath(); ctx.fill();
+    // Roof edge highlight
+    ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(b.tx-4, b.ty);
+    ctx.lineTo(b.tx+b.tw/2, b.ty-roofH);
+    ctx.lineTo(b.tx+b.tw+4, b.ty);
+    ctx.stroke();
+
+    // Building-specific details
+    if (b.id === 'shop') {
+      // Forge glow
+      const fgGrad = ctx.createRadialGradient(b.tx+b.tw*0.3, b.ty+b.th*0.6, 3, b.tx+b.tw*0.3, b.ty+b.th*0.6, 25);
+      fgGrad.addColorStop(0, 'rgba(255,120,40,0.25)');
+      fgGrad.addColorStop(1, 'transparent');
+      ctx.fillStyle = fgGrad;
+      ctx.fillRect(b.tx, b.ty, b.tw, b.th);
+      // Anvil
+      ctx.fillStyle = '#444';
+      ctx.fillRect(b.tx+b.tw-22, b.ty+b.th-12, 12, 8);
+      // Chimney
+      ctx.fillStyle = '#1a1008';
+      ctx.fillRect(b.tx+15, b.ty-roofH-10, 8, 12);
+      // Chimney smoke
+      ctx.save(); ctx.globalAlpha = 0.12; ctx.fillStyle = '#887766';
+      for (let s=0;s<3;s++) {
+        ctx.beginPath(); ctx.arc(b.tx+19+Math.sin(now*0.5+s)*3, b.ty-roofH-14-s*8, 4+s*2, 0, Math.PI*2); ctx.fill();
+      }
+      ctx.restore();
+      // Sparks
+      for (let s=0;s<3;s++) {
+        const sx = b.tx+b.tw*0.3+(now*15+s*37)%20-10;
+        const sy = b.ty+b.th*0.5-(now*10+s*23)%15;
+        ctx.fillStyle = `rgba(255,160,40,${0.3+Math.sin(now*4+s)*0.2})`;
+        ctx.beginPath(); ctx.arc(sx, sy, 1, 0, Math.PI*2); ctx.fill();
+      }
+    }
+    else if (b.id === 'bounty') {
+      // Red banner
+      const banSway = Math.sin(now*0.7)*2;
+      ctx.fillStyle = 'rgba(180,40,30,0.4)';
+      ctx.fillRect(b.tx+b.tw/2-4+banSway, b.ty+5, 8, 20);
+      ctx.fillRect(b.tx+10, b.ty+5, 6, 16);
+      // Crossed swords emblem
+      ctx.strokeStyle = 'rgba(200,180,140,0.3)'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(b.tx+b.tw/2-8, b.ty+15); ctx.lineTo(b.tx+b.tw/2+8, b.ty+30); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(b.tx+b.tw/2+8, b.ty+15); ctx.lineTo(b.tx+b.tw/2-8, b.ty+30); ctx.stroke();
+      // Brazier
+      ctx.fillStyle = '#333';
+      ctx.fillRect(b.tx+b.tw-14, b.ty+b.th-8, 8, 6);
+      const bfg = ctx.createRadialGradient(b.tx+b.tw-10, b.ty+b.th-10, 1, b.tx+b.tw-10, b.ty+b.th-10, 12);
+      bfg.addColorStop(0, 'rgba(255,100,30,0.2)'); bfg.addColorStop(1, 'transparent');
+      ctx.fillStyle = bfg; ctx.fillRect(b.tx+b.tw-22, b.ty+b.th-22, 24, 24);
+    }
+    else if (b.id === 'moonwell') {
+      // Glowing moonwell pool
+      const mGrad = ctx.createRadialGradient(b.tx+b.tw/2, b.ty+b.th*0.6, 4, b.tx+b.tw/2, b.ty+b.th*0.6, 22);
+      mGrad.addColorStop(0, 'rgba(80,180,240,0.3)');
+      mGrad.addColorStop(0.5, 'rgba(60,140,200,0.1)');
+      mGrad.addColorStop(1, 'transparent');
+      ctx.fillStyle = mGrad;
+      ctx.beginPath(); ctx.ellipse(b.tx+b.tw/2, b.ty+b.th*0.6, 16, 10, 0, 0, Math.PI*2); ctx.fill();
+      // Floating runes
+      ctx.save(); ctx.globalAlpha = 0.2; ctx.fillStyle = '#44bbff';
+      for (let r=0;r<4;r++) {
+        const ra = now*0.5+r*Math.PI/2;
+        ctx.beginPath(); ctx.arc(b.tx+b.tw/2+Math.cos(ra)*12, b.ty+b.th*0.6+Math.sin(ra)*7, 1.5, 0, Math.PI*2); ctx.fill();
+      }
+      ctx.restore();
+    }
+    else if (b.id === 'sanctum') {
+      // Warm window glow
+      ctx.fillStyle = 'rgba(255,180,80,0.25)';
+      ctx.fillRect(b.tx+b.tw*0.3, b.ty+b.th*0.3, 8, 10);
+      ctx.fillRect(b.tx+b.tw*0.6, b.ty+b.th*0.3, 8, 10);
+      // Window glow radius
+      const swg = ctx.createRadialGradient(b.tx+b.tw/2, b.ty+b.th*0.4, 3, b.tx+b.tw/2, b.ty+b.th*0.4, 20);
+      swg.addColorStop(0, 'rgba(255,170,60,0.1)'); swg.addColorStop(1, 'transparent');
+      ctx.fillStyle = swg; ctx.fillRect(b.tx, b.ty, b.tw, b.th);
+      // Vines
+      ctx.strokeStyle = 'rgba(60,120,50,0.2)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(b.tx, b.ty+10); ctx.quadraticCurveTo(b.tx-5, b.ty+25, b.tx+3, b.ty+40); ctx.stroke();
+    }
+    else if (b.id === 'armory') {
+      // Iron door
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillRect(b.tx+b.tw/2-8, b.ty+b.th-18, 16, 18);
+      ctx.strokeStyle = '#333'; ctx.lineWidth = 1;
+      ctx.strokeRect(b.tx+b.tw/2-8, b.ty+b.th-18, 16, 18);
+      // Shield display
+      ctx.save(); ctx.globalAlpha = 0.3;
+      ctx.fillStyle = '#667788';
+      ctx.beginPath();
+      ctx.moveTo(b.tx+12, b.ty+15); ctx.lineTo(b.tx+20, b.ty+12);
+      ctx.lineTo(b.tx+28, b.ty+15); ctx.lineTo(b.tx+20, b.ty+28);
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+    else if (b.id === 'arena') {
+      // Grand gate with arch
+      ctx.fillStyle = '#1a1008';
+      ctx.fillRect(b.tx, b.ty, b.tw, b.th);
+      // Gate arch
+      ctx.strokeStyle = 'rgba(255,215,64,0.15)'; ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(b.tx+15, b.ty+b.th);
+      ctx.quadraticCurveTo(b.tx+b.tw/2, b.ty-5, b.tx+b.tw-15, b.ty+b.th);
+      ctx.stroke();
+      // Torches
+      const tf = 0.7+Math.sin(now*6)*0.2;
+      ctx.fillStyle = `rgba(255,200,80,${0.4*tf})`;
+      ctx.beginPath(); ctx.arc(b.tx+10, b.ty+10, 3, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(b.tx+b.tw-10, b.ty+10, 3, 0, Math.PI*2); ctx.fill();
+    }
+
+    // Door indicator
+    ctx.fillStyle = '#1a1008';
+    ctx.fillRect(b.doorX-5, b.doorY-2, 10, 4);
+
+    // Wall outline
+    ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 1;
+    ctx.strokeRect(b.tx, b.ty, b.tw, b.th);
+
+    // Highlight glow when near or hovering
+    if (isNear || isHover) {
+      ctx.save();
+      const ga = isNear ? 0.2 : 0.1;
+      const grd = ctx.createRadialGradient(b.tx+b.tw/2, b.ty+b.th/2, 0, b.tx+b.tw/2, b.ty+b.th/2, Math.max(b.tw,b.th)*0.8);
+      grd.addColorStop(0, b.color + '40');
+      grd.addColorStop(1, 'transparent');
+      ctx.globalAlpha = ga;
+      ctx.fillStyle = grd;
+      ctx.fillRect(b.tx-15, b.ty-15, b.tw+30, b.th+30);
+      ctx.restore();
+    }
+
+    // Label
     ctx.save();
-    const lGrad = ctx.createRadialGradient(lx+sway, ly+3, 3, lx+sway, ly+3, 80);
-    lGrad.addColorStop(0, `rgba(255,180,80,${0.2*flicker})`);
-    lGrad.addColorStop(0.3, `rgba(255,150,50,${0.08*flicker})`);
-    lGrad.addColorStop(1, 'transparent');
-    ctx.fillStyle = lGrad;
-    ctx.fillRect(lx+sway-80, ly-77, 160, 160);
-    // Bright flame core
-    ctx.globalAlpha = 0.6*flicker;
-    ctx.fillStyle = '#ffcc44';
-    ctx.beginPath(); ctx.arc(lx+sway, ly+3, 2, 0, Math.PI*2); ctx.fill();
+    ctx.font = `600 9px 'Cinzel', serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.fillStyle = isNear ? b.color : 'rgba(200,190,170,0.6)';
+    if (isNear) { ctx.shadowColor = b.color; ctx.shadowBlur = 4; }
+    ctx.fillText(b.label, b.tx+b.tw/2, b.ty+b.th+4);
     ctx.restore();
   });
-  // Gate arch lantern — centerpiece
-  ctx.save();
-  const glx = w*0.5, gly = h*0.12;
-  const gFlicker = 0.8 + Math.sin(now*4)*0.15;
-  const gGrad = ctx.createRadialGradient(glx, gly, 5, glx, gly, 100);
-  gGrad.addColorStop(0, `rgba(255,200,100,${0.25*gFlicker})`);
-  gGrad.addColorStop(0.4, `rgba(255,160,60,${0.1*gFlicker})`);
-  gGrad.addColorStop(1, 'transparent');
-  ctx.fillStyle = gGrad;
-  ctx.fillRect(glx-100, gly-100, 200, 200);
-  ctx.globalAlpha = 0.7;
-  ctx.fillStyle = '#ffdd66';
-  ctx.shadowColor = '#ffaa22'; ctx.shadowBlur = 10;
-  ctx.beginPath(); ctx.arc(glx, gly, 3.5, 0, Math.PI*2); ctx.fill();
-  ctx.shadowBlur = 0;
+
+  // ── Decorative elements — benches, barrels ──
+  ctx.save(); ctx.globalAlpha = 0.3;
+  // Benches near fountain
+  ctx.fillStyle = '#3a2a18';
+  ctx.fillRect(175, 225, 14, 5); ctx.fillRect(211, 225, 14, 5);
+  ctx.fillRect(175, 175, 14, 5); ctx.fillRect(211, 175, 14, 5);
+  // Barrels near forge
+  ctx.fillStyle = '#2a1c10';
+  ctx.beginPath(); ctx.ellipse(135, 330, 6, 4, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(142, 325, 5, 4, 0, 0, Math.PI*2); ctx.fill();
   ctx.restore();
-  // Light fog — warmer
-  ctx.save();
-  ctx.globalAlpha = 0.05;
-  ctx.fillStyle = '#aa9070';
-  for (let i = 0; i < 5; i++) {
-    const fx = w*0.5 + Math.sin(now*0.3+i*0.8)*w*0.4;
-    const fy = h*0.42 + Math.cos(now*0.2+i*1.2)*h*0.1;
-    ctx.beginPath(); ctx.arc(fx, fy, 45+i*8, 0, Math.PI*2); ctx.fill();
+
+  // ── Boundary foliage — trees and rocks at edges ──
+  ctx.save(); ctx.globalAlpha = 0.25; ctx.fillStyle = '#0a1a0a';
+  for (let i=0; i<16; i++) {
+    const tx = (i*27+5)%TOWN_W;
+    const ty = i<4 ? -2 : i<8 ? TOWN_H-5 : i<12 ? (i-8)*100+20 : (i-12)*100+20;
+    const side = i>=12 ? TOWN_W-3 : i>=8 ? -5 : tx;
+    const ey = i>=8 ? ty : ty;
+    ctx.beginPath(); ctx.ellipse(i>=8?side:tx, ey, 10+i%4*4, 6+i%3*3, 0, 0, Math.PI*2); ctx.fill();
   }
   ctx.restore();
 
-  // ── Interactive buildings (only when in TOWN state) ──
-  if (gameState === ST.TOWN) {
-    const now2 = Date.now();
-    TOWN_BUILDINGS.forEach(bldg => {
-      const bx = bldg.rx * w;
-      const by = bldg.ry * h;
-      const bw = bldg.rw * w;
-      const bh = bldg.rh * h;
-      const isHover = townHoverBldg === bldg.id;
-      const isTap = townTapFeedback && townTapFeedback.id === bldg.id && (now2 - townTapFeedback.time < 300);
-
-      // Hover/tap highlight glow on the building
-      if (isHover || isTap) {
-        ctx.save();
-        const glowA = isTap ? 0.3 : 0.15;
-        const grd = ctx.createRadialGradient(bx+bw/2, by+bh/2, 0, bx+bw/2, by+bh/2, Math.max(bw,bh)*0.65);
-        grd.addColorStop(0, bldg.color + '50');
-        grd.addColorStop(1, 'transparent');
-        ctx.globalAlpha = glowA;
-        ctx.fillStyle = grd;
-        ctx.fillRect(bx-15, by-15, bw+30, bh+30);
-        ctx.restore();
-      }
-
-      // Building label — positioned at bottom of building hitbox
-      ctx.save();
-      const fontSize = Math.max(10, Math.min(w*0.028, 14));
-      ctx.font = `700 ${fontSize}px 'Quicksand', sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'top';
-      const labelX = bx + bw/2;
-      const labelY = by + bh + 4;
-      // Label background pill
-      const labelW = ctx.measureText(bldg.label).width + 12;
-      ctx.fillStyle = 'rgba(10,8,20,0.65)';
-      ctx.beginPath();
-      if (ctx.roundRect) ctx.roundRect(labelX-labelW/2, labelY-2, labelW, fontSize+6, 4);
-      else ctx.rect(labelX-labelW/2, labelY-2, labelW, fontSize+6);
-      ctx.fill();
-      // Label text
-      ctx.fillStyle = isHover ? bldg.color : 'rgba(245,240,232,0.8)';
-      if (isHover) { ctx.shadowColor = bldg.color; ctx.shadowBlur = 6; }
-      ctx.fillText(bldg.label, labelX, labelY);
-      ctx.restore();
-    });
-
-    // ── Player character standing in town ──
-    if (player.race) {
-      const charH = Math.min(h * 0.16, 100);
-      const charW = charH * 0.55;
-      const px = w * 0.5;
-      const py = h * 0.63;
-      const breathe = Math.sin(Date.now() * 0.003) * 1.5;
-      // Ground shadow
-      ctx.save();
-      ctx.globalAlpha = 0.2;
-      ctx.fillStyle = '#000';
-      ctx.beginPath(); ctx.ellipse(px, py+2, charW*0.6, charW*0.12, 0, 0, Math.PI*2); ctx.fill();
-      ctx.restore();
-      // Character image
-      const pImg = getCharImg(player.race, getModelLv(player.equipment), player.equipment.weapon?.weaponType||'sword');
-      if (pImg.complete && pImg.naturalWidth) {
-        ctx.save();
-        ctx.drawImage(pImg, px-charW/2, py-charH+breathe, charW, charH);
-        ctx.restore();
-      }
+  // ── Player character (in virtual coordinates) ──
+  if (player.race) {
+    const charH = 28;
+    const charW = charH * 0.55;
+    const breathe = Math.sin(now * 3) * 0.8;
+    // Ground shadow
+    ctx.save();
+    ctx.globalAlpha = 0.25;
+    ctx.fillStyle = '#000';
+    ctx.beginPath(); ctx.ellipse(townPX, townPY+2, charW*0.5, 3, 0, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+    // Character image
+    const pImg = getCharImg(player.race, getModelLv(player.equipment), player.equipment.weapon?.weaponType||'sword');
+    if (pImg.complete && pImg.naturalWidth) {
+      ctx.drawImage(pImg, townPX-charW/2, townPY-charH+breathe, charW, charH);
     }
+    // Direction indicator (small dot showing facing)
+    ctx.save();
+    ctx.globalAlpha = 0.3; ctx.fillStyle = '#ffd080';
+    const dirs = [[0,4],[-4,0],[4,0],[0,-4]]; // down,left,right,up
+    const [ddx,ddy] = dirs[townDir] || [0,4];
+    ctx.beginPath(); ctx.arc(townPX+ddx, townPY+ddy+2, 1.5, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
   }
+
+  // ── "Press E to Enter" prompt ──
+  if (townPromptBldg) {
+    const b = townPromptBldg;
+    const px = b.doorX, py = b.doorY - 18;
+    const bob = Math.sin(now*3)*2;
+    ctx.save();
+    ctx.font = `600 7px 'Cinzel', serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    // Background pill
+    const txt = 'Press E / Tap';
+    const tw = ctx.measureText(txt).width + 8;
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(px-tw/2, py+bob-10, tw, 12, 3);
+    else ctx.rect(px-tw/2, py+bob-10, tw, 12);
+    ctx.fill();
+    // Text
+    ctx.fillStyle = b.color;
+    ctx.shadowColor = b.color; ctx.shadowBlur = 4;
+    ctx.fillText(txt, px, py+bob);
+    ctx.restore();
+  }
+
+  // Restore virtual coordinate transform
+  ctx.restore();
+
+  // ── Moon and stars (screen space) ──
+  ctx.save();
+  // Moon
+  const moonX = w * 0.82, moonY = h * 0.08;
+  ctx.fillStyle = 'rgba(255,240,210,0.7)';
+  ctx.beginPath(); ctx.arc(moonX, moonY, Math.max(4, w*0.012), 0, Math.PI*2); ctx.fill();
+  // Moon glow
+  const moonGlow = ctx.createRadialGradient(moonX, moonY, 2, moonX, moonY, Math.max(20, w*0.06));
+  moonGlow.addColorStop(0, 'rgba(255,240,210,0.12)');
+  moonGlow.addColorStop(1, 'transparent');
+  ctx.fillStyle = moonGlow;
+  ctx.beginPath(); ctx.arc(moonX, moonY, w*0.06, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+  // Twinkling stars
+  ctx.save();
+  for (let i = 0; i < 30; i++) {
+    const sx = (i*137+50) % w;
+    const sy = (i*97+15) % (h*0.3);
+    const twinkle = 0.15 + 0.35*(0.5+0.5*Math.sin(now*2+i*3.7));
+    ctx.globalAlpha = twinkle;
+    ctx.fillStyle = i%3===0 ? '#ffd080' : '#fff';
+    ctx.beginPath(); ctx.arc(sx, sy, 0.8+i%2*0.4, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
 }
 
 // ── Character Drawing Helpers ──
@@ -4949,6 +5260,7 @@ function gameLoop() {
   // Update
   updateShake();
   updateParts();
+  if (gameState === ST.TOWN) updateTown();
 
   // Draw
   drawBackground();
@@ -5013,46 +5325,44 @@ function init() {
     }
   };
 
-  // Town canvas interaction — tap buildings
+  // Town canvas interaction — tap to move or enter building
   gameCanvas.addEventListener('pointerup', (e) => {
     if (gameState !== ST.TOWN) return;
     const rect = gameCanvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const cw = rect.width;
-    const ch = rect.height;
-    const pad = 8;
-    for (const bldg of TOWN_BUILDINGS) {
-      const bx = bldg.rx * cw;
-      const by = bldg.ry * ch;
-      const bw = bldg.rw * cw;
-      const bh = bldg.rh * ch;
-      if (x >= bx-pad && x <= bx+bw+pad && y >= by-pad && y <= by+bh+pad) {
-        Snd.click();
-        townTapFeedback = { id: bldg.id, time: Date.now() };
-        setTimeout(() => changeState(bldg.state), 120);
-        return;
-      }
+    const sx = e.clientX - rect.left;
+    const sy = e.clientY - rect.top;
+    // Convert screen coords to town virtual coords
+    const scale = Math.min(rect.width / TOWN_W, rect.height / TOWN_H) * 0.85;
+    const offX = (rect.width - TOWN_W * scale) / 2;
+    const offY = (rect.height - TOWN_H * scale) / 2;
+    const tvx = (sx - offX) / scale;
+    const tvy = (sy - offY) / scale;
+    // If near a building prompt, enter it
+    if (townPromptBldg) {
+      Snd.click();
+      changeState(townPromptBldg.state);
+      return;
+    }
+    // Otherwise tap-to-move
+    townTapTarget = { x: Math.max(10, Math.min(TOWN_W-10, tvx)), y: Math.max(10, Math.min(TOWN_H-10, tvy)) };
+  });
+
+  // WASD / Arrow key movement for town
+  document.addEventListener('keydown', (e) => {
+    if (gameState !== ST.TOWN) return;
+    if (e.key==='w'||e.key==='W'||e.key==='ArrowUp') { townKeys.up=true; townTapTarget=null; e.preventDefault(); }
+    if (e.key==='s'||e.key==='S'||e.key==='ArrowDown') { townKeys.down=true; townTapTarget=null; e.preventDefault(); }
+    if (e.key==='a'||e.key==='A'||e.key==='ArrowLeft') { townKeys.left=true; townTapTarget=null; e.preventDefault(); }
+    if (e.key==='d'||e.key==='D'||e.key==='ArrowRight') { townKeys.right=true; townTapTarget=null; e.preventDefault(); }
+    if ((e.key==='e'||e.key==='E'||e.key==='Enter') && townPromptBldg) {
+      Snd.click(); changeState(townPromptBldg.state); e.preventDefault();
     }
   });
-  // Town hover tracking (desktop)
-  gameCanvas.addEventListener('pointermove', (e) => {
-    if (gameState !== ST.TOWN) { townHoverBldg = null; return; }
-    const rect = gameCanvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const cw = rect.width;
-    const ch = rect.height;
-    let found = null;
-    for (const bldg of TOWN_BUILDINGS) {
-      const bx = bldg.rx * cw;
-      const by = bldg.ry * ch;
-      const bw = bldg.rw * cw;
-      const bh = bldg.rh * ch;
-      if (x >= bx && x <= bx+bw && y >= by && y <= by+bh) { found = bldg.id; break; }
-    }
-    townHoverBldg = found;
-    gameCanvas.style.cursor = found ? 'pointer' : 'default';
+  document.addEventListener('keyup', (e) => {
+    if (e.key==='w'||e.key==='W'||e.key==='ArrowUp') townKeys.up=false;
+    if (e.key==='s'||e.key==='S'||e.key==='ArrowDown') townKeys.down=false;
+    if (e.key==='a'||e.key==='A'||e.key==='ArrowLeft') townKeys.left=false;
+    if (e.key==='d'||e.key==='D'||e.key==='ArrowRight') townKeys.right=false;
   });
 
   // Show menu
