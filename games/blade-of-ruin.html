@@ -68,7 +68,7 @@ html,body{overflow:hidden;position:fixed;inset:0;width:100%;height:100dvh;touch-
 .stat-bar-mini div{height:100%;background:var(--game-accent);border-radius:3px;transition:width .2s}
 
 /* ── Weapon Choice ── */
-.weapon-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:clamp(4px,1vw,8px);width:100%;margin:clamp(6px,1dvh,12px) 0}
+.weapon-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(4px,1vw,8px);width:100%;margin:clamp(6px,1dvh,12px) 0}
 .weapon-card{background:rgba(30,24,50,0.5);border:2px solid rgba(184,169,212,0.1);border-radius:10px;padding:clamp(8px,1.2dvh,12px);cursor:pointer;text-align:center;transition:all .2s}
 .weapon-card.selected{border-color:var(--game-accent);background:rgba(255,68,68,0.12);box-shadow:0 0 12px var(--game-glow)}
 .weapon-card .wc-icon{font-size:clamp(22px,3.5dvh,32px)}
@@ -308,6 +308,26 @@ html,body{overflow:hidden;position:fixed;inset:0;width:100%;height:100dvh;touch-
   <div class="overlay-scroll flex-col gap-md" id="training-content"></div>
 </div>
 
+<!-- Bounty Board Overlay -->
+<div class="overlay hidden" id="ov-bounty-board">
+  <div class="overlay-scroll flex-col gap-md" id="bounty-board-content"></div>
+</div>
+
+<!-- Moonwell Overlay -->
+<div class="overlay hidden" id="ov-moonwell">
+  <div class="overlay-scroll flex-col gap-md" id="moonwell-content"></div>
+</div>
+
+<!-- Sanctum Overlay -->
+<div class="overlay hidden" id="ov-sanctum">
+  <div class="overlay-scroll flex-col gap-md" id="sanctum-content"></div>
+</div>
+
+<!-- Armory Vault Overlay -->
+<div class="overlay hidden" id="ov-armory-vault">
+  <div class="overlay-scroll flex-col gap-md" id="armory-vault-content"></div>
+</div>
+
 <!-- Arena Gate Overlay -->
 <div class="overlay hidden" id="ov-arena-gate">
   <div class="overlay-scroll flex-col gap-md" id="arena-gate-content"></div>
@@ -396,7 +416,8 @@ const WEAPON_TYPES = [
   { id:'axe', name:'Axe', icon:'🪓', range:[0,1], baseDmg:15, category:'heavy' },
   { id:'dagger', name:'Dagger', icon:'🗡️', range:[0,1], baseDmg:8, category:'light' },
   { id:'staff', name:'Staff', icon:'🪄', range:[1,3], baseDmg:10, category:'polearm' },
-  { id:'spear', name:'Spear', icon:'🔱', range:[1,3], baseDmg:11, category:'polearm' },
+  { id:'spear', name:'Spear', icon:'↑', range:[1,3], baseDmg:11, category:'polearm' },
+  { id:'trident', name:'Trident', icon:'🔱', range:[1,3], baseDmg:13, category:'polearm' },
 ];
 
 // ── Item tiers ──
@@ -412,55 +433,155 @@ const SLOT_LABELS = { head:'Head', shoulders:'Shoulders', chest:'Chest', arms:'A
 
 // ── Arenas ──
 const ARENAS = [
-  { name:'The Slave Pits', bg:'#1a0a0a', desc:'Underground torchlit cages', accent:'#ff6633' },
-  { name:'The Iron Gate', bg:'#0a0a1a', desc:'Iron-barred arena, roaring crowd', accent:'#8888cc' },
-  { name:'The Burning Sands', bg:'#1a1400', desc:'Desert ruins, blazing sun', accent:'#ffaa33' },
-  { name:'The Shadow Arena', bg:'#050510', desc:'Obsidian floor, spectral audience', accent:'#8844cc' },
-  { name:'The Dark Throne', bg:'#1a0800', desc:'Volcanic throne room', accent:'#ff2200' },
+  { name:'Sunfire Colosseum', bg:'#1a1408', desc:'Heroic daylight championship arena', accent:'#ffd740' },
+  { name:'Hornwood Grand Ring', bg:'#1a1008', desc:'Timber horse-lord tournament ring', accent:'#cc8844' },
+  { name:'Frostglass Ring', bg:'#081018', desc:'Alpine moonlit ice arena', accent:'#88ccff' },
+  { name:'Ashmaw Crucible', bg:'#1a0800', desc:'Volcanic obsidian endgame arena', accent:'#ff4422' },
 ];
 
-// ── Champions ──
+// ── Champions (4 arenas) ──
 const CHAMPIONS = [
   {
-    name:'Grul the Pitmaster', race:'orc', level:5, tier:0,
-    stats:{STR:12,AGI:6,ATK:8,DEF:8,VIT:10,CHA:4,STA:8,MAG:3},
-    weapon:'axe', behavior:'aggressive', hpMult:1.0, passive:null,
-    abilities:[{name:'Crushing Blow',cd:4,fn:'crushingBlow'},{name:'Pit Boss Roar',cd:5,fn:'pitBossRoar'}],
-    intro:"Fresh meat for the pits! I'll grind your bones to dust!",
-    defeat:'Impossible... no slave has ever...',
+    name:'Gharok the Pit Khan', race:'human', level:8, tier:0,
+    stats:{STR:14,AGI:8,ATK:10,DEF:10,VIT:12,CHA:6,STA:10,MAG:3},
+    weapon:'axe', behavior:'aggressive', hpMult:1.2, passive:null,
+    abilities:[{name:'Warlord Charge',cd:4,fn:'warlordCharge'},{name:'Rally Cry',cd:5,fn:'rallyCry'}],
+    intro:"The Pit Khan bows to no one! Face my axe, worm!",
+    defeat:'The arena... falls silent...',
   },
   {
-    name:'Serathis the Pale', race:'highelf', level:10, tier:1,
-    stats:{STR:8,AGI:14,ATK:12,DEF:10,VIT:10,CHA:10,STA:8,MAG:12},
-    weapon:'sword', behavior:'balanced', hpMult:1.0, passive:'elvenGrace',
-    abilities:[{name:'Moonbeam Strike',cd:3,fn:'moonbeamStrike'},{name:'Pale Shield',cd:5,fn:'paleShield'}],
-    intro:'How quaint. A mortal who thinks they can challenge the pale court.',
-    defeat:'The moonlight... fades...',
+    name:'Azrakh, Ash-Crowned Warlord', race:'orc', level:14, tier:1,
+    stats:{STR:18,AGI:8,ATK:16,DEF:14,VIT:16,CHA:6,STA:14,MAG:8},
+    weapon:'axe', behavior:'aggressive', hpMult:1.3, passive:'burnAura',
+    abilities:[{name:'Furnace Slam',cd:3,fn:'furnaceSlam'},{name:'Ash Crown Flare',cd:5,fn:'ashCrownFlare'}],
+    intro:'The forge-fire burns eternal. You will be its fuel!',
+    defeat:'The furnace... grows cold...',
   },
   {
-    name:'Korvash Doomseeker', race:'human', level:16, tier:2,
-    stats:{STR:18,AGI:8,ATK:14,DEF:14,VIT:20,CHA:6,STA:16,MAG:6},
-    weapon:'staff', behavior:'methodical', hpMult:1.5, passive:'thirdEye',
-    abilities:[{name:'Earthquake Slam',cd:4,fn:'earthquakeSlam'}],
-    intro:'The Third Eye sees your fate. It ends here.',
-    defeat:'The eye... closes...',
+    name:'Vaelor, Frostglass Seraph', race:'highelf', level:22, tier:2,
+    stats:{STR:12,AGI:18,ATK:16,DEF:16,VIT:14,CHA:12,STA:12,MAG:20},
+    weapon:'sword', behavior:'balanced', hpMult:1.0, passive:'frostAura',
+    abilities:[{name:'Seraph Wing Strike',cd:3,fn:'seraphWingStrike'},{name:'Glacial Judgment',cd:5,fn:'glacialJudgment'}],
+    intro:'The Frostglass reflects only truth. Let us see yours.',
+    defeat:'The ice... shatters...',
   },
   {
-    name:'Wraith-Knight Morath', race:'revenant', level:22, tier:3,
-    stats:{STR:14,AGI:12,ATK:16,DEF:20,VIT:18,CHA:8,STA:14,MAG:18},
-    weapon:'sword', behavior:'defensive', hpMult:1.0, passive:'undying',
-    abilities:[{name:'Soul Drain',cd:3,fn:'soulDrain'},{name:'Wraith Form',cd:6,fn:'wraithForm'}],
-    intro:'Death is not the end... it is merely the beginning.',
-    defeat:'At last... release...',
+    name:'The Pale Nazhkar', race:'revenant', level:30, tier:3,
+    stats:{STR:30,AGI:22,ATK:28,DEF:26,VIT:30,CHA:18,STA:26,MAG:30},
+    weapon:'sword', behavior:'adaptive', hpMult:1.3, passive:'spectralDread',
+    abilities:[{name:'Spectral Rend',cd:3,fn:'spectralRend'},{name:'Dread Nova',cd:5,fn:'dreadNova'},{name:'Pale Chains',cd:4,fn:'paleChains'}],
+    intro:'All roads end in shadow. Yours... ends here.',
+    defeat:'At last... the pale light... fades...',
+  },
+];
+
+// ── Bounty Bosses (8 huntable monsters) ──
+const BOUNTY_BOSSES = [
+  {
+    name:'Thornmaw Ent-Lord', level:10, race:'orc', weapon:'staff',
+    stats:{STR:16,AGI:4,ATK:10,DEF:14,VIT:20,CHA:4,STA:12,MAG:8},
+    behavior:'methodical', hpMult:2.0,
+    abilities:[{name:'Root Slam',cd:3,fn:'rootSlam'},{name:'Bark Shield',cd:5,fn:'barkShield'}],
+    bountyGold:200, bountyXp:80, bountyTier:1, arena:1,
+    intro:'The forest walks. And it is angry.',
+    defeat:'The roots... withdraw...',
+    desc:'Ancient forest colossus with branch antlers',
   },
   {
-    name:'Anurath the Shadow Lord', race:'devil', level:30, tier:4,
-    stats:{STR:35,AGI:25,ATK:32,DEF:30,VIT:35,CHA:20,STA:30,MAG:35},
-    weapon:'sword', behavior:'adaptive', hpMult:1.2, passive:'darkThrone',
-    abilities:[{name:'Infernal Decree',cd:3,fn:'infernalDecree'},{name:'Hellfire Nova',cd:5,fn:'hellfireNova'},{name:'Shadow Chains',cd:4,fn:'shadowChains'}],
-    intro:'You dare enter MY throne room? Kneel before the Shadow Lord!',
-    defeat:'No... the darkness... was supposed to be... eternal...',
+    name:'Gharok the Raider', level:14, race:'human', weapon:'axe',
+    stats:{STR:18,AGI:10,ATK:14,DEF:12,VIT:14,CHA:8,STA:12,MAG:4},
+    behavior:'aggressive', hpMult:1.3,
+    abilities:[{name:'Warlord Charge',cd:3,fn:'warlordCharge'},{name:'Trophy Strike',cd:5,fn:'trophyStrike'}],
+    bountyGold:280, bountyXp:100, bountyTier:2, arena:1,
+    intro:'Another trophy for my belt!',
+    defeat:'My horde... will avenge me...',
+    desc:'Brutal horse-lord raider champion',
   },
+  {
+    name:'Nereth, Tideforged Colossus', level:16, race:'dragonknight', weapon:'trident',
+    stats:{STR:14,AGI:8,ATK:12,DEF:18,VIT:22,CHA:6,STA:16,MAG:12},
+    behavior:'defensive', hpMult:1.8,
+    abilities:[{name:'Tidal Crush',cd:3,fn:'tidalCrush'},{name:'Sanctum Ward',cd:5,fn:'sanctumWard'}],
+    bountyGold:350, bountyXp:120, bountyTier:2, arena:2,
+    intro:'The deep protects its own. You are not welcome.',
+    defeat:'The tide... recedes...',
+    desc:'Oceanic relic knight from a drowned temple',
+  },
+  {
+    name:'The Widow of Cinderglass', level:18, race:'highelf', weapon:'sword',
+    stats:{STR:12,AGI:20,ATK:18,DEF:10,VIT:12,CHA:14,STA:14,MAG:16},
+    behavior:'balanced', hpMult:1.2,
+    abilities:[{name:'Mourning Strike',cd:2,fn:'mourningStrike'},{name:'Shattered Vow',cd:5,fn:'shatteredVow'}],
+    bountyGold:400, bountyXp:140, bountyTier:3, arena:0,
+    intro:'Every scar tells a love story. Let me give you one.',
+    defeat:'At last... peace...',
+    desc:'Haunted duelist queen in broken-vow armor',
+  },
+  {
+    name:'Azrakh the Furnace', level:20, race:'orc', weapon:'axe',
+    stats:{STR:22,AGI:10,ATK:20,DEF:16,VIT:20,CHA:6,STA:18,MAG:14},
+    behavior:'aggressive', hpMult:1.5,
+    abilities:[{name:'Furnace Slam',cd:3,fn:'furnaceSlam'},{name:'Magma Eruption',cd:4,fn:'magmaEruption'}],
+    bountyGold:450, bountyXp:160, bountyTier:3, arena:3,
+    intro:'The mountain bleeds! And so will you!',
+    defeat:'The fire... goes out...',
+    desc:'Volcanic warlord fused with forge-fire',
+  },
+  {
+    name:'Vaelor the Exiled', level:22, race:'highelf', weapon:'sword',
+    stats:{STR:14,AGI:20,ATK:18,DEF:18,VIT:16,CHA:14,STA:14,MAG:22},
+    behavior:'balanced', hpMult:1.3,
+    abilities:[{name:'Seraph Wing Strike',cd:3,fn:'seraphWingStrike'},{name:'Divine Judgment',cd:4,fn:'divineJudgment'}],
+    bountyGold:500, bountyXp:180, bountyTier:3, arena:2,
+    intro:'Even in exile, the divine light finds its mark.',
+    defeat:'The wings... fold...',
+    desc:'Fallen ice seraph with divine authority',
+  },
+  {
+    name:'Stonehorn Behemoth', level:26, race:'dwarf', weapon:'axe',
+    stats:{STR:28,AGI:4,ATK:18,DEF:24,VIT:30,CHA:4,STA:22,MAG:4},
+    behavior:'methodical', hpMult:2.5,
+    abilities:[{name:'Mammoth Charge',cd:3,fn:'mammothCharge'},{name:'Earthshatter',cd:5,fn:'earthshatter'}],
+    bountyGold:600, bountyXp:220, bountyTier:4, arena:1,
+    intro:'*The ground shakes with each step*',
+    defeat:'*A thunderous collapse echoes through the arena*',
+    desc:'Mammoth brute of devastating scale',
+  },
+  {
+    name:'The Pale Nazhkar', level:30, race:'revenant', weapon:'sword',
+    stats:{STR:28,AGI:20,ATK:26,DEF:24,VIT:28,CHA:16,STA:24,MAG:28},
+    behavior:'adaptive', hpMult:1.5,
+    abilities:[{name:'Spectral Rend',cd:3,fn:'spectralRend'},{name:'Dread Nova',cd:5,fn:'dreadNova'},{name:'Pale Chains',cd:4,fn:'paleChains'}],
+    bountyGold:800, bountyXp:300, bountyTier:4, arena:3,
+    intro:'You dare seek me in the dark? Then darkness you shall find.',
+    defeat:'The pale crown... crumbles...',
+    desc:'Spectral warlord of regal terror',
+  },
+];
+
+// ── Armor Sets (6 factional sets with 2/4/6-piece bonuses) ──
+const ARMOR_SETS = [
+  { id:'citadel', name:'Citadel Warden Plate', desc:'Royal guardian heavy plate',
+    bonuses:{ 2:{DEF:3,VIT:2}, 4:{DEF:6,VIT:4}, 6:{DEF:10,VIT:8} }, faction:'royal' },
+  { id:'hornlord', name:'Hornlord Rider Harness', desc:'Bronze horse-lord medium armor',
+    bonuses:{ 2:{STR:2,AGI:2}, 4:{STR:4,AGI:4}, 6:{STR:8,AGI:6,STA:4} }, faction:'rider' },
+  { id:'greenveil', name:'Greenveil Huntmaster', desc:'Forest ranger light armor',
+    bonuses:{ 2:{AGI:3,ATK:1}, 4:{AGI:5,ATK:3}, 6:{AGI:8,ATK:6} }, faction:'forest' },
+  { id:'moonwell', name:'Moonwell Sentinel', desc:'Arcane ceremonial plate',
+    bonuses:{ 2:{MAG:3,VIT:1}, 4:{MAG:5,VIT:3}, 6:{MAG:10,VIT:6} }, faction:'arcane' },
+  { id:'crimson', name:'Crimson Oathbreaker', desc:'Dark knight blood plate',
+    bonuses:{ 2:{STR:2,ATK:2}, 4:{STR:4,ATK:4}, 6:{STR:8,ATK:8,VIT:4} }, faction:'dark' },
+  { id:'stormkeep', name:'Stormkeep Champion', desc:'Arena tournament armor',
+    bonuses:{ 2:{ATK:2,DEF:2}, 4:{ATK:4,DEF:4,STA:2}, 6:{ATK:7,DEF:7,STA:4} }, faction:'arena' },
+];
+
+// ── Consumables (Moonwell Shop) ──
+const CONSUMABLES = [
+  { id:'healthTonic', name:'Health Tonic', icon:'🧪', price:40, desc:'Restore 40% HP', effect:'healPct', value:0.4 },
+  { id:'staminaOil', name:'Stamina Oil', icon:'⚗️', price:35, desc:'Restore 50% STA', effect:'staPct', value:0.5 },
+  { id:'relicDust', name:'Relic Dust', icon:'✨', price:60, desc:'+15% spell dmg 3 turns', effect:'buff', status:'blessed', turns:3 },
+  { id:'arenaBlessing', name:'Arena Blessing', icon:'🏛️', price:80, desc:'+10% dmg 5 turns', effect:'buff', status:'enraged', turns:5 },
+  { id:'wardStone', name:'Ward Stone', icon:'🛡️', price:50, desc:'Absorb 30 dmg next fight', effect:'ward', value:30 },
 ];
 
 // ── Spells ──
@@ -588,6 +709,19 @@ function wepSword(lv, acc, gem, id) {
   s += `<circle cx="97" cy="${78+bl}" r="3" fill="${acc}"/>`;
   if (lv>=5) s += `<rect x="${97-bw/2}" y="${60}" width="${bw}" height="${bl}" rx="1" fill="none" filter="url(#gf_${id})" opacity="0.4"/>`;
   if (lv>=7) { for(let i=0;i<3;i++) s += `<text x="97" y="${70+i*12}" fill="${acc}" font-size="5" text-anchor="middle" opacity="0.6">ᚱ</text>`; }
+  if (lv>=9) {
+    // Floating blade segments — blade splits into 3 pieces with gaps
+    const segH = bl/3;
+    for (let i=0;i<3;i++) {
+      const sy = 60+i*segH+i*3;
+      s += `<rect x="${97-bw/2-0.5}" y="${sy}" width="${bw+1}" height="${segH-2}" rx="1" fill="none" stroke="${acc}" stroke-width="0.8" opacity="0.5"><animate attributeName="opacity" values="0.5;0.8;0.5" dur="${1.5+i*0.3}s" repeatCount="indefinite"/></rect>`;
+    }
+    // Orbital crossguard gems
+    s += `<circle cx="${82}" cy="${58+bl}" r="3" fill="${gem||acc}" opacity="0.7"><animate attributeName="cy" values="${58+bl};${56+bl};${58+bl}" dur="2s" repeatCount="indefinite"/></circle>`;
+    s += `<circle cx="${112}" cy="${58+bl}" r="3" fill="${gem||acc}" opacity="0.7"><animate attributeName="cy" values="${58+bl};${60+bl};${58+bl}" dur="2s" repeatCount="indefinite"/></circle>`;
+    // Energy ring around blade
+    s += `<ellipse cx="97" cy="${60+bl*0.4}" rx="14" ry="4" fill="none" stroke="${acc}" stroke-width="0.6" opacity="0.3" stroke-dasharray="3,3"><animateTransform attributeName="transform" type="rotate" from="0 97 ${60+bl*0.4}" to="360 97 ${60+bl*0.4}" dur="6s" repeatCount="indefinite"/></ellipse>`;
+  }
   return s;
 }
 
@@ -597,6 +731,14 @@ function wepAxe(lv, acc, gem, id) {
   s += `<path d="M${99},${62} C${99+hw*0.3},${55} ${99+hw},${60} ${99+hw*0.8},${78} L99,${78}Z" fill="#b0b0b0" stroke="#888" stroke-width="0.5"/>`;
   s += `<path d="M${99},${65} C${99+hw*0.2},${60} ${99+hw*0.6},${63} ${99+hw*0.5},${75}" fill="none" stroke="#d0d0d0" stroke-width="0.6" opacity="0.5"/>`;
   if (lv>=5) s += `<path d="M${99},${62} C${99+hw*0.3},${55} ${99+hw},${60} ${99+hw*0.8},${78} L99,${78}Z" fill="none" filter="url(#gf_${id})" opacity="0.3"/>`;
+  if (lv>=9) {
+    // Double floating axe heads — second mirrored head
+    s += `<path d="M${95},${62} C${95-hw*0.3},${55} ${95-hw},${60} ${95-hw*0.8},${78} L95,${78}Z" fill="#b0b0b0" stroke="${acc}" stroke-width="0.6" opacity="0.5"><animate attributeName="opacity" values="0.5;0.8;0.5" dur="2s" repeatCount="indefinite"/></path>`;
+    // Orbital prism hub at center
+    s += `<circle cx="97" cy="70" r="4" fill="${gem||acc}" opacity="0.6"><animate attributeName="r" values="4;5;4" dur="1.8s" repeatCount="indefinite"/></circle>`;
+    // Energy rings
+    s += `<ellipse cx="97" cy="68" rx="20" ry="6" fill="none" stroke="${acc}" stroke-width="0.5" opacity="0.25" stroke-dasharray="2,3"><animateTransform attributeName="transform" type="rotate" from="0 97 68" to="360 97 68" dur="5s" repeatCount="indefinite"/></ellipse>`;
+  }
   return s;
 }
 
@@ -622,6 +764,15 @@ function wepSpear(lv, acc, gem, id) {
   s += `<polygon points="97.5,28 93,42 102,42" fill="#c0c0c0" stroke="#999" stroke-width="0.5"/>`;
   s += `<line x1="97.5" y1="30" x2="97.5" y2="40" stroke="#ddd" stroke-width="0.6" opacity="0.5"/>`;
   if (lv>=5) s += `<polygon points="97.5,28 93,42 102,42" fill="none" filter="url(#gf_${id})" opacity="0.4"/>`;
+  if (lv>=9) {
+    // Floating segmented tip — spearhead splits and extends
+    s += `<polygon points="97.5,18 95.5,28 99.5,28" fill="#d0d0d0" stroke="${acc}" stroke-width="0.6" opacity="0.6"><animate attributeName="opacity" values="0.6;0.9;0.6" dur="1.5s" repeatCount="indefinite"/></polygon>`;
+    // Orbital shards around spearhead
+    s += `<circle cx="90" cy="32" r="2" fill="${gem||acc}" opacity="0.5"><animate attributeName="cx" values="90;88;90" dur="2s" repeatCount="indefinite"/></circle>`;
+    s += `<circle cx="105" cy="32" r="2" fill="${gem||acc}" opacity="0.5"><animate attributeName="cx" values="105;107;105" dur="2s" repeatCount="indefinite"/></circle>`;
+    // Energy ring around shaft
+    s += `<ellipse cx="97.5" cy="50" rx="10" ry="3" fill="none" stroke="${acc}" stroke-width="0.5" opacity="0.25" stroke-dasharray="2,3"><animateTransform attributeName="transform" type="rotate" from="0 97.5 50" to="360 97.5 50" dur="7s" repeatCount="indefinite"/></ellipse>`;
+  }
   return s;
 }
 
@@ -631,6 +782,15 @@ function wepBow(lv, acc, gem, id) {
   s += `<line x1="97" y1="45" x2="97" y2="115" stroke="#ccc" stroke-width="0.6"/>`;
   if (lv>=4) { s += `<circle cx="${97-curve*0.5}" cy="55" r="1.5" fill="${acc}"/><circle cx="${97-curve*0.5}" cy="105" r="1.5" fill="${acc}"/>`; }
   if (lv>=7) { s += `<line x1="97" y1="80" x2="105" y2="78" stroke="#c0c0c0" stroke-width="1"/><polygon points="105,76 108,78 105,80" fill="#c0c0c0"/>`; }
+  if (lv>=9) {
+    // Segmented floating limbs — bow splits into pieces with energy string
+    s += `<path d="M97,45 C${97-curve-4},52 ${97-curve-4},58 97,65" fill="none" stroke="${acc}" stroke-width="1" opacity="0.5"><animate attributeName="opacity" values="0.5;0.8;0.5" dur="1.8s" repeatCount="indefinite"/></path>`;
+    s += `<path d="M97,95 C${97-curve-4},100 ${97-curve-4},108 97,115" fill="none" stroke="${acc}" stroke-width="1" opacity="0.5"><animate attributeName="opacity" values="0.5;0.8;0.5" dur="2s" repeatCount="indefinite"/></path>`;
+    // Energy string replacing physical string
+    s += `<line x1="97" y1="45" x2="97" y2="115" stroke="${acc}" stroke-width="0.8" opacity="0.4" stroke-dasharray="2,2"><animate attributeName="opacity" values="0.4;0.7;0.4" dur="1.5s" repeatCount="indefinite"/></line>`;
+    // Orbital gem at center
+    s += `<circle cx="${97-curve*0.6}" cy="80" r="3" fill="${gem||acc}" opacity="0.6"><animate attributeName="r" values="3;4;3" dur="2s" repeatCount="indefinite"/></circle>`;
+  }
   return s;
 }
 
@@ -643,7 +803,40 @@ function wepMace(lv, acc, gem, id) {
   return s;
 }
 
-const WEP_FNS = { sword:wepSword, axe:wepAxe, dagger:wepDagger, staff:wepStaff, spear:wepSpear, bow:wepBow, mace:wepMace };
+function wepTrident(lv, acc, gem, id) {
+  const shaftL = 70 + lv*2;
+  let s = `<rect x="96" y="40" width="3" height="${shaftL}" rx="1" fill="#5a3a1a"/>`;
+  // Caldron base
+  s += `<polygon points="88,42 106,42 103,35 91,35" fill="#888" stroke="#999" stroke-width="0.5"/>`;
+  // Center prong
+  const prongH = 20 + lv*1.5;
+  s += `<polygon points="97.5,${35-prongH} 95,35 100,35" fill="#c0c0c0" stroke="#999" stroke-width="0.5"/>`;
+  // Side prongs
+  s += `<polygon points="${86},${38-prongH*0.8} 88,38 91,38" fill="#c0c0c0" stroke="#999" stroke-width="0.4"/>`;
+  s += `<polygon points="${109},${38-prongH*0.8} 103,38 106,38" fill="#c0c0c0" stroke="#999" stroke-width="0.4"/>`;
+  // Gem at base
+  if (lv>=3) s += `<circle cx="97.5" cy="38" r="${2+lv*0.2}" fill="${gem||acc}" opacity="0.8"/>`;
+  // Glow on prongs
+  if (lv>=5) {
+    s += `<polygon points="97.5,${35-prongH} 95,35 100,35" fill="none" filter="url(#gf_${id})" opacity="0.4"/>`;
+    s += `<polygon points="${86},${38-prongH*0.8} 88,38 91,38" fill="none" filter="url(#gf_${id})" opacity="0.3"/>`;
+    s += `<polygon points="${109},${38-prongH*0.8} 103,38 106,38" fill="none" filter="url(#gf_${id})" opacity="0.3"/>`;
+  }
+  // Orbital energy at tier 7+
+  if (lv>=7) {
+    s += `<ellipse cx="97.5" cy="32" rx="18" ry="5" fill="none" stroke="${acc}" stroke-width="0.8" opacity="0.3" stroke-dasharray="3,3"/>`;
+  }
+  // Tier 9+ legendary: floating prong segments, energy halo
+  if (lv>=9) {
+    const topY = 35-prongH;
+    s += `<line x1="97.5" y1="${topY}" x2="97.5" y2="${topY-12}" stroke="${acc}" stroke-width="1.5" opacity="0.6"><animate attributeName="opacity" values="0.6;1;0.6" dur="1.5s" repeatCount="indefinite"/></line>`;
+    s += `<circle cx="97.5" cy="${topY-14}" r="3" fill="${gem||acc}" opacity="0.7"><animate attributeName="r" values="3;4;3" dur="2s" repeatCount="indefinite"/></circle>`;
+    s += `<circle cx="97.5" cy="30" r="22" fill="none" stroke="${acc}" stroke-width="0.6" opacity="0.25" stroke-dasharray="4,4"><animateTransform attributeName="transform" type="rotate" from="0 97.5 30" to="360 97.5 30" dur="8s" repeatCount="indefinite"/></circle>`;
+  }
+  return s;
+}
+
+const WEP_FNS = { sword:wepSword, axe:wepAxe, dagger:wepDagger, staff:wepStaff, spear:wepSpear, bow:wepBow, mace:wepMace, trident:wepTrident };
 
 // ── Ancestry Head Renderers ──
 
@@ -830,6 +1023,8 @@ const ST = {
   SHOP:'shop', TEMPLE:'temple', TAVERN:'tavern', TRAINING:'training',
   ARENA_GATE:'arena_gate', LEVEL_UP:'level_up', INVENTORY:'inventory',
   GAME_OVER:'game_over', VICTORY:'victory',
+  BOUNTY_BOARD:'bounty_board', MOONWELL:'moonwell',
+  SANCTUM:'sanctum', ARMORY_VAULT:'armory_vault',
 };
 
 let gameState = ST.MENU;
@@ -850,7 +1045,8 @@ let combat = {
   enemy:null, distance:5, turn:0, playerTurn:true, animating:false, log:[],
 };
 
-let progression = { arena:0, fight:0, champsDefeated:[] };
+let progression = { arena:0, fight:0, champsDefeated:[], bountiesCompleted:[] };
+let playerConsumables = [];
 let shopItems = [];
 let nextItemId = 1;
 
@@ -868,9 +1064,25 @@ const partCtx = partCanvas.getContext('2d');
 
 function computeDerived(stats, equip, raceId) {
   const s = {...stats};
+  // Apply item bonuses
   EQUIP_SLOTS.forEach(slot => {
     const it = equip[slot];
     if (it && it.bonuses) Object.entries(it.bonuses).forEach(([k,v])=>{ s[k]=(s[k]||0)+v; });
+  });
+  // Apply armor set bonuses
+  const setCounts = {};
+  EQUIP_SLOTS.forEach(sl => {
+    const it = equip[sl];
+    if(it && it.setId) setCounts[it.setId] = (setCounts[it.setId]||0) + 1;
+  });
+  Object.entries(setCounts).forEach(([setId, count]) => {
+    const set = ARMOR_SETS.find(a=>a.id===setId);
+    if(!set) return;
+    [2,4,6].forEach(n => {
+      if(count >= n && set.bonuses[n]) {
+        Object.entries(set.bonuses[n]).forEach(([k,v]) => { s[k]=(s[k]||0)+v; });
+      }
+    });
   });
   const maxHp = 50 + s.VIT * 8;
   const maxSta = 30 + s.STA * 5;
@@ -951,14 +1163,29 @@ function genItem(slot, tier, plvl) {
 }
 
 function genShopItems(arena, plvl) {
-  const count=6+arena*2;
+  const count=8+arena*3;
   const items=[];
-  for(let i=0;i<count;i++){
+  // Guarantee at least one item per slot
+  EQUIP_SLOTS.forEach(slot => {
     const r=Math.random();
-    let tier=r<0.50?0:r<0.75?1:r<0.90?2:r<0.98?3:4;
-    tier=Math.min(tier, arena+1);
-    const slot=EQUIP_SLOTS[Math.floor(Math.random()*EQUIP_SLOTS.length)];
+    let tier=r<0.40?Math.max(0,arena-1):r<0.70?arena:r<0.90?Math.min(arena+1,4):Math.min(arena+2,4);
+    tier=Math.max(0,Math.min(tier,4));
     items.push(genItem(slot,tier,plvl));
+  });
+  // Fill remaining with random items, biased toward current arena tier
+  for(let i=items.length;i<count;i++){
+    const r=Math.random();
+    let tier=r<0.30?Math.max(0,arena-1):r<0.55?arena:r<0.80?Math.min(arena+1,4):Math.min(arena+2,4);
+    tier=Math.max(0,Math.min(tier,4));
+    const slot=EQUIP_SLOTS[Math.floor(Math.random()*EQUIP_SLOTS.length)];
+    const item=genItem(slot,tier,plvl);
+    // Chance to be an armor set piece
+    if(Math.random()<0.25 && arena>=1) {
+      const setIdx=Math.floor(Math.random()*ARMOR_SETS.length);
+      item.setId=ARMOR_SETS[setIdx].id;
+      item.name=ARMOR_SETS[setIdx].name.split(' ')[0]+' '+item.name;
+    }
+    items.push(item);
   }
   return items;
 }
@@ -1022,12 +1249,46 @@ function genChampion(ai) {
   };
 }
 
+// ── Bounty Boss Generation ──
+function genBountyBoss(idx) {
+  const b = BOUNTY_BOSSES[idx];
+  const dm = DIFFS[difficulty].statMult;
+  const stats = {};
+  STAT_NAMES.forEach(s => { stats[s] = Math.floor((b.stats[s]||5)*dm); });
+  const d = computeDerived(stats, emptyEquip(), b.race);
+  return {
+    name:b.name, race:b.race, level:b.level, stats,
+    hp:Math.floor(d.maxHp*b.hpMult*dm), maxHp:Math.floor(d.maxHp*b.hpMult*dm),
+    stamina:d.maxSta, maxStamina:d.maxSta, mana:d.maxMana, maxMana:d.maxMana,
+    weapon:b.weapon, behavior:b.behavior,
+    abilities:b.abilities.map(a=>({...a,current:0})),
+    statusFx:[], voidArmor:0, isChampion:true, championData:b,
+    equipTier:b.bountyTier, undyingUsed:false, phase2:false,
+    isBounty:true, bountyIdx:idx, bountyArena:b.arena,
+  };
+}
+
+function startBountyCombat(idx) {
+  const enemy = genBountyBoss(idx);
+  combat.bountyArena = enemy.bountyArena;
+  // Use consumables
+  playerConsumables.forEach(c => {
+    if(c.effect==='healPct') { player.hp = Math.min(player.maxHp, player.hp + Math.floor(player.maxHp*c.value)); }
+    else if(c.effect==='staPct') { player.stamina = Math.min(player.maxStamina, player.stamina + Math.floor(player.maxStamina*c.value)); }
+    else if(c.effect==='buff') { player.statusFx.push({id:c.status, turns:c.turns}); }
+    else if(c.effect==='ward') { player.voidArmor += c.value; }
+  });
+  playerConsumables = [];
+  saveGame();
+  startCombat(enemy);
+}
+
 // ═══════════════════════════════════════════════════
 // SAVE SYSTEM
 // ═══════════════════════════════════════════════════
 
 const SAVE_KEY='blade-of-ruin-save';
-const SAVE_VER=1;
+const SAVE_VER=2;
 
 function saveGame() {
   const d={
@@ -1040,6 +1301,7 @@ function saveGame() {
       spellCooldowns:{...player.spellCooldowns}, resUsed:player.resUsed,
     },
     progression:{...progression}, difficulty, nextItemId,
+    consumables:[...playerConsumables],
   };
   localStorage.setItem(SAVE_KEY,JSON.stringify(d));
 }
@@ -1049,6 +1311,16 @@ function loadGame() {
   if(!raw) return false;
   try {
     const d=JSON.parse(raw);
+    // Migrate v1 → v2: 5 arenas → 4, reset champs, add new fields
+    if(d.v===1) {
+      d.v=2;
+      if(d.progression) {
+        if(d.progression.arena>=4) d.progression.arena=3;
+        d.progression.champsDefeated=[];
+        d.progression.bountiesCompleted=[];
+      }
+      d.consumables=[];
+    }
     if(d.v!==SAVE_VER) return false;
     const p=d.player;
     player.name=p.name; player.race=p.race; player.level=p.level; player.xp=p.xp;
@@ -1058,7 +1330,10 @@ function loadGame() {
     player.equipment=p.equipment; player.inventory=p.inventory||[];
     player.spellCooldowns=p.spellCooldowns||{}; player.resUsed=p.resUsed||false;
     player.voidArmor=0; player.statusFx=[];
-    progression=d.progression; difficulty=d.difficulty||0; nextItemId=d.nextItemId||100;
+    progression=d.progression;
+    progression.bountiesCompleted=progression.bountiesCompleted||[];
+    difficulty=d.difficulty||0; nextItemId=d.nextItemId||100;
+    playerConsumables=d.consumables||[];
     return true;
   } catch(e){ return false; }
 }
@@ -1077,7 +1352,7 @@ function importSave(file) {
   r.onload=()=>{
     try{
       const d=JSON.parse(r.result);
-      if(d.v!==SAVE_VER){alert('Invalid save');return;}
+      if(d.v!==SAVE_VER&&d.v!==1){alert('Invalid save');return;}
       localStorage.setItem(SAVE_KEY,r.result);
       if(loadGame()){recalcPlayer();changeState(ST.TOWN);}
     }catch(e){alert('Invalid file');}
@@ -1881,93 +2156,204 @@ function eRest() {
 function useChampAbility(ab) {
   const e = combat.enemy;
   switch(ab.fn) {
-    case 'crushingBlow': {
-      if(combat.distance>1) return false;
+    // ── Gharok the Pit Khan ──
+    case 'warlordCharge': {
+      if(combat.distance>3) return false;
       ab.current=ab.cd;
-      const r=calcDamage(e, player, 2.0, false);
+      const r=calcDamage(e, player, 1.8, false);
       applyResult(player, r, e.name, player.name);
-      addLog('Crushing Blow!');
+      addLog('Warlord Charge!');
+      if(combat.distance>0) combat.distance=Math.max(0,combat.distance-2);
       animAttack(false, true, ()=>endTurn());
       return true;
     }
-    case 'pitBossRoar': {
+    case 'rallyCry': {
       ab.current=ab.cd;
+      e.statusFx.push({id:'enraged',turns:3});
       player.statusFx.push({id:'demoralized',turns:2});
-      addLog('Pit Boss Roar! You are demoralized!');
+      addLog('Rally Cry! The crowd roars!');
       triggerShake(8);
       endTurn();
       return true;
     }
-    case 'moonbeamStrike': {
-      if(combat.distance<2||combat.distance>6) return false;
-      ab.current=ab.cd;
-      const r=calcDamage(e, player, 1.3, true, {base:15,scale:2});
-      applyResult(player, r, e.name, player.name);
-      addLog('Moonbeam Strike!');
-      spawnParts(gameCanvas.width*0.3, gameCanvas.height*0.3, '#aaaaff', 10, 10);
-      endTurn();
-      return true;
-    }
-    case 'paleShield': {
-      ab.current=ab.cd;
-      e.statusFx.push({id:'shielded',turns:2});
-      addLog('Pale Shield!');
-      endTurn();
-      return true;
-    }
-    case 'earthquakeSlam': {
-      if(combat.distance>3) return false;
+    // ── Azrakh, Ash-Crowned Warlord ──
+    case 'furnaceSlam': {
+      if(combat.distance>2) return false;
       ab.current=ab.cd;
       const r=calcDamage(e, player, 1.6, false);
       applyResult(player, r, e.name, player.name);
-      if(Math.random()<0.4) { player.statusFx.push({id:'stunned',turns:1}); addLog('Stunned by earthquake!'); }
-      triggerShake(15);
-      addLog('Earthquake Slam!');
-      endTurn();
-      return true;
-    }
-    case 'soulDrain': {
-      if(combat.distance>2) return false;
-      ab.current=ab.cd;
-      const r=calcDamage(e, player, 1.2, false);
-      applyResult(player, r, e.name, player.name);
-      if(!r.dodged) { const heal=Math.floor(r.dmg*0.5); e.hp=Math.min(e.hp+heal,e.maxHp); addLog(`Soul Drain heals ${heal}!`); }
-      endTurn();
-      return true;
-    }
-    case 'wraithForm': {
-      ab.current=ab.cd;
-      e.statusFx.push({id:'shielded',turns:1});
-      addLog('Wraith Form! Untouchable!');
-      enemyAnimOff.opacity = 0.3;
-      setTimeout(()=>{ enemyAnimOff.opacity=1; }, 1500);
-      endTurn();
-      return true;
-    }
-    case 'infernalDecree': {
-      ab.current=ab.cd;
-      const effs = ['poisoned','burning','weakened','demoralized'];
-      const eff = effs[Math.floor(Math.random()*effs.length)];
-      player.statusFx.push({id:eff, turns:2});
-      addLog(`Infernal Decree: ${eff}!`);
-      endTurn();
-      return true;
-    }
-    case 'hellfireNova': {
-      ab.current=ab.cd;
-      const r=calcDamage(e, player, 2.0, true, {base:40,scale:3});
-      applyResult(player, r, e.name, player.name);
       if(!r.dodged) player.statusFx.push({id:'burning',turns:2});
-      addLog('HELLFIRE NOVA!');
-      triggerShake(20);
-      spawnParts(gameCanvas.width*0.3, gameCanvas.height*0.3, '#ff4400', 20, 15);
+      addLog('Furnace Slam!');
+      triggerShake(12);
+      spawnParts(gameCanvas.width*0.7, gameCanvas.height*0.4, '#ff6600', 15, 10, 'spark');
       endTurn();
       return true;
     }
-    case 'shadowChains': {
+    case 'ashCrownFlare': {
+      ab.current=ab.cd;
+      const r=calcDamage(e, player, 1.4, true, {base:25,scale:2});
+      applyResult(player, r, e.name, player.name);
+      if(!r.dodged) player.statusFx.push({id:'weakened',turns:2});
+      addLog('Ash Crown Flare!');
+      spawnParts(gameCanvas.width*0.5, gameCanvas.height*0.3, '#ff4400', 20, 12);
+      endTurn();
+      return true;
+    }
+    // ── Vaelor, Frostglass Seraph ──
+    case 'seraphWingStrike': {
+      if(combat.distance>4) return false;
+      ab.current=ab.cd;
+      const r=calcDamage(e, player, 1.5, false);
+      applyResult(player, r, e.name, player.name);
+      if(!r.dodged) player.statusFx.push({id:'frozen',turns:1});
+      addLog('Seraph Wing Strike!');
+      spawnParts(gameCanvas.width*0.3, gameCanvas.height*0.3, '#88ccff', 12, 8);
+      endTurn();
+      return true;
+    }
+    case 'glacialJudgment': {
+      ab.current=ab.cd;
+      const r=calcDamage(e, player, 2.0, true, {base:30,scale:2.5});
+      applyResult(player, r, e.name, player.name);
+      if(!r.dodged) player.statusFx.push({id:'frozen',turns:1});
+      addLog('GLACIAL JUDGMENT!');
+      triggerShake(15);
+      spawnParts(gameCanvas.width*0.5, gameCanvas.height*0.3, '#aaddff', 25, 15);
+      triggerScreenFlash('#88ccff', 15);
+      endTurn();
+      return true;
+    }
+    // ── The Pale Nazhkar ──
+    case 'spectralRend': {
+      if(combat.distance>3) return false;
+      ab.current=ab.cd;
+      const r=calcDamage(e, player, 1.8, true, {base:35,scale:3});
+      applyResult(player, r, e.name, player.name);
+      if(!r.dodged) { const heal=Math.floor(r.dmg*0.3); e.hp=Math.min(e.hp+heal,e.maxHp); addLog(`Spectral Rend drains ${heal}!`); }
+      animAttack(false, true, ()=>endTurn());
+      return true;
+    }
+    case 'dreadNova': {
+      ab.current=ab.cd;
+      const r=calcDamage(e, player, 2.2, true, {base:45,scale:3});
+      applyResult(player, r, e.name, player.name);
+      const effs=['burning','poisoned','weakened','demoralized'];
+      player.statusFx.push({id:effs[Math.floor(Math.random()*effs.length)],turns:2});
+      addLog('DREAD NOVA!');
+      triggerShake(20);
+      spawnParts(gameCanvas.width*0.5, gameCanvas.height*0.4, '#aa44ff', 25, 15);
+      triggerScreenFlash('#8844cc', 15);
+      endTurn();
+      return true;
+    }
+    case 'paleChains': {
       ab.current=ab.cd;
       player.statusFx.push({id:'stunned',turns:1});
-      addLog('Shadow Chains bind you!');
+      addLog('Pale Chains bind you!');
+      endTurn();
+      return true;
+    }
+    // ── Bounty Boss Abilities ──
+    case 'rootSlam': {
+      if(combat.distance>2) return false;
+      ab.current=ab.cd;
+      const r=calcDamage(e, player, 1.6, false);
+      applyResult(player, r, e.name, player.name);
+      if(Math.random()<0.4) player.statusFx.push({id:'stunned',turns:1});
+      addLog('Root Slam!');
+      triggerShake(12);
+      endTurn();
+      return true;
+    }
+    case 'barkShield': {
+      ab.current=ab.cd;
+      e.statusFx.push({id:'shielded',turns:2});
+      addLog('Bark Shield! Armored in wood!');
+      endTurn();
+      return true;
+    }
+    case 'trophyStrike': {
+      if(combat.distance>1) return false;
+      ab.current=ab.cd;
+      const r=calcDamage(e, player, 2.0, false);
+      applyResult(player, r, e.name, player.name);
+      addLog('Trophy Strike!');
+      animAttack(false, true, ()=>endTurn());
+      return true;
+    }
+    case 'tidalCrush': {
+      if(combat.distance>3) return false;
+      ab.current=ab.cd;
+      const r=calcDamage(e, player, 1.5, false);
+      applyResult(player, r, e.name, player.name);
+      if(!r.dodged && combat.distance>0) { combat.distance=Math.max(0,combat.distance-1); addLog('Pushed back by tidal force!'); }
+      endTurn();
+      return true;
+    }
+    case 'sanctumWard': {
+      ab.current=ab.cd;
+      e.voidArmor+=30;
+      e.statusFx.push({id:'shielded',turns:2});
+      addLog('Sanctum Ward! Absorbing damage!');
+      endTurn();
+      return true;
+    }
+    case 'mourningStrike': {
+      if(combat.distance>2) return false;
+      ab.current=ab.cd;
+      const r=calcDamage(e, player, 1.3, false);
+      applyResult(player, r, e.name, player.name);
+      addLog('Mourning Strike!');
+      animAttack(false, false, ()=>endTurn());
+      return true;
+    }
+    case 'shatteredVow': {
+      ab.current=ab.cd;
+      player.statusFx.push({id:'weakened',turns:3});
+      player.statusFx.push({id:'demoralized',turns:3});
+      addLog('Shattered Vow! Your resolve crumbles!');
+      endTurn();
+      return true;
+    }
+    case 'magmaEruption': {
+      ab.current=ab.cd;
+      const r=calcDamage(e, player, 1.8, true, {base:30,scale:2});
+      applyResult(player, r, e.name, player.name);
+      if(!r.dodged) player.statusFx.push({id:'burning',turns:3});
+      addLog('Magma Eruption!');
+      triggerShake(15);
+      spawnParts(gameCanvas.width*0.5, gameCanvas.height*0.5, '#ff4400', 20, 12, 'spark');
+      endTurn();
+      return true;
+    }
+    case 'divineJudgment': {
+      ab.current=ab.cd;
+      const r=calcDamage(e, player, 1.8, true, {base:30,scale:2.5});
+      applyResult(player, r, e.name, player.name);
+      addLog('Divine Judgment!');
+      spawnParts(gameCanvas.width*0.3, gameCanvas.height*0.3, '#ffd740', 15, 10);
+      endTurn();
+      return true;
+    }
+    case 'mammothCharge': {
+      ab.current=ab.cd;
+      const r=calcDamage(e, player, 2.0, false);
+      applyResult(player, r, e.name, player.name);
+      if(combat.distance>0) combat.distance=Math.max(0,combat.distance-3);
+      if(Math.random()<0.5) player.statusFx.push({id:'stunned',turns:1});
+      addLog('MAMMOTH CHARGE!');
+      triggerShake(18);
+      animAttack(false, true, ()=>endTurn());
+      return true;
+    }
+    case 'earthshatter': {
+      ab.current=ab.cd;
+      const r=calcDamage(e, player, 1.8, false);
+      applyResult(player, r, e.name, player.name);
+      player.statusFx.push({id:'stunned',turns:1});
+      addLog('EARTHSHATTER!');
+      triggerShake(20);
+      spawnParts(gameCanvas.width*0.5, gameCanvas.height*0.6, '#8a7a6a', 25, 12, 'debris');
       endTurn();
       return true;
     }
@@ -2037,6 +2423,44 @@ function combatVictory() {
   Snd.levelUp();
   animDeath(false, null);
   const e=combat.enemy;
+
+  // Bounty boss rewards
+  if(e.isBounty) {
+    const b = BOUNTY_BOSSES[e.bountyIdx];
+    const goldE = Math.floor(b.bountyGold * DIFFS[difficulty].goldMult);
+    const xpE = Math.floor(b.bountyXp * (player.race==='human'?1.1:1));
+    player.gold += goldE; player.xp += xpE;
+    if(!progression.bountiesCompleted.includes(e.bountyIdx)) {
+      progression.bountiesCompleted.push(e.bountyIdx);
+    }
+    const petals = 3;
+    data.earnPetals(petals);
+    data.submitScore(GAME_ID, player.level*100+progression.arena*500);
+    let leveled=false;
+    while(player.xp>=xpForLv(player.level)&&player.level<30) {
+      player.xp-=xpForLv(player.level); player.level++; leveled=true;
+    }
+    recalcPlayer();
+    // Guaranteed drop from bounty
+    let drop = null;
+    const tier = Math.min(b.bountyTier, 4);
+    const slot = EQUIP_SLOTS[Math.floor(Math.random()*EQUIP_SLOTS.length)];
+    drop = genItem(slot, tier, b.level);
+    // Chance to be a set piece
+    if(Math.random()<0.4) {
+      const setIdx=Math.floor(Math.random()*ARMOR_SETS.length);
+      drop.setId=ARMOR_SETS[setIdx].id;
+      drop.name=ARMOR_SETS[setIdx].name.split(' ')[0]+' '+drop.name;
+    }
+    player.inventory.push(drop);
+    player.stamina = Math.max(player.stamina, Math.floor(player.maxStamina*0.8));
+    player.mana = Math.max(player.mana, Math.floor(player.maxMana*0.8));
+    combat.bountyArena = null;
+    saveGame();
+    showPostCombat(goldE, xpE, petals, leveled, drop, e);
+    return;
+  }
+
   const goldE=Math.floor((e.isChampion?(150+e.level*12):(20+e.level*8))*DIFFS[difficulty].goldMult);
   const xpE=Math.floor((e.isChampion?(50+e.level*5):(15+e.level*3))*(player.race==='human'?1.1:1));
   player.gold+=goldE; player.xp+=xpE;
@@ -2050,12 +2474,20 @@ function combatVictory() {
   }
   recalcPlayer();
 
+  // Refresh shop when advancing arenas
+  const oldArena = progression.arena;
+
   // Generate drop
   let drop = null;
   if (Math.random() < (e.isChampion ? 0.8 : 0.35)) {
     let tier = Math.min(e.isChampion ? Math.min(e.equipTier+1,4) : Math.floor(Math.random()*Math.min(arena()+2,5)), 4);
     const slot = EQUIP_SLOTS[Math.floor(Math.random()*EQUIP_SLOTS.length)];
     drop = genItem(slot, tier, e.level);
+    if(e.isChampion && Math.random()<0.5) {
+      const setIdx=Math.floor(Math.random()*ARMOR_SETS.length);
+      drop.setId=ARMOR_SETS[setIdx].id;
+      drop.name=ARMOR_SETS[setIdx].name.split(' ')[0]+' '+drop.name;
+    }
     player.inventory.push(drop);
   }
 
@@ -2066,12 +2498,14 @@ function combatVictory() {
   progression.fight++;
   if(e.isChampion) {
     progression.champsDefeated.push(ARENAS[progression.arena].name);
-    if(progression.arena>=4 && progression.fight>=4) {
+    if(progression.arena>=3 && progression.fight>=4) {
       saveGame();
       changeState(ST.VICTORY);
       return;
     }
-    if(progression.arena<4) { progression.arena++; progression.fight=0; }
+    if(progression.arena<3) { progression.arena++; progression.fight=0; }
+    // Refresh shop with better items for new arena
+    shopItems = genShopItems(progression.arena, player.level);
   }
 
   saveGame();
@@ -2386,6 +2820,10 @@ function changeState(st) {
     case ST.TRAINING: showOverlay('ov-training'); renderTraining(); break;
     case ST.ARENA_GATE: showOverlay('ov-arena-gate'); renderArenaGate(); break;
     case ST.INVENTORY: showOverlay('ov-inventory'); renderInventory(); break;
+    case ST.BOUNTY_BOARD: showOverlay('ov-bounty-board'); renderBountyBoard(); break;
+    case ST.MOONWELL: showOverlay('ov-moonwell'); renderMoonwell(); break;
+    case ST.SANCTUM: showOverlay('ov-sanctum'); renderSanctum(); break;
+    case ST.ARMORY_VAULT: showOverlay('ov-armory-vault'); renderArmoryVault(); break;
     case ST.LEVEL_UP: showOverlay('ov-levelup'); renderLevelUp(); break;
     case ST.GAME_OVER: showOverlay('ov-gameover'); renderGameOver(); break;
     case ST.VICTORY: showOverlay('ov-victory'); renderVictory(); break;
@@ -2434,7 +2872,7 @@ function renderMenu() {
       const raceName = RACES.find(r=>r.id===p.race)?.name||'Unknown';
       preview.innerHTML = `
         <div style="font-size:clamp(10px,1.2dvh,12px);color:var(--iris-light);margin-bottom:4px">${p.name} · Lv${p.level} ${raceName}</div>
-        <div style="font-size:clamp(8px,1dvh,10px);color:var(--iris-mid)">${ARENAS[prog.arena]?.name||'Arena'} · ${prog.champsDefeated?.length||0}/5 Champions</div>`;
+        <div style="font-size:clamp(8px,1dvh,10px);color:var(--iris-mid)">${ARENAS[prog.arena]?.name||'Arena'} · ${prog.champsDefeated?.length||0}/4 Champions</div>`;
     } catch(e) {}
   }
 }
@@ -2602,12 +3040,13 @@ function renderTown() {
       <div class="bar-wrap bar-xp mt-sm"><div class="bar-fill" style="width:${xpPct}%"></div><div class="bar-text">XP ${player.xp}/${xpNeeded}</div></div>
     </div>
     <div class="preview-wrap">${renderCharacter(player.race, getModelLv(player.equipment), player.equipment.weapon?.weaponType||'sword')}</div>
-    <div class="town-buildings">
-      <div class="town-bldg" data-bldg="shop"><div class="tb-icon">⚒️</div><div class="tb-name">Armorer</div></div>
-      <div class="town-bldg" data-bldg="temple"><div class="tb-icon">🏛️</div><div class="tb-name">Temple</div></div>
-      <div class="town-bldg" data-bldg="tavern"><div class="tb-icon">🍺</div><div class="tb-name">Tavern</div></div>
-      <div class="town-bldg" data-bldg="training"><div class="tb-icon">⚔️</div><div class="tb-name">Training</div></div>
-      <div class="town-bldg" data-bldg="arena"><div class="tb-icon">🏟️</div><div class="tb-name">Arena</div></div>
+    <div class="town-buildings" style="display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(4px,1vw,10px);width:min(420px,92vw);margin:clamp(6px,1dvh,12px) 0">
+      <div class="town-bldg" data-bldg="shop"><div class="tb-icon">⚒️</div><div class="tb-name">Forge & Smith</div></div>
+      <div class="town-bldg" data-bldg="bounty"><div class="tb-icon">⚔️</div><div class="tb-name">Mercenary Hall</div></div>
+      <div class="town-bldg" data-bldg="moonwell"><div class="tb-icon">🧪</div><div class="tb-name">Moonwell Shop</div></div>
+      <div class="town-bldg" data-bldg="arena"><div class="tb-icon">🏰</div><div class="tb-name">Grand Arena</div></div>
+      <div class="town-bldg" data-bldg="sanctum"><div class="tb-icon">⛪</div><div class="tb-name">Sanctum</div></div>
+      <div class="town-bldg" data-bldg="armory"><div class="tb-icon">🛡️</div><div class="tb-name">Armory Vault</div></div>
     </div>
     <div class="btn-row">
       <button class="btn btn-sm" id="town-inv">Inventory</button>
@@ -2616,10 +3055,11 @@ function renderTown() {
     Snd.click();
     const bldg = b.dataset.bldg;
     if(bldg==='shop') changeState(ST.SHOP);
-    else if(bldg==='temple') changeState(ST.TEMPLE);
-    else if(bldg==='tavern') changeState(ST.TAVERN);
-    else if(bldg==='training') changeState(ST.TRAINING);
+    else if(bldg==='bounty') changeState(ST.BOUNTY_BOARD);
+    else if(bldg==='moonwell') changeState(ST.MOONWELL);
     else if(bldg==='arena') changeState(ST.ARENA_GATE);
+    else if(bldg==='sanctum') changeState(ST.SANCTUM);
+    else if(bldg==='armory') changeState(ST.ARMORY_VAULT);
   });
   el.querySelector('#town-inv').onclick = () => { Snd.click(); changeState(ST.INVENTORY); };
 }
@@ -2653,7 +3093,7 @@ function renderShop() {
   const el = document.getElementById('shop-content');
   const disc = computeDerived(player.stats, player.equipment, player.race).discount;
   el.innerHTML = `
-    <div class="section-title">Armorer's Forge</div>
+    <div class="section-title">Forge & Smith</div>
     <div class="info-text text-center mb-sm">Gold: <span class="gold-text">${player.gold}</span> ${disc>0?`(${Math.round(disc*100)}% discount)`:''}  </div>
     <div class="info-text text-center mb-sm" style="font-size:clamp(9px,1dvh,11px);color:var(--iris-mid)">Tap to buy · Long-press to compare</div>
     <div class="item-grid" id="shop-items">${shopItems.map((it,i) => {
@@ -2706,54 +3146,160 @@ function renderShop() {
   el.querySelector('#shop-back').onclick = () => { changeState(ST.TOWN); };
 }
 
-// ── Temple ──
-function renderTemple() {
-  const el = document.getElementById('temple-content');
+// ── Sanctum of Oaths (was Temple) ──
+function renderTemple() { renderSanctum(); }
+function renderSanctum() {
+  const el = document.getElementById('sanctum-content');
   const healCost = 50;
   el.innerHTML = `
-    <div class="section-title">Temple of the Moon</div>
-    <div class="info-text text-center mb-md">A place of rest and reflection</div>
+    <div class="section-title">Sanctum of Oaths</div>
+    <div class="info-text text-center mb-md">Heal, pray, and prepare for battle</div>
     <div class="gp flex-col gap-md w-full">
-      <button class="btn btn-green w-full ${player.hp>=player.maxHp?'btn-disabled':''}" id="temple-heal">Heal to Full (${healCost}g)</button>
-      <button class="btn w-full" id="temple-save">Save Game</button>
-      <button class="btn btn-sm w-full" id="temple-export">Export Save File</button>
+      <button class="btn btn-green w-full ${player.hp>=player.maxHp?'btn-disabled':''}" id="sanctum-heal">Heal to Full (${healCost}g)</button>
+      <button class="btn w-full" id="sanctum-save">Save Game</button>
+      <button class="btn btn-sm w-full" id="sanctum-export">Export Save File</button>
     </div>
-    <div class="btn-row"><button class="btn" id="temple-back">Back to Town</button></div>`;
-  el.querySelector('#temple-heal').onclick = () => {
+    <div class="btn-row"><button class="btn" id="sanctum-back">Back to Town</button></div>`;
+  el.querySelector('#sanctum-heal').onclick = () => {
     if(player.gold<healCost||player.hp>=player.maxHp) return;
     player.gold-=healCost;
     player.hp=player.maxHp; player.stamina=player.maxStamina; player.mana=player.maxMana;
-    Snd.heal(); saveGame(); renderTemple();
+    Snd.heal(); saveGame(); renderSanctum();
   };
-  el.querySelector('#temple-save').onclick = () => { saveGame(); Snd.click(); alert('Game saved!'); };
-  el.querySelector('#temple-export').onclick = () => { exportSave(); Snd.click(); };
-  el.querySelector('#temple-back').onclick = () => changeState(ST.TOWN);
+  el.querySelector('#sanctum-save').onclick = () => { saveGame(); Snd.click(); alert('Game saved!'); };
+  el.querySelector('#sanctum-export').onclick = () => { exportSave(); Snd.click(); };
+  el.querySelector('#sanctum-back').onclick = () => changeState(ST.TOWN);
 }
 
-// ── Tavern ──
-function renderTavern() {
-  const el = document.getElementById('tavern-content');
+// ── Bounty Board (Mercenary Hall) ──
+function renderTavern() { renderBountyBoard(); }
+function renderBountyBoard() {
+  const el = document.getElementById('bounty-board-content');
   el.innerHTML = `
-    <div class="section-title">The Broken Crown</div>
-    <div class="info-text text-center mb-md">Rumors and games of chance</div>
-    <div class="gp flex-col gap-md w-full">
-      <button class="btn btn-gold w-full" id="tav-gamble">Gamble (20g)</button>
-      <div class="info-text text-center" id="tav-result"></div>
+    <div class="section-title">Mercenary Hall — Bounty Board</div>
+    <div class="info-text text-center mb-sm">Hunt dangerous monsters for gold, XP, and rare loot</div>
+    <div class="info-text text-center mb-md" style="color:var(--iris-mid)">Bounties completed: ${progression.bountiesCompleted.length}/8</div>
+    <div class="scrollable">${BOUNTY_BOSSES.map((b,i) => {
+      const done = progression.bountiesCompleted.includes(i);
+      const canHunt = player.level >= Math.max(1, b.level-5);
+      return `<div class="gp w-full mb-sm" style="opacity:${done?'0.5':'1'}">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="color:${done?'#76ff03':'#ff6666'};font-weight:700;font-size:clamp(12px,1.5dvh,15px)">${done?'✓ ':''}${b.name}</span>
+          <span style="color:var(--iris-mid);font-size:clamp(9px,1dvh,11px)">Lv ${b.level}</span>
+        </div>
+        <div class="info-text" style="font-style:italic;color:var(--iris-mid)">${b.desc}</div>
+        <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap">
+          <span class="gold-text" style="font-size:clamp(9px,1dvh,11px)">${b.bountyGold}g</span>
+          <span style="color:#66cc66;font-size:clamp(9px,1dvh,11px)">${b.bountyXp} XP</span>
+          <span style="color:${ITEM_TIERS[b.bountyTier].color};font-size:clamp(9px,1dvh,11px)">${ITEM_TIERS[b.bountyTier].name} Drop</span>
+        </div>
+        ${!done?`<button class="btn btn-sm btn-accent mt-sm ${!canHunt?'btn-disabled':''}" data-bounty="${i}">${canHunt?'Hunt':'Too low level'}</button>`:'<div class="info-text mt-sm" style="color:#76ff03">Bounty Complete</div>'}
+      </div>`;
+    }).join('')}</div>
+    <div class="section-title mt-md">Training</div>
+    <div class="info-text text-center mb-sm">Train a stat permanently (+1). Cost: <span class="gold-text">${50+player.level*10}g</span></div>
+    <div class="gp w-full">${STAT_NAMES.map(s => `
+      <div class="stat-row">
+        <div class="stat-label">${s}</div>
+        <div class="stat-val">${player.stats[s]}</div>
+        <button class="btn btn-sm btn-accent ${player.gold<50+player.level*10?'btn-disabled':''}" data-train="${s}">Train</button>
+      </div>`).join('')}
     </div>
-    <div class="btn-row"><button class="btn" id="tav-back">Back to Town</button></div>`;
-  el.querySelector('#tav-gamble').onclick = () => {
-    if(player.gold<20){el.querySelector('#tav-result').textContent='Not enough gold!';return;}
-    player.gold-=20;
-    const roll = Math.random();
-    let result;
-    if(roll<0.3) { result='You lose. The house always wins.'; }
-    else if(roll<0.7) { const won=20+Math.floor(Math.random()*30); player.gold+=won; result=`You win ${won} gold!`; Snd.gold(); }
-    else { const won=60+Math.floor(Math.random()*40); player.gold+=won; result=`Jackpot! ${won} gold!`; Snd.levelUp(); }
-    saveGame();
-    el.querySelector('#tav-result').textContent=result;
-    el.querySelector('#tav-gamble').textContent=`Gamble (20g) · ${player.gold}g`;
-  };
-  el.querySelector('#tav-back').onclick = () => changeState(ST.TOWN);
+    <div class="btn-row"><button class="btn" id="bounty-back">Back to Town</button></div>`;
+  el.querySelectorAll('[data-bounty]').forEach(b => b.onclick = () => {
+    const idx = parseInt(b.dataset.bounty);
+    startBountyCombat(idx);
+  });
+  const trainCost = 50 + player.level * 10;
+  el.querySelectorAll('[data-train]').forEach(b => b.onclick = () => {
+    if(player.gold<trainCost) return;
+    player.gold-=trainCost;
+    player.stats[b.dataset.train]++;
+    recalcPlayer(); saveGame(); Snd.click();
+    renderBountyBoard();
+  });
+  el.querySelector('#bounty-back').onclick = () => changeState(ST.TOWN);
+}
+
+// ── Moonwell Shop (Consumables) ──
+function renderMoonwell() {
+  const el = document.getElementById('moonwell-content');
+  el.innerHTML = `
+    <div class="section-title">Moonwell Shop</div>
+    <div class="info-text text-center mb-sm">Tonics, oils, and blessings for battle</div>
+    <div class="info-text text-center mb-md">Gold: <span class="gold-text">${player.gold}</span> · Consumables: ${playerConsumables.length}/5</div>
+    <div class="gp w-full flex-col gap-sm">${CONSUMABLES.map((c,i) => {
+      const canBuy = player.gold >= c.price && playerConsumables.length < 5;
+      return `<div style="display:flex;align-items:center;gap:clamp(6px,1vw,10px);padding:clamp(4px,0.6dvh,8px) 0;border-bottom:1px solid rgba(184,169,212,0.06)">
+        <span style="font-size:clamp(18px,2.5dvh,24px)">${c.icon}</span>
+        <div style="flex:1">
+          <div style="font-size:clamp(11px,1.3dvh,13px);font-weight:600;color:var(--moon-glow)">${c.name}</div>
+          <div style="font-size:clamp(9px,1dvh,11px);color:var(--iris-light)">${c.desc}</div>
+        </div>
+        <button class="btn btn-sm btn-gold ${!canBuy?'btn-disabled':''}" data-buy="${i}">${c.price}g</button>
+      </div>`;
+    }).join('')}</div>
+    ${playerConsumables.length>0?`
+      <div class="section-title mt-md">Your Consumables</div>
+      <div class="gp w-full flex-col gap-sm">${playerConsumables.map((c,i) => `
+        <div style="display:flex;align-items:center;gap:8px;padding:4px 0">
+          <span>${c.icon}</span>
+          <span style="flex:1;font-size:clamp(10px,1.2dvh,12px);color:var(--moon-glow)">${c.name}</span>
+          <button class="btn btn-sm btn-danger" data-drop="${i}">Drop</button>
+        </div>`).join('')}
+      </div>`:''}
+    <div class="btn-row"><button class="btn" id="mw-back">Back to Town</button></div>`;
+  el.querySelectorAll('[data-buy]').forEach(b => b.onclick = () => {
+    const c = CONSUMABLES[parseInt(b.dataset.buy)];
+    if(player.gold<c.price||playerConsumables.length>=5) return;
+    player.gold-=c.price;
+    playerConsumables.push({...c});
+    Snd.gold(); saveGame(); renderMoonwell();
+  });
+  el.querySelectorAll('[data-drop]').forEach(b => b.onclick = () => {
+    playerConsumables.splice(parseInt(b.dataset.drop),1);
+    saveGame(); renderMoonwell();
+  });
+  el.querySelector('#mw-back').onclick = () => changeState(ST.TOWN);
+}
+
+// ── Armory Vault ──
+function renderArmoryVault() {
+  const el = document.getElementById('armory-vault-content');
+  // Count equipped set pieces
+  const setCounts = {};
+  EQUIP_SLOTS.forEach(sl => {
+    const it = player.equipment[sl];
+    if(it && it.setId) setCounts[it.setId] = (setCounts[it.setId]||0) + 1;
+  });
+  el.innerHTML = `
+    <div class="section-title">Armory Vault</div>
+    <div class="info-text text-center mb-md">View armor sets and their bonuses</div>
+    <div class="scrollable">${ARMOR_SETS.map(set => {
+      const count = setCounts[set.id] || 0;
+      return `<div class="gp w-full mb-sm">
+        <div style="color:var(--moon-glow);font-weight:700;font-size:clamp(12px,1.5dvh,15px)">${set.name}</div>
+        <div class="info-text" style="color:var(--iris-mid);font-style:italic">${set.desc}</div>
+        <div style="margin-top:4px;font-size:clamp(9px,1dvh,11px);color:${count>0?'#ffd740':'var(--iris-mid)'}">Pieces equipped: ${count}/6</div>
+        ${[2,4,6].map(n => {
+          const b = set.bonuses[n];
+          const active = count >= n;
+          const stats = Object.entries(b).map(([k,v])=>`${k}+${v}`).join(', ');
+          return `<div style="margin-top:2px;font-size:clamp(8px,0.9dvh,10px);color:${active?'#76ff03':'var(--iris-mid)'};opacity:${active?1:0.5}">${active?'✓':'○'} ${n}pc: ${stats}</div>`;
+        }).join('')}
+      </div>`;
+    }).join('')}</div>
+    <div class="section-title mt-md">Equipped Gear</div>
+    <div class="equip-slots">${EQUIP_SLOTS.map(sl => {
+      const it = player.equipment[sl];
+      return `<div class="equip-slot ${it?'filled':''}">
+        <div class="es-label">${SLOT_LABELS[sl]}</div>
+        <div class="es-name" style="color:${it?ITEM_TIERS[it.tier].color:'var(--iris-mid)'};font-size:clamp(8px,0.9dvh,10px)">${it?it.name:'Empty'}</div>
+        ${it&&it.setId?`<div style="font-size:clamp(7px,0.8dvh,8px);color:#ffd740">${ARMOR_SETS.find(s=>s.id===it.setId)?.name||''}</div>`:''}
+      </div>`;
+    }).join('')}</div>
+    <div class="btn-row"><button class="btn" id="av-back">Back to Town</button></div>`;
+  el.querySelector('#av-back').onclick = () => changeState(ST.TOWN);
 }
 
 // ── Training ──
@@ -2938,7 +3484,7 @@ function renderVictory() {
   const el = document.getElementById('victory-content');
   el.innerHTML = `
     <div class="section-title" style="color:#ffd740;font-size:clamp(24px,4dvh,36px)">VICTORY!</div>
-    <div class="info-text text-center mb-md" style="font-size:clamp(12px,1.6dvh,16px)">You have overthrown Anurath the Shadow Lord!</div>
+    <div class="info-text text-center mb-md" style="font-size:clamp(12px,1.6dvh,16px)">You have vanquished The Pale Nazhkar!</div>
     <div class="gp flex-col gap-sm w-full">
       <div class="info-text">Champion: ${player.name}</div>
       <div class="info-text">Level: ${player.level}</div>
@@ -2946,7 +3492,7 @@ function renderVictory() {
       <div class="info-text">Difficulty: ${DIFFS[difficulty].name}</div>
       <div style="border-top:1px solid rgba(184,169,212,0.1);padding-top:6px;margin-top:4px;width:100%">
         <div class="info-text" style="color:var(--iris-mid);font-weight:600;margin-bottom:4px">Champions Vanquished:</div>
-        ${CHAMPIONS.map((c,i) => `<div class="info-text" style="color:${i<(progression.champsDefeated?.length||5)?'#76ff03':'var(--iris-mid)'}">${i<(progression.champsDefeated?.length||5)?'✓':'✗'} ${c.name}</div>`).join('')}
+        ${CHAMPIONS.map((c,i) => `<div class="info-text" style="color:${i<(progression.champsDefeated?.length||4)?'#76ff03':'var(--iris-mid)'}">${i<(progression.champsDefeated?.length||4)?'✓':'✗'} ${c.name}</div>`).join('')}
       </div>
     </div>
     <div class="preview-wrap" style="height:clamp(180px,35dvh,280px)">${renderCharacter(player.race, getModelLv(player.equipment), player.equipment.weapon?.weaponType||'sword')}</div>
@@ -3262,15 +3808,14 @@ function drawBackground() {
 
   // Arena-specific combat backgrounds
   if (gameState === ST.COMBAT) {
-    const ai = progression.arena;
+    const ai = combat.bountyArena != null ? combat.bountyArena : progression.arena;
     const floorY = h * 0.72;
     const accent = ARENAS[ai]?.accent || '#ff4444';
 
-    if (ai === 0) drawSlavePits(ctx, w, h, floorY, now);
-    else if (ai === 1) drawIronGate(ctx, w, h, floorY, now);
-    else if (ai === 2) drawBurningSands(ctx, w, h, floorY, now);
-    else if (ai === 3) drawShadowArena(ctx, w, h, floorY, now);
-    else if (ai === 4) drawDarkThrone(ctx, w, h, floorY, now);
+    if (ai === 0) drawSunfireColosseum(ctx, w, h, floorY, now);
+    else if (ai === 1) drawHornwoodGrandRing(ctx, w, h, floorY, now);
+    else if (ai === 2) drawFrostglassRing(ctx, w, h, floorY, now);
+    else if (ai === 3) drawAshmawCrucible(ctx, w, h, floorY, now);
 
     // Distance bar on floor
     drawDistanceBar(ctx, w, h, floorY, accent);
@@ -3286,7 +3831,8 @@ function drawBackground() {
   if (gameState === ST.TOWN || gameState === ST.SHOP || gameState === ST.TEMPLE ||
       gameState === ST.TAVERN || gameState === ST.TRAINING || gameState === ST.ARENA_GATE ||
       gameState === ST.INVENTORY || gameState === ST.PRE_COMBAT || gameState === ST.POST_COMBAT ||
-      gameState === ST.LEVEL_UP) {
+      gameState === ST.LEVEL_UP || gameState === ST.BOUNTY_BOARD || gameState === ST.MOONWELL ||
+      gameState === ST.SANCTUM || gameState === ST.ARMORY_VAULT) {
     drawTown(ctx, w, h, now);
   }
 }
@@ -3366,472 +3912,487 @@ function drawTorch(ctx, x, y, now, color) {
   ctx.restore();
 }
 
-// ── Slave Pits — red cave, bright torches, chains, glowing cracks ──
-function drawSlavePits(ctx, w, h, floorY, now) {
-  // Rich red cave fill
-  const caveGrad = ctx.createLinearGradient(0, 0, 0, h);
-  caveGrad.addColorStop(0, '#1a0808');
-  caveGrad.addColorStop(0.5, '#2a1210');
-  caveGrad.addColorStop(1, '#1a0a08');
-  ctx.fillStyle = caveGrad;
-  ctx.fillRect(0, 0, w, h);
-  // Rough cave ceiling with depth
-  ctx.fillStyle = '#120606';
-  ctx.beginPath(); ctx.moveTo(0, 0);
-  for (let x = 0; x <= w; x += 20) ctx.lineTo(x, 25 + Math.sin(x*0.03+1)*18 + Math.sin(x*0.07)*10);
-  ctx.lineTo(w, 0); ctx.fill();
-  // Stalactites
-  for (let i = 0; i < 8; i++) {
-    const sx = w * (0.1 + i * 0.1) + Math.sin(i*3.7)*20;
-    const sl = 15 + i%3 * 12;
-    ctx.fillStyle = '#150808';
-    ctx.beginPath(); ctx.moveTo(sx-4, 0); ctx.lineTo(sx, sl); ctx.lineTo(sx+4, 0); ctx.fill();
-  }
-  // Stone floor
-  ctx.fillStyle = '#2a1810';
-  ctx.fillRect(0, floorY, w, h - floorY);
-  drawFloorPerspective(ctx, w, h, floorY, '#3a2018', '#2a1510');
-  // Glowing floor cracks (orange magma beneath)
-  ctx.save();
-  ctx.strokeStyle = '#ff4400'; ctx.lineWidth = 2; ctx.globalAlpha = 0.4;
-  ctx.shadowColor = '#ff4400'; ctx.shadowBlur = 8;
-  for (let i = 0; i < 8; i++) {
-    const sx = w*0.1 + Math.sin(i*2.3)*w*0.35;
-    ctx.beginPath(); ctx.moveTo(sx, floorY+5);
-    ctx.lineTo(sx+20+i*5, floorY+15+i*3); ctx.lineTo(sx+10+i*8, floorY+30+i*2); ctx.stroke();
-  }
-  ctx.shadowBlur = 0;
-  ctx.restore();
-  // Reflective puddles
-  ctx.save();
-  ctx.globalAlpha = 0.25;
-  ctx.fillStyle = '#334466';
-  ctx.beginPath(); ctx.ellipse(w*0.25, floorY+20, 35, 7, 0, 0, Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.ellipse(w*0.7, floorY+25, 25, 5, 0.2, 0, Math.PI*2); ctx.fill();
-  // Puddle highlights
-  ctx.globalAlpha = 0.1;
-  ctx.fillStyle = '#ff6633';
-  ctx.beginPath(); ctx.ellipse(w*0.25, floorY+18, 20, 3, 0, 0, Math.PI*2); ctx.fill();
-  ctx.restore();
-  // Hanging chains with metallic gleam
-  for (let i = 0; i < 4; i++) {
-    const cx = w*0.15 + i*w*0.22;
-    const swing = Math.sin(now*0.8+i*1.5)*4;
-    ctx.save();
-    ctx.strokeStyle = '#888'; ctx.lineWidth = 2.5; ctx.globalAlpha = 0.6;
-    ctx.beginPath();
-    for (let j = 0; j < 10; j++) {
-      const ly = 10+j*14; const lx = cx+swing+Math.sin(j*0.5)*3;
-      if (j===0) ctx.moveTo(lx, ly); else ctx.lineTo(lx, ly);
-    }
-    ctx.stroke();
-    // Metallic gleam on chain links
-    ctx.strokeStyle = '#ccc'; ctx.lineWidth = 1; ctx.globalAlpha = 0.3;
-    for (let j = 0; j < 10; j += 2) {
-      const ly = 10+j*14; const lx = cx+swing+Math.sin(j*0.5)*3;
-      ctx.beginPath(); ctx.arc(lx, ly, 3, 0, Math.PI*2); ctx.stroke();
-    }
-    ctx.restore();
-  }
-  // Torches — bright orange pools
-  drawTorch(ctx, w*0.08, h*0.22, now, '#ff6633');
-  drawTorch(ctx, w*0.92, h*0.22, now, '#ff6633');
-  drawTorch(ctx, w*0.5, h*0.10, now, '#ff5522');
-  drawArenaVignette(ctx, w, h, 'rgba(10,4,4,0.6)');
-}
-
-// ── Iron Gate — stone blocks, iron bars, animated crowd, combat ring ──
-function drawIronGate(ctx, w, h, floorY, now) {
-  // Dark blue stone walls
-  ctx.fillStyle = '#0c0c22';
-  ctx.fillRect(0, 0, w, h);
-  // Visible stone blocks
-  ctx.save();
-  ctx.strokeStyle = '#1a1a40'; ctx.lineWidth = 1; ctx.globalAlpha = 0.6;
-  for (let y = 0; y < floorY; y += 28) {
-    const off = (Math.floor(y/28)%2)*22;
-    for (let x = -off; x < w; x += 44) {
-      ctx.strokeRect(x, y, 44, 28);
-      // Occasional stone detail
-      if ((x+y) % 132 === 0) {
-        ctx.fillStyle = '#0e0e28'; ctx.globalAlpha = 0.3;
-        ctx.fillRect(x+2, y+2, 40, 24);
-        ctx.globalAlpha = 0.6;
-      }
-    }
-  }
-  ctx.restore();
-  // Arena floor — dark stone
-  ctx.fillStyle = '#141428';
-  ctx.fillRect(0, floorY, w, h-floorY);
-  drawFloorPerspective(ctx, w, h, floorY, '#1a1a40', '#141430');
-  // Glowing combat ring on floor
-  ctx.save();
-  ctx.strokeStyle = '#8888cc'; ctx.lineWidth = 2; ctx.globalAlpha = 0.25;
-  ctx.shadowColor = '#8888cc'; ctx.shadowBlur = 15;
-  ctx.beginPath(); ctx.ellipse(w*0.5, floorY + (h-floorY)*0.4, w*0.3, (h-floorY)*0.25, 0, 0, Math.PI*2); ctx.stroke();
-  ctx.shadowBlur = 0;
-  ctx.restore();
-  // Iron bars on sides (thicker, with highlight)
-  ctx.save();
-  for (let i = 0; i < 6; i++) {
-    const bx = 6+i*11;
-    ctx.strokeStyle = '#556'; ctx.lineWidth = 4;
-    ctx.beginPath(); ctx.moveTo(bx, 0); ctx.lineTo(bx, floorY); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(w-bx, 0); ctx.lineTo(w-bx, floorY); ctx.stroke();
-    // Blue highlight on bars
-    ctx.strokeStyle = '#8888cc'; ctx.lineWidth = 1; ctx.globalAlpha = 0.2;
-    ctx.beginPath(); ctx.moveTo(bx+1, 0); ctx.lineTo(bx+1, floorY); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(w-bx+1, 0); ctx.lineTo(w-bx+1, floorY); ctx.stroke();
-    ctx.globalAlpha = 1;
-  }
-  // Cross bars
-  ctx.strokeStyle = '#556'; ctx.lineWidth = 3;
-  [0.3, 0.7].forEach(pct => {
-    ctx.beginPath(); ctx.moveTo(0, floorY*pct); ctx.lineTo(70, floorY*pct); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(w-70, floorY*pct); ctx.lineTo(w, floorY*pct); ctx.stroke();
-  });
-  ctx.restore();
-  // Animated bobbing crowd
-  ctx.save();
-  for (let i = 0; i < 24; i++) {
-    const cx = w*0.08 + i*w*0.037;
-    const bob = Math.sin(now*1.5+i*1.7)*3 + Math.cos(now*2.3+i*0.9)*1.5;
-    ctx.globalAlpha = 0.25 + Math.sin(i*2.1)*0.08;
-    ctx.fillStyle = '#181840';
-    // Head
-    ctx.beginPath(); ctx.arc(cx, 18+bob, 7, 0, Math.PI*2); ctx.fill();
-    // Body
-    ctx.fillRect(cx-5, 24+bob, 10, 14);
-    // Occasional arm wave
-    if (i % 4 === Math.floor(now*2) % 4) {
-      ctx.fillRect(cx+5, 22+bob, 4, 8);
-    }
-  }
-  ctx.restore();
-  // Torch sconces — blue-white
-  drawTorch(ctx, w*0.15, h*0.3, now, '#8888cc');
-  drawTorch(ctx, w*0.85, h*0.3, now, '#8888cc');
-  drawTorch(ctx, w*0.5, h*0.08, now, '#9999dd');
-  drawArenaVignette(ctx, w, h, 'rgba(5,5,20,0.5)');
-}
-
-// ── Burning Sands — blazing sun, heat shimmer, dunes, pillars ──
-function drawBurningSands(ctx, w, h, floorY, now) {
-  // Sky gradient — richer
+// ── Sunfire Colosseum — golden sunset sky, white stone terraces, columns, red banners, sand floor ──
+function drawSunfireColosseum(ctx, w, h, floorY, now) {
+  // Golden sunset sky
   const skyGrad = ctx.createLinearGradient(0, 0, 0, floorY);
-  skyGrad.addColorStop(0, '#1a1200');
-  skyGrad.addColorStop(0.3, '#2e2008');
-  skyGrad.addColorStop(0.7, '#3e2e10');
-  skyGrad.addColorStop(1, '#4a3818');
+  skyGrad.addColorStop(0, '#1a1408');
+  skyGrad.addColorStop(0.25, '#2e2210');
+  skyGrad.addColorStop(0.5, '#4a3818');
+  skyGrad.addColorStop(0.75, '#6a4e20');
+  skyGrad.addColorStop(1, '#7a5a28');
   ctx.fillStyle = skyGrad;
   ctx.fillRect(0, 0, w, floorY);
-  // Blazing sun with 3-layer glow
-  const sunX = w*0.8, sunY = h*0.12;
+  // Sun with layered glow
+  const sunX = w*0.75, sunY = h*0.08;
   ctx.save();
-  // Outer glow
-  const outerSun = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, 100);
-  outerSun.addColorStop(0, 'rgba(255,200,80,0.15)');
-  outerSun.addColorStop(1, 'transparent');
-  ctx.fillStyle = outerSun;
-  ctx.beginPath(); ctx.arc(sunX, sunY, 100, 0, Math.PI*2); ctx.fill();
-  // Mid glow
-  const midSun = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, 50);
-  midSun.addColorStop(0, 'rgba(255,180,60,0.5)');
-  midSun.addColorStop(1, 'transparent');
-  ctx.fillStyle = midSun;
-  ctx.beginPath(); ctx.arc(sunX, sunY, 50, 0, Math.PI*2); ctx.fill();
-  // Bright core
-  ctx.shadowColor = '#ffcc44'; ctx.shadowBlur = 30;
-  ctx.fillStyle = 'rgba(255,220,100,0.9)';
-  ctx.beginPath(); ctx.arc(sunX, sunY, 12, 0, Math.PI*2); ctx.fill();
+  const outerGlow = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, 120);
+  outerGlow.addColorStop(0, 'rgba(255,215,100,0.2)');
+  outerGlow.addColorStop(1, 'transparent');
+  ctx.fillStyle = outerGlow; ctx.beginPath(); ctx.arc(sunX, sunY, 120, 0, Math.PI*2); ctx.fill();
+  const midGlow = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, 50);
+  midGlow.addColorStop(0, 'rgba(255,200,80,0.5)');
+  midGlow.addColorStop(1, 'transparent');
+  ctx.fillStyle = midGlow; ctx.beginPath(); ctx.arc(sunX, sunY, 50, 0, Math.PI*2); ctx.fill();
+  ctx.shadowColor = '#ffd740'; ctx.shadowBlur = 25;
+  ctx.fillStyle = 'rgba(255,230,130,0.9)';
+  ctx.beginPath(); ctx.arc(sunX, sunY, 14, 0, Math.PI*2); ctx.fill();
   ctx.shadowBlur = 0;
   ctx.restore();
-  // Heat shimmer (visible)
+  // White stone terraces (tiered seating behind fighters)
   ctx.save();
-  ctx.globalAlpha = 0.2;
-  ctx.fillStyle = '#ffcc66';
-  for (let i = 0; i < 8; i++) {
-    const sy = floorY - 30 + Math.sin(now*2+i*1.3)*12;
-    ctx.fillRect(0, sy, w, 2);
+  const terraceBase = floorY * 0.35;
+  for (let t = 0; t < 4; t++) {
+    const ty = terraceBase + t * 22;
+    const inset = t * 12;
+    ctx.fillStyle = `rgba(200,190,170,${0.12 - t*0.02})`;
+    ctx.fillRect(inset, ty, w - inset*2, 18);
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1;
+    ctx.strokeRect(inset, ty, w - inset*2, 18);
   }
   ctx.restore();
-  // Dune-textured sand floor
-  const sandGrad = ctx.createLinearGradient(0, floorY, 0, h);
-  sandGrad.addColorStop(0, '#4a3e20');
-  sandGrad.addColorStop(0.5, '#3a2e18');
-  sandGrad.addColorStop(1, '#2a2010');
-  ctx.fillStyle = sandGrad;
-  ctx.fillRect(0, floorY, w, h-floorY);
-  // Sand dune undulations
+  // Crowd silhouettes on terraces
   ctx.save();
-  ctx.fillStyle = '#4a3e2a'; ctx.globalAlpha = 0.3;
-  for (let i = 0; i < 3; i++) {
-    ctx.beginPath(); ctx.moveTo(0, floorY + 10 + i*15);
-    for (let x = 0; x <= w; x += 20) ctx.lineTo(x, floorY + 10 + i*15 + Math.sin(x*0.01+i*2)*8);
-    ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.fill();
+  for (let i = 0; i < 28; i++) {
+    const cx = w*0.06 + i*w*0.033;
+    const row = i % 3;
+    const cy = terraceBase + row*22 + 5;
+    const bob = Math.sin(now*1.8+i*1.3)*2;
+    ctx.globalAlpha = 0.2 + row*0.03;
+    ctx.fillStyle = '#2a2418';
+    ctx.beginPath(); ctx.arc(cx, cy+bob, 5, 0, Math.PI*2); ctx.fill();
+    ctx.fillRect(cx-3, cy+bob+4, 6, 10);
+    if (i%5 === Math.floor(now*2)%5) ctx.fillRect(cx+3, cy+bob+2, 4, 6);
   }
   ctx.restore();
-  drawFloorPerspective(ctx, w, h, floorY, '#5a4e30', '#3a2e18');
-  // Fully rendered pillars with shadows
-  const pillars = [[w*0.12, h*0.18, floorY], [w*0.88, h*0.13, floorY]];
-  pillars.forEach(([px, py, fy], idx) => {
+  // Stone columns on sides
+  const colPositions = [w*0.06, w*0.16, w*0.84, w*0.94];
+  colPositions.forEach((cx, idx) => {
     ctx.save();
-    // Pillar shadow
-    ctx.globalAlpha = 0.2;
-    ctx.fillStyle = '#000';
-    ctx.beginPath();
-    ctx.moveTo(px+10, fy); ctx.lineTo(px+60, fy+30); ctx.lineTo(px+50, fy+35); ctx.lineTo(px+8, fy+5);
-    ctx.fill();
-    // Pillar body
-    ctx.globalAlpha = 1;
-    const pilGrad = ctx.createLinearGradient(px-10, 0, px+10, 0);
-    pilGrad.addColorStop(0, '#2a2215');
-    pilGrad.addColorStop(0.5, '#3a3225');
-    pilGrad.addColorStop(1, '#2a2215');
-    ctx.fillStyle = pilGrad;
-    ctx.fillRect(px-10, py, 20, fy-py);
-    // Capital and base
-    ctx.fillStyle = '#3a3020';
-    ctx.fillRect(px-14, py, 28, 8);
-    ctx.fillRect(px-14, fy-4, 28, 8);
-    // Cracks on pillar
-    if (idx === 0) {
-      ctx.strokeStyle = '#1a1508'; ctx.lineWidth = 1; ctx.globalAlpha = 0.5;
-      ctx.beginPath(); ctx.moveTo(px-3, py+30); ctx.lineTo(px+5, py+60); ctx.lineTo(px-2, py+80); ctx.stroke();
-    }
+    const colGrad = ctx.createLinearGradient(cx-8, 0, cx+8, 0);
+    colGrad.addColorStop(0, '#c0b8a0');
+    colGrad.addColorStop(0.3, '#e0d8c0');
+    colGrad.addColorStop(0.7, '#d0c8b0');
+    colGrad.addColorStop(1, '#b0a890');
+    ctx.globalAlpha = 0.25;
+    ctx.fillStyle = colGrad;
+    ctx.fillRect(cx-8, 0, 16, floorY);
+    // Capital (ornate top)
+    ctx.fillStyle = '#d4c8a8'; ctx.globalAlpha = 0.3;
+    ctx.fillRect(cx-12, 0, 24, 10);
+    ctx.fillRect(cx-10, 10, 20, 6);
+    // Base
+    ctx.fillRect(cx-12, floorY-8, 24, 8);
+    // Vertical fluting
+    ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(cx-3, 16); ctx.lineTo(cx-3, floorY-8); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx+3, 16); ctx.lineTo(cx+3, floorY-8); ctx.stroke();
     ctx.restore();
   });
-  // Broken stones
-  ctx.save(); ctx.globalAlpha = 0.5; ctx.fillStyle = '#2a2215';
-  ctx.fillRect(w*0.14, floorY+5, 14, 10);
-  ctx.fillRect(w*0.16, floorY+10, 10, 7);
-  ctx.fillRect(w*0.13, floorY+8, 6, 6);
-  ctx.restore();
-  // Blowing sandstorm particles
+  // Red banners hanging between columns
+  const bannerPairs = [[w*0.11, w*0.06], [w*0.89, w*0.94]];
+  bannerPairs.forEach(([bx]) => {
+    ctx.save();
+    const sway = Math.sin(now*0.7)*3;
+    ctx.globalAlpha = 0.35;
+    ctx.fillStyle = '#cc2222';
+    ctx.beginPath();
+    ctx.moveTo(bx-8, 12); ctx.lineTo(bx+8+sway, 12);
+    ctx.lineTo(bx+6+sway, floorY*0.55); ctx.lineTo(bx, floorY*0.6);
+    ctx.lineTo(bx-6, floorY*0.55); ctx.closePath(); ctx.fill();
+    // Gold trim on banner
+    ctx.strokeStyle = '#ffd740'; ctx.lineWidth = 1; ctx.globalAlpha = 0.2;
+    ctx.beginPath(); ctx.moveTo(bx-7, 14); ctx.lineTo(bx+7+sway*0.5, 14); ctx.stroke();
+    ctx.restore();
+  });
+  // Sand floor
+  const sandGrad = ctx.createLinearGradient(0, floorY, 0, h);
+  sandGrad.addColorStop(0, '#c8a868');
+  sandGrad.addColorStop(0.3, '#b89858');
+  sandGrad.addColorStop(1, '#a08848');
+  ctx.fillStyle = sandGrad; ctx.globalAlpha = 0.35;
+  ctx.fillRect(0, floorY, w, h-floorY);
+  ctx.globalAlpha = 1;
+  drawFloorPerspective(ctx, w, h, floorY, '#9a8240', '#7a6830');
+  // Dust motes in sunlight
   ctx.save();
-  for (let i = 0; i < 15; i++) {
-    const sx = (now*40*(i+1)*0.7) % (w+100) - 50;
-    const sy = floorY - 60 + Math.sin(now+i*2.1)*40;
-    ctx.globalAlpha = 0.15 + Math.sin(i*1.3)*0.08;
-    ctx.fillStyle = '#c8a060';
-    ctx.beginPath(); ctx.arc(sx, sy, 1.5+i%2, 0, Math.PI*2); ctx.fill();
+  for (let i = 0; i < 12; i++) {
+    const dx = (now*15*(i+1)*0.5) % (w+40) - 20;
+    const dy = floorY*0.3 + Math.sin(now*0.5+i*2.1)*floorY*0.3;
+    ctx.globalAlpha = 0.15 + Math.sin(now+i)*0.1;
+    ctx.fillStyle = '#ffd740';
+    ctx.beginPath(); ctx.arc(dx, dy, 1+i%2*0.5, 0, Math.PI*2); ctx.fill();
   }
   ctx.restore();
-  drawArenaVignette(ctx, w, h, 'rgba(15,10,0,0.5)');
+  drawTorch(ctx, w*0.22, h*0.15, now, '#ffd740');
+  drawTorch(ctx, w*0.78, h*0.15, now, '#ffd740');
+  drawArenaVignette(ctx, w, h, 'rgba(15,10,4,0.4)');
 }
 
-// ── Shadow Arena — vivid purple mist, soul wisps, obsidian, rune circles ──
-function drawShadowArena(ctx, w, h, floorY, now) {
-  ctx.fillStyle = '#060514';
+// ── Hornwood Grand Ring — timber walls, bronze fittings, torchlit horse-lord arena ──
+function drawHornwoodGrandRing(ctx, w, h, floorY, now) {
+  // Dark amber background
+  const bgGrad = ctx.createLinearGradient(0, 0, 0, h);
+  bgGrad.addColorStop(0, '#1a1008');
+  bgGrad.addColorStop(0.4, '#2a1c0e');
+  bgGrad.addColorStop(1, '#1a1208');
+  ctx.fillStyle = bgGrad;
   ctx.fillRect(0, 0, w, h);
-  // Reflective obsidian floor
+  // Timber wall planks
+  ctx.save();
+  ctx.globalAlpha = 0.3;
+  for (let i = 0; i < 12; i++) {
+    const px = i * (w/12);
+    const shade = 0.1 + (i%3)*0.03;
+    ctx.fillStyle = `rgba(140,100,50,${shade})`;
+    ctx.fillRect(px, 0, w/12 - 1, floorY);
+    // Wood grain lines
+    ctx.strokeStyle = 'rgba(90,60,25,0.2)'; ctx.lineWidth = 1;
+    for (let g = 0; g < 3; g++) {
+      const gy = floorY * (0.2 + g*0.3);
+      ctx.beginPath();
+      ctx.moveTo(px+2, gy);
+      ctx.quadraticCurveTo(px+w/24, gy + Math.sin(i+g)*8, px+w/12-2, gy+3);
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+  // Horizontal timber beams
+  ctx.save();
+  ctx.fillStyle = 'rgba(100,70,30,0.3)';
+  ctx.fillRect(0, floorY*0.3, w, 8);
+  ctx.fillRect(0, floorY*0.65, w, 8);
+  ctx.strokeStyle = 'rgba(60,40,15,0.2)'; ctx.lineWidth = 1;
+  ctx.strokeRect(0, floorY*0.3, w, 8);
+  ctx.strokeRect(0, floorY*0.65, w, 8);
+  ctx.restore();
+  // Bronze corner fittings / medallions
+  const medallionPos = [[w*0.12, floorY*0.3+4], [w*0.88, floorY*0.3+4], [w*0.12, floorY*0.65+4], [w*0.88, floorY*0.65+4]];
+  medallionPos.forEach(([mx, my]) => {
+    ctx.save();
+    ctx.globalAlpha = 0.35;
+    ctx.fillStyle = '#cc8844';
+    ctx.beginPath(); ctx.arc(mx, my, 6, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = '#aa6622'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(mx, my, 6, 0, Math.PI*2); ctx.stroke();
+    ctx.fillStyle = '#dda855'; ctx.globalAlpha = 0.2;
+    ctx.beginPath(); ctx.arc(mx-1, my-1, 3, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+  });
+  // Carved beast posts (horse-lord totems) on either side
+  const posts = [w*0.05, w*0.95];
+  posts.forEach((px, idx) => {
+    ctx.save();
+    ctx.globalAlpha = 0.4;
+    const postGrad = ctx.createLinearGradient(px-6, 0, px+6, 0);
+    postGrad.addColorStop(0, '#5a3a18');
+    postGrad.addColorStop(0.5, '#7a5228');
+    postGrad.addColorStop(1, '#5a3a18');
+    ctx.fillStyle = postGrad;
+    ctx.fillRect(px-6, floorY*0.15, 12, floorY*0.85);
+    // Horse head carving at top
+    ctx.fillStyle = '#8a6230';
+    ctx.beginPath();
+    const hx = px, hy = floorY*0.15;
+    ctx.moveTo(hx-8, hy); ctx.lineTo(hx, hy-18); ctx.lineTo(hx+8, hy);
+    ctx.closePath(); ctx.fill();
+    // Eye detail
+    ctx.fillStyle = '#cc8844'; ctx.globalAlpha = 0.5;
+    ctx.beginPath(); ctx.arc(hx, hy-6, 2, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+  });
+  // Dirt/packed-earth floor
   const floorGrad = ctx.createLinearGradient(0, floorY, 0, h);
-  floorGrad.addColorStop(0, '#0c0a20');
-  floorGrad.addColorStop(0.5, '#080618');
-  floorGrad.addColorStop(1, '#050510');
+  floorGrad.addColorStop(0, '#4a3818');
+  floorGrad.addColorStop(0.5, '#3a2e14');
+  floorGrad.addColorStop(1, '#2a2010');
   ctx.fillStyle = floorGrad;
   ctx.fillRect(0, floorY, w, h-floorY);
-  // Obsidian reflection highlights
+  drawFloorPerspective(ctx, w, h, floorY, '#5a4420', '#3a2a12');
+  // Straw / hay scatter on floor
   ctx.save();
-  ctx.globalAlpha = 0.08;
-  ctx.fillStyle = '#8844cc';
-  for (let i = 0; i < 6; i++) {
-    const rx = w*(0.1+i*0.15);
-    ctx.beginPath(); ctx.ellipse(rx, floorY+15, 30, 5, 0, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = '#aa8840'; ctx.lineWidth = 1;
+  for (let i = 0; i < 20; i++) {
+    const sx = w*0.08 + Math.sin(i*3.7)*w*0.4 + i*w*0.04;
+    const sy = floorY + 5 + (i%4)*8;
+    ctx.globalAlpha = 0.15;
+    ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(sx+6+i%3*3, sy-3); ctx.stroke();
   }
   ctx.restore();
-  drawFloorPerspective(ctx, w, h, floorY, '#1a1035', '#0a0818');
-  // Rotating rune circles on floor
+  // Animated crowd — rougher, rowdier
   ctx.save();
-  ctx.strokeStyle = '#8844cc'; ctx.lineWidth = 1; ctx.globalAlpha = 0.2;
-  ctx.translate(w*0.5, floorY + (h-floorY)*0.4);
-  ctx.rotate(now*0.3);
-  ctx.beginPath(); ctx.arc(0, 0, Math.min(w*0.25, 100), 0, Math.PI*2); ctx.stroke();
-  // Inner rune circle
-  ctx.rotate(-now*0.5);
-  ctx.beginPath(); ctx.arc(0, 0, Math.min(w*0.15, 60), 0, Math.PI*2); ctx.stroke();
-  // Rune marks
-  for (let i = 0; i < 8; i++) {
-    const a = i*Math.PI/4;
-    const r = Math.min(w*0.2, 80);
-    ctx.beginPath(); ctx.moveTo(Math.cos(a)*r*0.8, Math.sin(a)*r*0.8);
-    ctx.lineTo(Math.cos(a)*r, Math.sin(a)*r); ctx.stroke();
-  }
-  ctx.restore();
-  // Vivid purple mist (much higher alpha)
-  for (let i = 0; i < 7; i++) {
-    const mx = w*(0.08+i*0.14) + Math.sin(now*0.5+i*2)*40;
-    const my = floorY - 20 + Math.sin(now*0.3+i)*20;
-    const mistGrad = ctx.createRadialGradient(mx, my, 5, mx, my, 80+i*12);
-    mistGrad.addColorStop(0, 'rgba(120,60,200,0.35)');
-    mistGrad.addColorStop(0.5, 'rgba(100,40,180,0.15)');
-    mistGrad.addColorStop(1, 'transparent');
-    ctx.fillStyle = mistGrad;
-    ctx.fillRect(mx-90, my-90, 180, 180);
-  }
-  // Spectral audience (higher visibility)
-  ctx.save();
-  for (let i = 0; i < 18; i++) {
-    const gx = w*0.06 + i*w*0.05;
-    const gy = 22 + Math.sin(i*1.1+now*0.8)*5;
-    const bob = Math.sin(now*1.2+i*0.7)*3;
-    ctx.globalAlpha = 0.3;
-    ctx.fillStyle = '#8844cc';
-    // Ghost head
-    ctx.beginPath(); ctx.arc(gx, gy+bob, 6, 0, Math.PI*2); ctx.fill();
-    // Ghost body fading down
+  for (let i = 0; i < 20; i++) {
+    const cx = w*0.1 + i*w*0.04;
+    const bob = Math.sin(now*2+i*1.2)*4 + Math.cos(now*3+i*0.8)*2;
     ctx.globalAlpha = 0.2;
-    ctx.fillRect(gx-4, gy+bob+5, 8, 14);
-    // Eyes
-    ctx.globalAlpha = 0.5;
-    ctx.fillStyle = '#cc88ff';
-    ctx.beginPath(); ctx.arc(gx-2, gy+bob-1, 1, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(gx+2, gy+bob-1, 1, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#2a1c0e';
+    ctx.beginPath(); ctx.arc(cx, 20+bob, 6, 0, Math.PI*2); ctx.fill();
+    ctx.fillRect(cx-4, 25+bob, 8, 12);
+    // Some raising fists
+    if (i%3 === Math.floor(now*2.5)%3) {
+      ctx.fillRect(cx-1, 13+bob, 3, 8);
+    }
   }
   ctx.restore();
-  // Soul wisps with 3-layer glow trails
-  for (let i = 0; i < 8; i++) {
-    const wx = w*(0.12+i*0.11) + Math.sin(now*1.5+i*2.5)*25;
-    const wy = h*0.25 + Math.cos(now*0.8+i*1.8)*50;
-    ctx.save();
-    // Outer glow
-    const wOuter = ctx.createRadialGradient(wx, wy, 0, wx, wy, 20);
-    wOuter.addColorStop(0, 'rgba(140,80,220,0.12)');
-    wOuter.addColorStop(1, 'transparent');
-    ctx.fillStyle = wOuter;
-    ctx.beginPath(); ctx.arc(wx, wy, 20, 0, Math.PI*2); ctx.fill();
-    // Mid glow
-    ctx.globalAlpha = 0.5;
-    const wMid = ctx.createRadialGradient(wx, wy, 0, wx, wy, 10);
-    wMid.addColorStop(0, 'rgba(160,100,240,0.5)');
-    wMid.addColorStop(1, 'transparent');
-    ctx.fillStyle = wMid;
-    ctx.beginPath(); ctx.arc(wx, wy, 10, 0, Math.PI*2); ctx.fill();
-    // Bright core
-    ctx.shadowColor = '#aa66ff'; ctx.shadowBlur = 8;
-    ctx.fillStyle = 'rgba(200,150,255,0.8)';
-    ctx.beginPath(); ctx.arc(wx, wy, 3, 0, Math.PI*2); ctx.fill();
-    ctx.shadowBlur = 0;
-    // Trail
-    ctx.strokeStyle = 'rgba(140,80,220,0.2)'; ctx.lineWidth = 2;
-    const prevX = wx - Math.cos(now*1.5+i*2.5)*8;
-    const prevY = wy + Math.sin(now*0.8+i*1.8)*8;
-    ctx.beginPath(); ctx.moveTo(wx, wy); ctx.lineTo(prevX, prevY); ctx.stroke();
-    ctx.restore();
-  }
-  drawArenaVignette(ctx, w, h, 'rgba(5,3,15,0.6)');
+  // Torches with warm amber light
+  drawTorch(ctx, w*0.2, h*0.22, now, '#cc8844');
+  drawTorch(ctx, w*0.8, h*0.22, now, '#cc8844');
+  drawTorch(ctx, w*0.4, h*0.12, now, '#bb7733');
+  drawTorch(ctx, w*0.6, h*0.12, now, '#bb7733');
+  drawArenaVignette(ctx, w, h, 'rgba(12,8,2,0.5)');
 }
 
-// ── Dark Throne — bright lava, detailed throne, large embers ──
-function drawDarkThrone(ctx, w, h, floorY, now) {
+// ── Frostglass Ring — blue-white stone, moonlit, ice crystals, snowfall, aurora ──
+function drawFrostglassRing(ctx, w, h, floorY, now) {
+  // Deep midnight blue sky
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, floorY);
+  skyGrad.addColorStop(0, '#040810');
+  skyGrad.addColorStop(0.4, '#081018');
+  skyGrad.addColorStop(0.7, '#0c1822');
+  skyGrad.addColorStop(1, '#102030');
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0, 0, w, floorY);
+  // Moon with glow
+  const moonX = w*0.25, moonY = h*0.09;
+  ctx.save();
+  const moonOuter = ctx.createRadialGradient(moonX, moonY, 0, moonX, moonY, 80);
+  moonOuter.addColorStop(0, 'rgba(180,210,255,0.12)');
+  moonOuter.addColorStop(1, 'transparent');
+  ctx.fillStyle = moonOuter; ctx.beginPath(); ctx.arc(moonX, moonY, 80, 0, Math.PI*2); ctx.fill();
+  ctx.shadowColor = '#88ccff'; ctx.shadowBlur = 20;
+  ctx.fillStyle = 'rgba(200,220,255,0.8)';
+  ctx.beginPath(); ctx.arc(moonX, moonY, 10, 0, Math.PI*2); ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.restore();
+  // Stars
+  ctx.save();
+  for (let i = 0; i < 25; i++) {
+    const sx = (i*137.5+50) % w;
+    const sy = (i*73.7+10) % (floorY*0.6);
+    ctx.globalAlpha = 0.3 + Math.sin(now*2+i)*0.2;
+    ctx.fillStyle = '#aaccff';
+    ctx.beginPath(); ctx.arc(sx, sy, 0.8+i%2*0.5, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
+  // Aurora borealis effect
+  ctx.save();
+  for (let i = 0; i < 5; i++) {
+    const ax = w*(0.1+i*0.2) + Math.sin(now*0.3+i*1.5)*30;
+    const ay = floorY*0.15 + Math.sin(now*0.2+i)*15;
+    const aGrad = ctx.createRadialGradient(ax, ay, 5, ax, ay, 60+i*10);
+    const hue = i%2 === 0 ? 'rgba(100,200,255,' : 'rgba(100,255,180,';
+    aGrad.addColorStop(0, hue + '0.08)');
+    aGrad.addColorStop(1, 'transparent');
+    ctx.fillStyle = aGrad;
+    ctx.beginPath(); ctx.ellipse(ax, ay, 60+i*10, 20, 0.3, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
+  // Ice-stone terraces
+  ctx.save();
+  for (let t = 0; t < 3; t++) {
+    const ty = floorY*0.4 + t*20;
+    ctx.fillStyle = `rgba(140,180,220,${0.08 - t*0.015})`;
+    ctx.fillRect(0, ty, w, 16);
+    ctx.strokeStyle = 'rgba(136,204,255,0.06)'; ctx.lineWidth = 1;
+    ctx.strokeRect(0, ty, w, 16);
+  }
+  ctx.restore();
+  // Ice crystal pillars on sides
+  const icePos = [w*0.08, w*0.18, w*0.82, w*0.92];
+  icePos.forEach(ix => {
+    ctx.save();
+    ctx.globalAlpha = 0.2;
+    const iceGrad = ctx.createLinearGradient(ix-6, 0, ix+6, 0);
+    iceGrad.addColorStop(0, '#6090b0');
+    iceGrad.addColorStop(0.5, '#88ccff');
+    iceGrad.addColorStop(1, '#6090b0');
+    ctx.fillStyle = iceGrad;
+    ctx.fillRect(ix-6, floorY*0.2, 12, floorY*0.8);
+    // Crystalline facets
+    ctx.strokeStyle = 'rgba(136,204,255,0.15)'; ctx.lineWidth = 1;
+    for (let f = 0; f < 4; f++) {
+      const fy = floorY*(0.25+f*0.18);
+      ctx.beginPath(); ctx.moveTo(ix-6, fy); ctx.lineTo(ix, fy-5); ctx.lineTo(ix+6, fy); ctx.stroke();
+    }
+    // Top crystal point
+    ctx.fillStyle = '#88ccff'; ctx.globalAlpha = 0.25;
+    ctx.beginPath();
+    ctx.moveTo(ix-8, floorY*0.2); ctx.lineTo(ix, floorY*0.2-15); ctx.lineTo(ix+8, floorY*0.2);
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+  });
+  // Ice floor
+  const iceFloor = ctx.createLinearGradient(0, floorY, 0, h);
+  iceFloor.addColorStop(0, '#1a2a3a');
+  iceFloor.addColorStop(0.5, '#142230');
+  iceFloor.addColorStop(1, '#0c1820');
+  ctx.fillStyle = iceFloor;
+  ctx.fillRect(0, floorY, w, h-floorY);
+  drawFloorPerspective(ctx, w, h, floorY, '#2a3a4a', '#1a2838');
+  // Reflective ice sheen on floor
+  ctx.save();
+  ctx.globalAlpha = 0.06;
+  ctx.fillStyle = '#88ccff';
+  for (let i = 0; i < 5; i++) {
+    const rx = w*(0.1+i*0.2);
+    ctx.beginPath(); ctx.ellipse(rx, floorY+12, 40, 6, 0, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
+  // Snowfall particles
+  ctx.save();
+  for (let i = 0; i < 30; i++) {
+    const sx = (i*w/30 + now*12*(1+i%3)) % (w+20) - 10;
+    const sy = (now*25*(1+i%4*0.3) + i*47) % (h+20) - 10;
+    ctx.globalAlpha = 0.25 + Math.sin(i*2.3)*0.1;
+    ctx.fillStyle = '#ddeeff';
+    ctx.beginPath(); ctx.arc(sx, sy, 1+i%3*0.5, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
+  // Frost breath effect near floor
+  ctx.save();
+  for (let i = 0; i < 4; i++) {
+    const fx = w*(0.15+i*0.25) + Math.sin(now*0.4+i)*20;
+    const fy = floorY - 10;
+    const fGrad = ctx.createRadialGradient(fx, fy, 2, fx, fy, 40);
+    fGrad.addColorStop(0, 'rgba(180,220,255,0.1)');
+    fGrad.addColorStop(1, 'transparent');
+    ctx.fillStyle = fGrad;
+    ctx.beginPath(); ctx.ellipse(fx, fy, 40, 15, 0, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
+  drawArenaVignette(ctx, w, h, 'rgba(2,6,12,0.5)');
+}
+
+// ── Ashmaw Crucible — volcanic obsidian, lava cracks, embers, black iron gates ──
+function drawAshmawCrucible(ctx, w, h, floorY, now) {
   // Deep volcanic background
   const bgGrad = ctx.createLinearGradient(0, 0, 0, h);
   bgGrad.addColorStop(0, '#1a0800');
-  bgGrad.addColorStop(0.5, '#200c04');
-  bgGrad.addColorStop(1, '#140600');
+  bgGrad.addColorStop(0.3, '#220c04');
+  bgGrad.addColorStop(0.6, '#1a0a02');
+  bgGrad.addColorStop(1, '#100400');
   ctx.fillStyle = bgGrad;
   ctx.fillRect(0, 0, w, h);
   // Volcanic rock walls with jagged edges
   ctx.save();
   ctx.fillStyle = '#120600';
   ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, floorY);
-  for (let y = floorY; y > 0; y -= 15) ctx.lineTo(18+Math.sin(y*0.04)*10+Math.cos(y*0.08)*5, y);
+  for (let y = floorY; y > 0; y -= 12) ctx.lineTo(20+Math.sin(y*0.04)*12+Math.cos(y*0.09)*6, y);
   ctx.fill();
   ctx.beginPath(); ctx.moveTo(w, 0); ctx.lineTo(w, floorY);
-  for (let y = floorY; y > 0; y -= 15) ctx.lineTo(w-18-Math.sin(y*0.05+1)*10-Math.cos(y*0.07)*5, y);
+  for (let y = floorY; y > 0; y -= 12) ctx.lineTo(w-20-Math.sin(y*0.05+1)*12-Math.cos(y*0.07)*6, y);
   ctx.fill();
-  // Wall cracks with orange glow underneath
-  ctx.strokeStyle = '#ff4400'; ctx.lineWidth = 2; ctx.globalAlpha = 0.3;
+  ctx.restore();
+  // Wall cracks with orange lava glow
+  ctx.save();
+  ctx.strokeStyle = '#ff4400'; ctx.lineWidth = 2; ctx.globalAlpha = 0.35;
   ctx.shadowColor = '#ff4400'; ctx.shadowBlur = 10;
-  for (let i = 0; i < 5; i++) {
-    const wy = h*0.1 + i*floorY*0.2;
-    ctx.beginPath(); ctx.moveTo(3, wy); ctx.lineTo(8+Math.sin(i)*5, wy+15); ctx.lineTo(5, wy+30); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(w-3, wy+10); ctx.lineTo(w-10-Math.cos(i)*4, wy+25); ctx.stroke();
+  for (let i = 0; i < 6; i++) {
+    const wy = h*0.08 + i*floorY*0.17;
+    ctx.beginPath(); ctx.moveTo(4, wy); ctx.lineTo(10+Math.sin(i)*6, wy+18); ctx.lineTo(6, wy+35); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(w-4, wy+12); ctx.lineTo(w-12-Math.cos(i)*5, wy+28); ctx.stroke();
   }
   ctx.shadowBlur = 0;
   ctx.restore();
-  // Cracked floor
-  ctx.fillStyle = '#1e0e06';
+  // Obsidian terraces
+  ctx.save();
+  for (let t = 0; t < 3; t++) {
+    const ty = floorY*0.3 + t*25;
+    ctx.fillStyle = `rgba(30,14,6,${0.5 - t*0.1})`;
+    ctx.fillRect(0, ty, w, 20);
+    ctx.strokeStyle = 'rgba(255,68,0,0.05)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, ty+20); ctx.lineTo(w, ty+20); ctx.stroke();
+  }
+  ctx.restore();
+  // Black iron gates on sides
+  const gates = [w*0.04, w*0.96];
+  gates.forEach(gx => {
+    ctx.save();
+    ctx.globalAlpha = 0.5;
+    ctx.fillStyle = '#0a0604';
+    const gw = 14;
+    ctx.fillRect(gx-gw/2, floorY*0.2, gw, floorY*0.8);
+    // Gate bars
+    ctx.strokeStyle = '#2a1a10'; ctx.lineWidth = 2;
+    for (let b = 0; b < 5; b++) {
+      const by = floorY*0.25 + b*floorY*0.15;
+      ctx.beginPath(); ctx.moveTo(gx-gw/2, by); ctx.lineTo(gx+gw/2, by); ctx.stroke();
+    }
+    // Glowing rivets
+    ctx.fillStyle = '#ff4422'; ctx.globalAlpha = 0.3;
+    for (let r = 0; r < 3; r++) {
+      ctx.beginPath(); ctx.arc(gx, floorY*0.3+r*floorY*0.2, 2, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.restore();
+  });
+  // Cracked obsidian floor
+  ctx.fillStyle = '#1a0e06';
   ctx.fillRect(0, floorY, w, h-floorY);
   drawFloorPerspective(ctx, w, h, floorY, '#2a1408', '#1a0a04');
-  // Floor cracks with lava glow
+  // Floor lava cracks
   ctx.save();
   ctx.strokeStyle = '#ff2200'; ctx.lineWidth = 2; ctx.globalAlpha = 0.5;
   ctx.shadowColor = '#ff4400'; ctx.shadowBlur = 8;
-  for (let i = 0; i < 8; i++) {
-    const sx = w*0.08+i*w*0.12;
-    ctx.beginPath(); ctx.moveTo(sx, floorY+3);
-    ctx.lineTo(sx+10+i*3, floorY+20+i*4); ctx.lineTo(sx-5+i*6, floorY+35); ctx.stroke();
+  for (let i = 0; i < 10; i++) {
+    const sx = w*0.06+i*w*0.1;
+    ctx.beginPath(); ctx.moveTo(sx, floorY+2);
+    ctx.lineTo(sx+8+i*4, floorY+18+i*3); ctx.lineTo(sx-3+i*6, floorY+32); ctx.stroke();
   }
   ctx.shadowBlur = 0;
   ctx.restore();
-  // Bright lava rivers
+  // Lava river at floor line
   const lavaGlow = 0.6 + Math.sin(now*3)*0.2;
   ctx.save();
-  // Lava body
-  ctx.globalAlpha = lavaGlow * 0.7;
+  ctx.globalAlpha = lavaGlow * 0.6;
   ctx.fillStyle = '#ff2200';
-  ctx.shadowColor = '#ff4400'; ctx.shadowBlur = 15;
-  ctx.beginPath(); ctx.moveTo(0, floorY+6);
-  for (let x = 0; x <= w; x += 8) ctx.lineTo(x, floorY+6+Math.sin(x*0.02+now*2)*4);
-  ctx.lineTo(w, floorY+16);
-  for (let x = w; x >= 0; x -= 8) ctx.lineTo(x, floorY+16+Math.sin(x*0.025+now*2.5)*3);
+  ctx.shadowColor = '#ff4400'; ctx.shadowBlur = 12;
+  ctx.beginPath(); ctx.moveTo(0, floorY+4);
+  for (let x = 0; x <= w; x += 8) ctx.lineTo(x, floorY+4+Math.sin(x*0.02+now*2)*3);
+  ctx.lineTo(w, floorY+14);
+  for (let x = w; x >= 0; x -= 8) ctx.lineTo(x, floorY+14+Math.sin(x*0.025+now*2.5)*2.5);
   ctx.fill();
-  // Bright lava highlights
-  ctx.globalAlpha = lavaGlow * 0.4;
+  ctx.globalAlpha = lavaGlow * 0.3;
   ctx.fillStyle = '#ff8800';
-  ctx.beginPath(); ctx.moveTo(w*0.2, floorY+9);
-  for (let x = w*0.2; x <= w*0.8; x += 10) ctx.lineTo(x, floorY+9+Math.sin(x*0.03+now*3)*2);
-  ctx.lineTo(w*0.8, floorY+13);
-  for (let x = w*0.8; x >= w*0.2; x -= 10) ctx.lineTo(x, floorY+13+Math.sin(x*0.04+now*3.5)*1.5);
+  ctx.beginPath(); ctx.moveTo(w*0.15, floorY+7);
+  for (let x = w*0.15; x <= w*0.85; x += 10) ctx.lineTo(x, floorY+7+Math.sin(x*0.03+now*3)*2);
+  ctx.lineTo(w*0.85, floorY+11);
+  for (let x = w*0.85; x >= w*0.15; x -= 10) ctx.lineTo(x, floorY+11+Math.sin(x*0.04+now*3.5)*1.5);
   ctx.fill();
   ctx.shadowBlur = 0;
   ctx.restore();
   // Lava ambient glow
-  const lavaGrad = ctx.createRadialGradient(w*0.5, floorY+10, 10, w*0.5, floorY+10, w*0.45);
-  lavaGrad.addColorStop(0, 'rgba(255,60,0,0.15)');
-  lavaGrad.addColorStop(0.5, 'rgba(255,34,0,0.06)');
-  lavaGrad.addColorStop(1, 'transparent');
-  ctx.fillStyle = lavaGrad;
-  ctx.fillRect(0, floorY-50, w, 120);
-  // Detailed throne at top center
+  const lavaAmb = ctx.createRadialGradient(w*0.5, floorY+8, 10, w*0.5, floorY+8, w*0.45);
+  lavaAmb.addColorStop(0, 'rgba(255,60,0,0.12)');
+  lavaAmb.addColorStop(0.5, 'rgba(255,34,0,0.05)');
+  lavaAmb.addColorStop(1, 'transparent');
+  ctx.fillStyle = lavaAmb;
+  ctx.fillRect(0, floorY-40, w, 100);
+  // Embers — big, bright, many
   ctx.save();
-  const tx = w*0.5, ty = h*0.04;
-  // Throne base
-  ctx.fillStyle = '#0d0400';
-  ctx.beginPath();
-  ctx.moveTo(tx-35, ty+70); ctx.lineTo(tx-40, ty+10); ctx.lineTo(tx-25, ty-5);
-  ctx.lineTo(tx-15, ty-15); ctx.lineTo(tx, ty-20);
-  ctx.lineTo(tx+15, ty-15); ctx.lineTo(tx+25, ty-5);
-  ctx.lineTo(tx+40, ty+10); ctx.lineTo(tx+35, ty+70);
-  ctx.fill();
-  // Throne detail lines
-  ctx.strokeStyle = '#2a1508'; ctx.lineWidth = 1; ctx.globalAlpha = 0.5;
-  ctx.beginPath(); ctx.moveTo(tx-30, ty+20); ctx.lineTo(tx+30, ty+20); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(tx-25, ty+40); ctx.lineTo(tx+25, ty+40); ctx.stroke();
-  // Glowing eyes on throne
-  ctx.globalAlpha = 0.7 + Math.sin(now*2)*0.3;
-  ctx.shadowColor = '#ff2200'; ctx.shadowBlur = 12;
-  ctx.fillStyle = '#ff2200';
-  ctx.beginPath(); ctx.arc(tx-8, ty+5, 3, 0, Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.arc(tx+8, ty+5, 3, 0, Math.PI*2); ctx.fill();
-  ctx.shadowBlur = 0;
-  ctx.restore();
-  // Big embers (3-5px, 25+ count)
-  ctx.save();
-  for (let i = 0; i < 28; i++) {
-    const ex = (w*0.05+i*w*0.035+now*20*(i%5+1))%w;
-    const ey = (h*0.05+now*30+i*73)%h;
-    const eSize = 2 + (i%3)*1.5;
-    ctx.globalAlpha = 0.5 + Math.sin(now*3+i)*0.2;
+  for (let i = 0; i < 30; i++) {
+    const ex = (w*0.05+i*w*0.033+now*18*(i%5+1))%w;
+    const ey = (h*0.05+now*28+i*67)%h;
+    const eSize = 1.5 + (i%4)*1.2;
+    ctx.globalAlpha = 0.5 + Math.sin(now*3+i)*0.25;
     ctx.fillStyle = i%3===0 ? '#ff6600' : i%3===1 ? '#ff3300' : '#ffaa00';
-    ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 6;
+    ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 5;
     ctx.beginPath(); ctx.arc(ex, ey, eSize, 0, Math.PI*2); ctx.fill();
   }
   ctx.shadowBlur = 0;
   ctx.restore();
-  drawArenaVignette(ctx, w, h, 'rgba(10,4,0,0.5)');
+  // Smoke wisps near ceiling
+  ctx.save();
+  for (let i = 0; i < 5; i++) {
+    const sx = w*(0.15+i*0.18) + Math.sin(now*0.4+i*2)*25;
+    const sy = 15 + Math.sin(now*0.3+i)*8;
+    const sGrad = ctx.createRadialGradient(sx, sy, 2, sx, sy, 35);
+    sGrad.addColorStop(0, 'rgba(60,30,10,0.15)');
+    sGrad.addColorStop(1, 'transparent');
+    ctx.fillStyle = sGrad;
+    ctx.beginPath(); ctx.ellipse(sx, sy, 35, 12, 0, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
+  drawArenaVignette(ctx, w, h, 'rgba(10,4,0,0.55)');
 }
 
 // ── Distance Bar on arena floor ──
@@ -3965,90 +4526,130 @@ function drawMenuBackground(ctx, w, h, now) {
   drawArenaVignette(ctx, w, h, 'rgba(5,3,10,0.7)');
 }
 
-// ── Town Canvas Background ──
+// ── Town Canvas Background — Lantern Gate ──
 function drawTown(ctx, w, h, now) {
-  // Night sky
-  const skyGrad = ctx.createLinearGradient(0, 0, 0, h*0.6);
-  skyGrad.addColorStop(0, '#0a0818');
-  skyGrad.addColorStop(1, '#15101f');
+  // Warm dusk sky — deep amber to purple
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, h*0.55);
+  skyGrad.addColorStop(0, '#0c0810');
+  skyGrad.addColorStop(0.3, '#1a1018');
+  skyGrad.addColorStop(0.6, '#2a1810');
+  skyGrad.addColorStop(1, '#3a2418');
   ctx.fillStyle = skyGrad;
   ctx.fillRect(0, 0, w, h);
-  // Moon
+  // Moon — warm tint
   ctx.save();
-  const moonX = w*0.75, moonY = h*0.08;
-  const moonOuter = ctx.createRadialGradient(moonX, moonY, 0, moonX, moonY, 60);
-  moonOuter.addColorStop(0, 'rgba(200,190,220,0.08)');
+  const moonX = w*0.8, moonY = h*0.07;
+  const moonOuter = ctx.createRadialGradient(moonX, moonY, 0, moonX, moonY, 55);
+  moonOuter.addColorStop(0, 'rgba(220,200,170,0.1)');
   moonOuter.addColorStop(1, 'transparent');
   ctx.fillStyle = moonOuter;
-  ctx.beginPath(); ctx.arc(moonX, moonY, 60, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle = 'rgba(220,210,240,0.5)';
-  ctx.beginPath(); ctx.arc(moonX, moonY, 12, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle = 'rgba(240,235,250,0.8)';
-  ctx.beginPath(); ctx.arc(moonX, moonY, 6, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(moonX, moonY, 55, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = 'rgba(240,220,190,0.5)';
+  ctx.beginPath(); ctx.arc(moonX, moonY, 10, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = 'rgba(255,240,210,0.8)';
+  ctx.beginPath(); ctx.arc(moonX, moonY, 5, 0, Math.PI*2); ctx.fill();
   ctx.restore();
-  // Twinkling stars
+  // Twinkling stars (warm tone)
   ctx.save();
-  for (let i = 0; i < 30; i++) {
+  for (let i = 0; i < 25; i++) {
     const sx = (i*137+50) % w;
-    const sy = (i*97+20) % (h*0.4);
-    const twinkle = 0.2 + 0.5*(0.5+0.5*Math.sin(now*2+i*3.7));
+    const sy = (i*97+15) % (h*0.35);
+    const twinkle = 0.15 + 0.4*(0.5+0.5*Math.sin(now*2+i*3.7));
     ctx.globalAlpha = twinkle;
-    ctx.fillStyle = '#fff';
-    ctx.beginPath(); ctx.arc(sx, sy, 0.8+i%2*0.5, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = i%3===0 ? '#ffd080' : '#fff';
+    ctx.beginPath(); ctx.arc(sx, sy, 0.7+i%2*0.5, 0, Math.PI*2); ctx.fill();
   }
   ctx.restore();
-  // Building silhouettes
+  // Gate silhouette — large arched gate in center background
   ctx.save();
-  ctx.fillStyle = '#0c0818';
-  // Tavern (left)
+  ctx.fillStyle = '#0e0a08';
+  const gateX = w*0.5, gateW = w*0.35, gateTop = h*0.08;
+  // Left tower
+  ctx.fillRect(gateX-gateW/2-12, gateTop, 22, h*0.47);
+  // Right tower
+  ctx.fillRect(gateX+gateW/2-10, gateTop, 22, h*0.47);
+  // Arch connecting towers
   ctx.beginPath();
-  ctx.moveTo(w*0.05, h*0.55); ctx.lineTo(w*0.05, h*0.25);
-  ctx.lineTo(w*0.15, h*0.15); ctx.lineTo(w*0.25, h*0.25);
-  ctx.lineTo(w*0.25, h*0.55);
+  ctx.moveTo(gateX-gateW/2+10, h*0.55);
+  ctx.lineTo(gateX-gateW/2+10, gateTop+30);
+  ctx.quadraticCurveTo(gateX, gateTop-5, gateX+gateW/2-10, gateTop+30);
+  ctx.lineTo(gateX+gateW/2-10, h*0.55);
   ctx.fill();
-  // Chimney
-  ctx.fillRect(w*0.08, h*0.13, 6, 12);
-  // Shop (center)
+  // Tower crenellations
+  for (let t = 0; t < 2; t++) {
+    const tx = t===0 ? gateX-gateW/2-12 : gateX+gateW/2-10;
+    for (let c = 0; c < 3; c++) {
+      ctx.fillRect(tx+c*8, gateTop-6, 5, 6);
+    }
+  }
+  // Gate opening (slightly lighter — passage behind)
+  const gateGrad = ctx.createLinearGradient(0, gateTop+30, 0, h*0.55);
+  gateGrad.addColorStop(0, '#1a1210');
+  gateGrad.addColorStop(1, '#120c08');
+  ctx.fillStyle = gateGrad;
   ctx.beginPath();
-  ctx.moveTo(w*0.35, h*0.55); ctx.lineTo(w*0.35, h*0.28);
-  ctx.lineTo(w*0.45, h*0.22); ctx.lineTo(w*0.55, h*0.22);
-  ctx.lineTo(w*0.65, h*0.28); ctx.lineTo(w*0.65, h*0.55);
+  ctx.moveTo(gateX-gateW/2+18, h*0.55);
+  ctx.lineTo(gateX-gateW/2+18, gateTop+45);
+  ctx.quadraticCurveTo(gateX, gateTop+12, gateX+gateW/2-18, gateTop+45);
+  ctx.lineTo(gateX+gateW/2-18, h*0.55);
   ctx.fill();
-  // Temple (right, taller)
+  ctx.restore();
+  // Building silhouettes flanking the gate
+  ctx.save();
+  ctx.fillStyle = '#0e0a08';
+  // Left buildings (forge, mercenary hall)
   ctx.beginPath();
-  ctx.moveTo(w*0.75, h*0.55); ctx.lineTo(w*0.75, h*0.2);
-  ctx.lineTo(w*0.82, h*0.1); ctx.lineTo(w*0.85, h*0.08);
-  ctx.lineTo(w*0.88, h*0.1); ctx.lineTo(w*0.95, h*0.2);
-  ctx.lineTo(w*0.95, h*0.55);
+  ctx.moveTo(0, h*0.55); ctx.lineTo(0, h*0.2);
+  ctx.lineTo(w*0.06, h*0.12); ctx.lineTo(w*0.12, h*0.18);
+  ctx.lineTo(w*0.12, h*0.25); ctx.lineTo(w*0.18, h*0.22);
+  ctx.lineTo(w*0.24, h*0.3); ctx.lineTo(w*0.24, h*0.55);
   ctx.fill();
-  // Temple spire
-  ctx.fillRect(w*0.84, h*0.03, 3, h*0.05);
-  // Windows (warm glow)
+  // Right buildings (sanctum, armory)
+  ctx.beginPath();
+  ctx.moveTo(w, h*0.55); ctx.lineTo(w, h*0.18);
+  ctx.lineTo(w*0.94, h*0.08); ctx.lineTo(w*0.92, h*0.06);
+  ctx.lineTo(w*0.9, h*0.08); ctx.lineTo(w*0.88, h*0.18);
+  ctx.lineTo(w*0.82, h*0.24); ctx.lineTo(w*0.76, h*0.28);
+  ctx.lineTo(w*0.76, h*0.55);
+  ctx.fill();
+  // Sanctum spire
+  ctx.fillRect(w*0.915, h*0.02, 3, h*0.04);
+  // Chimney smoke from forge
+  ctx.globalAlpha = 0.08;
+  ctx.fillStyle = '#887766';
+  for (let i = 0; i < 4; i++) {
+    const sx = w*0.06 + Math.sin(now*0.5+i*1.5)*5;
+    const sy = h*0.08 - i*12;
+    ctx.beginPath(); ctx.arc(sx, sy, 6+i*3, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  // Windows with warm glow
   const windows = [
-    [w*0.1, h*0.3, 8, 10], [w*0.18, h*0.3, 8, 10],
-    [w*0.42, h*0.3, 10, 8], [w*0.52, h*0.3, 10, 8],
-    [w*0.80, h*0.25, 6, 12], [w*0.90, h*0.25, 6, 12],
+    [w*0.04, h*0.28, 7, 9], [w*0.14, h*0.32, 7, 9], [w*0.2, h*0.36, 6, 8],
+    [w*0.8, h*0.32, 6, 10], [w*0.88, h*0.24, 5, 10], [w*0.95, h*0.28, 6, 8],
   ];
   windows.forEach(([wx, wy, ww, wh], i) => {
-    const flicker = 0.6 + Math.sin(now*4+i*1.7)*0.15;
+    const flicker = 0.5 + Math.sin(now*4+i*1.7)*0.15;
     ctx.globalAlpha = flicker * 0.5;
     ctx.fillStyle = '#ffaa44';
     ctx.fillRect(wx, wy, ww, wh);
-    // Window glow
-    const wGrad = ctx.createRadialGradient(wx+ww/2, wy+wh/2, 2, wx+ww/2, wy+wh/2, 25);
+    const wGrad = ctx.createRadialGradient(wx+ww/2, wy+wh/2, 2, wx+ww/2, wy+wh/2, 22);
     wGrad.addColorStop(0, 'rgba(255,170,68,0.15)');
     wGrad.addColorStop(1, 'transparent');
     ctx.fillStyle = wGrad;
-    ctx.fillRect(wx-20, wy-20, ww+40, wh+40);
+    ctx.fillRect(wx-18, wy-18, ww+36, wh+36);
   });
   ctx.restore();
-  // Cobblestone ground
-  ctx.fillStyle = '#15101f';
+  // Cobblestone ground — warmer tones
+  const groundGrad = ctx.createLinearGradient(0, h*0.55, 0, h);
+  groundGrad.addColorStop(0, '#1e1510');
+  groundGrad.addColorStop(1, '#141008');
+  ctx.fillStyle = groundGrad;
   ctx.fillRect(0, h*0.55, w, h*0.45);
-  // Warm cobblestone glow from torchlight
+  // Cobblestone texture
   ctx.save();
-  ctx.globalAlpha = 0.12;
-  ctx.fillStyle = '#3a3050';
+  ctx.globalAlpha = 0.1;
+  ctx.fillStyle = '#3a2a1a';
   for (let y = h*0.55; y < h; y += 14) {
     const off = (Math.floor(y/14)%2)*10;
     for (let x = -off; x < w; x += 20) {
@@ -4059,34 +4660,65 @@ function drawTown(ctx, w, h, now) {
     }
   }
   ctx.restore();
-  // Bright torchlight pools
-  const torchPositions = [[w*0.15, h*0.48], [w*0.85, h*0.48], [w*0.5, h*0.18]];
-  torchPositions.forEach(([tx, ty], i) => {
-    const flicker = 0.8 + Math.sin(now*6+i*2.3)*0.15 + Math.sin(now*9+i)*0.05;
-    // Large glow pool
-    const grad = ctx.createRadialGradient(tx, ty, 5, tx, ty, 120);
-    grad.addColorStop(0, `rgba(255,170,80,${0.2*flicker})`);
-    grad.addColorStop(0.4, `rgba(255,140,60,${0.08*flicker})`);
-    grad.addColorStop(1, 'transparent');
-    ctx.fillStyle = grad;
-    ctx.fillRect(tx-120, ty-120, 240, 240);
-    // Bright torch point
+  // Hanging lanterns — the signature Lantern Gate feature
+  const lanterns = [
+    [w*0.12, h*0.42], [w*0.3, h*0.48], [w*0.42, h*0.35],
+    [w*0.58, h*0.35], [w*0.7, h*0.48], [w*0.88, h*0.42],
+  ];
+  lanterns.forEach(([lx, ly], i) => {
+    const sway = Math.sin(now*0.8+i*1.1)*2;
+    const flicker = 0.7 + Math.sin(now*5+i*2.3)*0.15 + Math.sin(now*8+i)*0.05;
+    // Chain
     ctx.save();
-    ctx.globalAlpha = 0.7;
-    ctx.fillStyle = '#ffaa44';
-    ctx.shadowColor = '#ff8822'; ctx.shadowBlur = 12;
-    ctx.beginPath(); ctx.arc(tx, ty, 3, 0, Math.PI*2); ctx.fill();
-    ctx.shadowBlur = 0;
+    ctx.strokeStyle = '#554433'; ctx.lineWidth = 1; ctx.globalAlpha = 0.3;
+    ctx.beginPath(); ctx.moveTo(lx, ly-20); ctx.lineTo(lx+sway, ly); ctx.stroke();
+    ctx.restore();
+    // Lantern body
+    ctx.save();
+    ctx.globalAlpha = 0.4;
+    ctx.fillStyle = '#3a2a18';
+    ctx.fillRect(lx+sway-4, ly-2, 8, 10);
+    ctx.strokeStyle = '#554433'; ctx.lineWidth = 0.5;
+    ctx.strokeRect(lx+sway-4, ly-2, 8, 10);
+    ctx.restore();
+    // Lantern light
+    ctx.save();
+    const lGrad = ctx.createRadialGradient(lx+sway, ly+3, 3, lx+sway, ly+3, 80);
+    lGrad.addColorStop(0, `rgba(255,180,80,${0.2*flicker})`);
+    lGrad.addColorStop(0.3, `rgba(255,150,50,${0.08*flicker})`);
+    lGrad.addColorStop(1, 'transparent');
+    ctx.fillStyle = lGrad;
+    ctx.fillRect(lx+sway-80, ly-77, 160, 160);
+    // Bright flame core
+    ctx.globalAlpha = 0.6*flicker;
+    ctx.fillStyle = '#ffcc44';
+    ctx.beginPath(); ctx.arc(lx+sway, ly+3, 2, 0, Math.PI*2); ctx.fill();
     ctx.restore();
   });
-  // Light fog
+  // Gate arch lantern — centerpiece
   ctx.save();
-  ctx.globalAlpha = 0.06;
-  ctx.fillStyle = '#9988bb';
-  for (let i = 0; i < 6; i++) {
+  const glx = w*0.5, gly = h*0.12;
+  const gFlicker = 0.8 + Math.sin(now*4)*0.15;
+  const gGrad = ctx.createRadialGradient(glx, gly, 5, glx, gly, 100);
+  gGrad.addColorStop(0, `rgba(255,200,100,${0.25*gFlicker})`);
+  gGrad.addColorStop(0.4, `rgba(255,160,60,${0.1*gFlicker})`);
+  gGrad.addColorStop(1, 'transparent');
+  ctx.fillStyle = gGrad;
+  ctx.fillRect(glx-100, gly-100, 200, 200);
+  ctx.globalAlpha = 0.7;
+  ctx.fillStyle = '#ffdd66';
+  ctx.shadowColor = '#ffaa22'; ctx.shadowBlur = 10;
+  ctx.beginPath(); ctx.arc(glx, gly, 3.5, 0, Math.PI*2); ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.restore();
+  // Light fog — warmer
+  ctx.save();
+  ctx.globalAlpha = 0.05;
+  ctx.fillStyle = '#aa9070';
+  for (let i = 0; i < 5; i++) {
     const fx = w*0.5 + Math.sin(now*0.3+i*0.8)*w*0.4;
-    const fy = h*0.4 + Math.cos(now*0.2+i*1.2)*h*0.15;
-    ctx.beginPath(); ctx.arc(fx, fy, 50+i*8, 0, Math.PI*2); ctx.fill();
+    const fy = h*0.42 + Math.cos(now*0.2+i*1.2)*h*0.1;
+    ctx.beginPath(); ctx.arc(fx, fy, 45+i*8, 0, Math.PI*2); ctx.fill();
   }
   ctx.restore();
 }
