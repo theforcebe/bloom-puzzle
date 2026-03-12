@@ -185,7 +185,9 @@ class TouchManager {
     this._startTime = Date.now();
     this._isDragging = false;
 
-    try { this.el.setPointerCapture(e.pointerId); } catch {}
+    // Don't capture pointer on links/buttons — let browser handle navigation
+    const tag = e.target.closest('a, button, [onclick]');
+    if (!tag) { try { this.el.setPointerCapture(e.pointerId); } catch {} }
 
     // Long press timer
     if (this._onLongPress) {

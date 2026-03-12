@@ -188,6 +188,8 @@ html,body{overflow:hidden;position:fixed;inset:0;width:100%;height:100dvh;touch-
 /* ── Back Button ── */
 .back-btn{position:fixed;top:env(safe-area-inset-top,0px);left:clamp(4px,1vw,8px);z-index:50;margin-top:clamp(4px,0.6dvh,8px);background:rgba(30,24,50,0.7);border:1px solid rgba(184,169,212,0.15);border-radius:50%;width:clamp(32px,4.5dvh,42px);height:clamp(32px,4.5dvh,42px);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--iris-light);font-size:clamp(14px,2dvh,20px);transition:all .2s;text-decoration:none}
 .back-btn:active{background:rgba(74,63,107,0.5)}
+.menu-back-btn{align-self:flex-start;font-family:'Quicksand',sans-serif;font-size:clamp(12px,1.5dvh,15px);font-weight:600;color:var(--iris-light);text-decoration:none;background:rgba(30,24,50,0.5);border:1px solid rgba(184,169,212,0.15);border-radius:8px;padding:clamp(6px,1dvh,10px) clamp(12px,2vw,20px);transition:all .2s}
+.menu-back-btn:active{background:rgba(74,63,107,0.5)}
 
 /* ── Combat Log ── */
 #combat-log{position:fixed;left:clamp(4px,1vw,8px);top:50%;transform:translateY(-50%);z-index:18;width:min(160px,35vw);max-height:30dvh;background:rgba(10,8,20,0.88);border:1px solid rgba(184,169,212,0.1);border-radius:10px;padding:clamp(4px,0.6dvh,8px);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:none;overflow:hidden;pointer-events:none}
@@ -257,6 +259,7 @@ html,body{overflow:hidden;position:fixed;inset:0;width:100%;height:100dvh;touch-
 <!-- Menu Overlay -->
 <div class="overlay" id="ov-menu">
   <div class="overlay-scroll flex-col gap-lg">
+    <a class="menu-back-btn" href="../index.html" title="Back to Arcade">&#8592; Arcade</a>
     <div>
       <div class="title-main">Blade of Ruin</div>
       <div class="title-sub">An Arena of Blood and Shadow</div>

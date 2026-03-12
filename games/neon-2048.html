@@ -292,25 +292,26 @@
     /* Photo is rotated 90deg CCW, so rotate it back */
     transform: rotate(90deg);
     transform-origin: center center;
-    /* Position so puppy head is at top, game board sits below chin */
+    /* Position so puppy head is clearly visible at top on mobile */
     width: auto;
-    height: 140vw;
-    top: -25%;
+    height: 130vw;
+    top: -15%;
     left: 50%;
-    margin-left: -70vw;
-    opacity: 0.35;
-    filter: brightness(0.7) saturate(0.8);
+    margin-left: -65vw;
+    opacity: 0.55;
+    filter: brightness(0.8) saturate(0.9);
   }
-  /* Dark overlay so tiles remain legible */
+  /* Dark overlay — keep top clear for dog head, darken bottom for game board */
   .obi-bg::after {
     content: '';
     position: absolute;
     inset: 0;
     background: linear-gradient(
       180deg,
-      rgba(10,8,24,0.3) 0%,
-      rgba(10,8,24,0.65) 35%,
-      rgba(10,8,24,0.85) 55%,
+      rgba(10,8,24,0.1) 0%,
+      rgba(10,8,24,0.25) 20%,
+      rgba(10,8,24,0.6) 40%,
+      rgba(10,8,24,0.88) 55%,
       rgba(10,8,24,0.95) 100%
     );
   }
