@@ -74,40 +74,73 @@ html,body{overflow:hidden;position:fixed;inset:0;width:100%;height:100dvh;touch-
 .weapon-card .wc-icon{font-size:clamp(22px,3.5dvh,32px)}
 .weapon-card .wc-name{font-size:clamp(8px,1dvh,10px);color:var(--moon-glow);margin-top:2px;font-weight:600}
 
-/* ── Combat HUD ── */
-.combat-hud{position:fixed;bottom:0;left:0;right:0;z-index:20;background:rgba(10,8,20,0.95);border-top:1px solid rgba(255,68,68,0.15);padding:clamp(4px,0.8dvh,8px) clamp(4px,1vw,8px) calc(env(safe-area-inset-bottom,0px) + clamp(4px,0.8dvh,8px));display:none;flex-direction:column;gap:clamp(3px,0.5dvh,6px)}
+/* ── Combat HUD — Bottom Actions ── */
+.combat-hud{position:fixed;bottom:0;left:0;right:0;z-index:20;background:linear-gradient(0deg,rgba(8,6,16,0.97) 0%,rgba(10,8,20,0.92) 85%,transparent 100%);border-top:1px solid rgba(255,68,68,0.12);padding:clamp(6px,1dvh,12px) clamp(4px,1vw,10px) calc(env(safe-area-inset-bottom,0px) + clamp(4px,0.8dvh,8px));display:none;flex-direction:column;gap:clamp(4px,0.7dvh,8px)}
 .combat-hud.visible{display:flex}
-.combat-actions{display:grid;grid-template-columns:repeat(auto-fill,minmax(clamp(50px,13vw,70px),1fr));gap:clamp(3px,0.6vw,6px)}
-.action-btn{font-family:'Quicksand',sans-serif;font-size:clamp(9px,1.1dvh,11px);font-weight:600;color:var(--moon-glow);background:rgba(30,24,50,0.7);border:1px solid rgba(184,169,212,0.15);border-radius:8px;padding:clamp(6px,1dvh,10px) 2px;cursor:pointer;text-align:center;transition:all .15s;line-height:1.2}
-.action-btn:active{background:rgba(74,63,107,0.5);transform:scale(0.95)}
-.action-btn .ab-icon{font-size:clamp(14px,2dvh,20px);display:block}
-.action-btn .ab-name{font-size:clamp(7px,0.9dvh,9px);display:block;margin-top:1px;opacity:.8}
-.action-btn .ab-cost{font-size:clamp(7px,0.8dvh,8px);display:block;color:var(--iris-mid);margin-top:1px}
-.action-btn.disabled{opacity:.3;pointer-events:none}
-.action-btn.highlight{border-color:var(--game-accent);box-shadow:0 0 8px var(--game-glow)}
+/* Action grid — larger circular buttons */
+.combat-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:clamp(4px,0.8vw,8px);padding:0 clamp(2px,0.5vw,4px)}
+.action-btn{font-family:'Quicksand',sans-serif;position:relative;color:var(--moon-glow);background:rgba(20,16,36,0.85);border:2px solid rgba(184,169,212,0.2);border-radius:14px;padding:clamp(5px,0.8dvh,8px) clamp(6px,1.2vw,10px);cursor:pointer;text-align:center;transition:all .15s;line-height:1.1;width:clamp(62px,15vw,82px);min-height:clamp(62px,10dvh,82px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
+.action-btn:active{background:rgba(74,63,107,0.5);transform:scale(0.93)}
+.action-btn .ab-icon{font-size:clamp(18px,2.8dvh,26px);display:block}
+.action-btn .ab-name{font-size:clamp(8px,1dvh,10px);font-weight:700;display:block;letter-spacing:0.3px}
+.action-btn .ab-cost{font-size:clamp(7px,0.85dvh,9px);display:block;color:var(--iris-mid);font-weight:600}
+.action-btn .ab-dmg{font-size:clamp(9px,1.1dvh,11px);font-weight:800;display:block;margin-top:1px}
+.action-btn .ab-tiers{font-size:clamp(6px,0.7dvh,8px);display:block;color:var(--iris-mid);margin-top:0px;white-space:nowrap;overflow:hidden}
+.action-btn.disabled{opacity:.25;pointer-events:none}
+.action-btn.highlight{border-color:var(--game-accent);box-shadow:0 0 10px var(--game-glow)}
+/* Tier-colored borders for attack types */
+.action-btn.ab-type-light{border-color:rgba(68,255,68,0.35)}
+.action-btn.ab-type-heavy{border-color:rgba(255,68,68,0.4);box-shadow:0 0 6px rgba(255,68,68,0.15)}
+.action-btn.ab-type-medium{border-color:rgba(255,255,68,0.35)}
+.action-btn.ab-type-move{border-color:rgba(68,170,255,0.3)}
+.action-btn.ab-type-defend{border-color:rgba(68,136,255,0.35)}
+.action-btn.ab-type-spell{border-color:rgba(136,68,255,0.35)}
+.action-btn.ab-type-util{border-color:rgba(184,169,212,0.2)}
+.action-btn.ab-type-flee{border-color:rgba(255,68,68,0.3)}
+/* Info Panel — shows details of hovered/selected action */
+.action-info{width:100%;min-height:clamp(28px,4dvh,40px);background:rgba(15,12,28,0.9);border:1px solid rgba(184,169,212,0.1);border-radius:10px;padding:clamp(4px,0.6dvh,8px) clamp(8px,1.5vw,14px);display:flex;align-items:center;gap:clamp(6px,1vw,10px)}
+.action-info .ai-icon{font-size:clamp(18px,2.5dvh,24px)}
+.action-info .ai-body{flex:1;min-width:0}
+.action-info .ai-name{font-family:'Quicksand',sans-serif;font-size:clamp(10px,1.2dvh,13px);font-weight:700;color:var(--moon-glow)}
+.action-info .ai-desc{font-family:'Quicksand',sans-serif;font-size:clamp(8px,0.95dvh,10px);color:var(--iris-light);margin-top:1px}
+.action-info .ai-tiers{display:flex;gap:clamp(4px,0.6vw,8px);margin-top:2px}
+.action-info .ai-tier{font-size:clamp(7px,0.85dvh,9px);font-weight:700;padding:1px 4px;border-radius:4px;background:rgba(0,0,0,0.3)}
+.action-info .ai-tier.t-miss{color:#666}
+.action-info .ai-tier.t-graze{color:#ff8844}
+.action-info .ai-tier.t-hit{color:#ffff44}
+.action-info .ai-tier.t-strong{color:#44ff44}
+.action-info .ai-tier.t-crit{color:#ff4444}
 
 /* ── Spell Submenu ── */
-.spell-menu{position:fixed;bottom:clamp(80px,16dvh,140px);left:50%;transform:translateX(-50%);z-index:25;background:rgba(15,12,30,0.95);border:1px solid rgba(68,68,255,0.2);border-radius:12px;padding:clamp(8px,1.2dvh,14px);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);display:none;width:min(380px,90vw);max-height:40dvh;overflow-y:auto}
+.spell-menu{position:fixed;bottom:clamp(100px,20dvh,180px);left:50%;transform:translateX(-50%);z-index:25;background:rgba(12,10,25,0.96);border:1px solid rgba(68,68,255,0.2);border-radius:14px;padding:clamp(8px,1.2dvh,14px);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);display:none;width:min(400px,92vw);max-height:38dvh;overflow-y:auto}
 .spell-menu.visible{display:block}
 .spell-row{display:flex;align-items:center;gap:clamp(6px,1vw,10px);padding:clamp(6px,0.8dvh,8px);border-radius:8px;cursor:pointer;transition:all .15s;border:1px solid transparent}
 .spell-row:active{background:rgba(68,68,255,0.15)}
 .spell-row.disabled{opacity:.3;pointer-events:none}
+.spell-row .sr-icon{font-size:clamp(18px,2.5dvh,24px)}
 .spell-row .sr-name{font-size:clamp(11px,1.3dvh,13px);font-weight:600;color:var(--moon-glow);flex:1}
+.spell-row .sr-dmg{font-size:clamp(9px,1dvh,11px);font-weight:700;color:#ff8844}
 .spell-row .sr-cost{font-size:clamp(9px,1.1dvh,11px);color:#4488ff}
 .spell-row .sr-cd{font-size:clamp(8px,1dvh,10px);color:#ff8844}
 
 /* ── Combat Top HUD ── */
-.combat-top{position:fixed;top:0;left:0;right:0;z-index:20;padding:calc(env(safe-area-inset-top,0px) + clamp(4px,0.6dvh,8px)) clamp(6px,1.5vw,12px) clamp(4px,0.6dvh,8px);background:linear-gradient(180deg,rgba(13,10,26,0.95) 0%,rgba(13,10,26,0.7) 80%,transparent 100%);display:none;gap:clamp(3px,0.5dvh,6px)}
+.combat-top{position:fixed;top:0;left:0;right:0;z-index:20;padding:calc(env(safe-area-inset-top,0px) + clamp(4px,0.6dvh,8px)) clamp(6px,1.5vw,12px) clamp(4px,0.6dvh,8px);background:linear-gradient(180deg,rgba(10,8,18,0.96) 0%,rgba(10,8,18,0.8) 80%,transparent 100%);display:none;gap:clamp(3px,0.5dvh,6px)}
 .combat-top.visible{display:flex;flex-direction:column}
-.ct-row{display:flex;justify-content:space-between;align-items:center;gap:clamp(6px,2vw,16px)}
-.ct-fighter{flex:1}
-.ct-name{font-family:'Cormorant Garamond',serif;font-size:clamp(12px,1.6dvh,16px);font-weight:600;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ct-row{display:flex;justify-content:space-between;align-items:flex-start;gap:clamp(6px,2vw,16px)}
+.ct-fighter{flex:1;min-width:0}
+.ct-portrait{display:flex;align-items:center;gap:clamp(4px,0.8vw,8px);margin-bottom:3px}
+.ct-avatar{width:clamp(32px,5dvh,44px);height:clamp(32px,5dvh,44px);border-radius:8px;background:rgba(30,24,50,0.7);border:2px solid rgba(184,169,212,0.2);display:flex;align-items:center;justify-content:center;font-size:clamp(18px,3dvh,28px)}
+.ct-avatar.player-av{border-color:rgba(68,170,255,0.4)}
+.ct-avatar.enemy-av{border-color:rgba(255,68,68,0.4)}
+.ct-info{flex:1;min-width:0}
+.ct-name{font-family:'Cormorant Garamond',serif;font-size:clamp(12px,1.6dvh,16px);font-weight:600;margin-bottom:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ct-name.player-name{color:#66aaff}
-.ct-name.enemy-name{color:#ff6666}
-.ct-level{font-size:clamp(9px,1dvh,11px);color:var(--iris-mid);margin-bottom:3px}
+.ct-name.enemy-name{color:#ff6666;text-align:right}
+.ct-sub{font-family:'Quicksand',sans-serif;font-size:clamp(8px,0.9dvh,10px);color:var(--iris-mid);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ct-bars{display:flex;flex-direction:column;gap:2px}
-.ct-bar{height:clamp(10px,1.4dvh,14px)}
-.ct-vs{font-family:'Cormorant Garamond',serif;font-size:clamp(14px,2dvh,20px);font-weight:600;color:var(--game-accent);text-shadow:0 0 10px var(--game-glow);min-width:30px;text-align:center}
+.ct-bar{height:clamp(12px,1.6dvh,16px);position:relative}
+.ct-bar .bar-text{font-size:clamp(8px,1dvh,11px);font-weight:700;letter-spacing:0.5px}
+.ct-vs{font-family:'Cormorant Garamond',serif;font-size:clamp(12px,1.6dvh,18px);font-weight:600;color:var(--game-accent);text-shadow:0 0 10px var(--game-glow);min-width:24px;text-align:center;align-self:center}
 .ct-status{display:flex;gap:3px;margin-top:2px;flex-wrap:wrap}
 .ct-status-icon{font-size:clamp(10px,1.3dvh,14px);background:rgba(30,24,50,0.6);border-radius:4px;padding:1px 3px;border:1px solid rgba(184,169,212,0.08)}
 .ct-turn{text-align:center;font-size:clamp(10px,1.2dvh,12px);color:var(--iris-light);font-weight:600;letter-spacing:1px}
@@ -1304,10 +1337,109 @@ function showFloat(text, x, y, color, big) {
 // ── Damage Calculation ──
 function emptyEquip() { return {head:null,shoulders:null,chest:null,arms:null,legs:null,shield:null,weapon:null}; }
 
+// ── 2d10 Roll System ──
+// Roll 2d10 (range 2-20). Stat bonuses shift tier thresholds.
+// Tiers: MISS → GRAZE → HIT → STRONG → CRIT
+const ROLL_TIERS = [
+  { id:'miss',   label:'Miss',   color:'#666666', mult:0,    icon:'💨' },
+  { id:'graze',  label:'Graze',  color:'#ff8844', mult:0.4,  icon:'🔸' },
+  { id:'hit',    label:'Hit',    color:'#ffff44', mult:1.0,  icon:'⚔️' },
+  { id:'strong', label:'Strong', color:'#44ff44', mult:1.5,  icon:'💪' },
+  { id:'crit',   label:'CRIT!',  color:'#ff4444', mult:2.2,  icon:'💥' },
+];
+
+function roll2d10() { return Math.floor(Math.random()*10)+1 + Math.floor(Math.random()*10)+1; }
+
+// Calculate tier thresholds for an attacker vs defender
+function getRollThresholds(attacker, defender, mult, isSpell) {
+  const isP = attacker===player;
+  const atkD = computeDerived(attacker.stats, isP?player.equipment:emptyEquip(), attacker.race||player.race);
+  const defD = computeDerived(defender.stats, defender===player?player.equipment:emptyEquip(), defender.race||player.race);
+  // Base thresholds (on 2d10 scale 2-20)
+  // Higher stats lower miss threshold and raise crit threshold
+  const atkBonus = (isSpell ? atkD.spellMult - 1 : atkD.meleeMult - 1) * 6; // 0-6 range
+  const defPen = defD.dodge * 4; // 0-2 penalty from enemy dodge
+  const shift = Math.floor(atkBonus - defPen);
+  // Thresholds: roll >= threshold for that tier
+  // Default: miss <7, graze 7-10, hit 11-14, strong 15-17, crit 18+
+  return {
+    graze:  Math.max(3, 7 - shift),
+    hit:    Math.max(5, 11 - shift),
+    strong: Math.max(8, 15 - shift),
+    crit:   Math.max(11, 18 - shift),
+  };
+}
+
+function getTierForRoll(roll, thresholds) {
+  if (roll >= thresholds.crit)   return 4; // CRIT
+  if (roll >= thresholds.strong) return 3; // STRONG
+  if (roll >= thresholds.hit)    return 2; // HIT
+  if (roll >= thresholds.graze)  return 1; // GRAZE
+  return 0; // MISS
+}
+
+// Preview damage range for an action (for HUD display)
+function previewDamageRange(attacker, defender, atkMult, isSpell, spell) {
+  const isP = attacker===player;
+  const atkD = computeDerived(attacker.stats, isP?player.equipment:emptyEquip(), attacker.race||player.race);
+  let base;
+  if (isSpell && spell) {
+    base = spell.base + (attacker.stats.MAG||0) * spell.scale;
+    base *= atkD.spellMult;
+    if (isP && player.race==='highelf') base *= 1.15;
+  } else {
+    const wep = isP ? player.equipment.weapon : null;
+    base = wep ? wep.damage : (WEAPON_TYPES.find(w=>w.id===(isP?'sword':attacker.weapon))?.baseDmg||10);
+    base *= atkD.meleeMult;
+  }
+  base *= atkMult;
+  // Status mods
+  (attacker.statusFx||[]).forEach(s => { const e=STATUS_FX[s.id]; if(e?.dmgMod) base*=(1+e.dmgMod); });
+  if (isP && player.race==='orc' && player.hp < player.maxHp*0.25) base *= 1.25;
+  return {
+    graze:  Math.max(1, Math.floor(base * 0.4)),
+    hit:    Math.max(1, Math.floor(base * 1.0)),
+    strong: Math.max(1, Math.floor(base * 1.5)),
+    crit:   Math.max(1, Math.floor(base * 2.2)),
+  };
+}
+
+// Calculate % chance for each tier (2d10 probability table)
+function tierChances(thresholds) {
+  // Probability table for 2d10 sum. P(sum=n) = (ways to make n)/100
+  const ways = {2:1,3:2,4:3,5:4,6:5,7:6,8:7,9:8,10:9,11:10,12:9,13:8,14:7,15:6,16:5,17:4,18:3,19:2,20:1};
+  let miss=0, graze=0, hit=0, strong=0, crit=0;
+  for (let r=2; r<=20; r++) {
+    const w = ways[r];
+    const tier = getTierForRoll(r, thresholds);
+    if (tier===0) miss+=w; else if(tier===1) graze+=w; else if(tier===2) hit+=w; else if(tier===3) strong+=w; else crit+=w;
+  }
+  return { miss, graze, hit, strong, crit }; // Each out of 100
+}
+
 function calcDamage(attacker, defender, mult, isSpell, spell) {
   const isP = attacker===player;
   const atkD = computeDerived(attacker.stats, isP?player.equipment:emptyEquip(), attacker.race||player.race);
   const defD = computeDerived(defender.stats, defender===player?player.equipment:emptyEquip(), defender.race||player.race);
+
+  // Dodge check first (separate from roll)
+  let dodged = false;
+  if (Math.random() < defD.dodge) dodged = true;
+  if (!dodged && defender!==player && combat.enemy?.isChampion && combat.enemy.championData?.passive==='elvenGrace') {
+    if (Math.random() < 0.3) dodged = true;
+  }
+  if (dodged) return { dmg:0, dodged:true, blocked:false, crit:false, roll:0, tier:0 };
+
+  // Roll 2d10
+  const d1 = Math.floor(Math.random()*10)+1;
+  const d2 = Math.floor(Math.random()*10)+1;
+  const roll = d1 + d2;
+  const thresholds = getRollThresholds(attacker, defender, mult, isSpell);
+  const tierIdx = getTierForRoll(roll, thresholds);
+  const tier = ROLL_TIERS[tierIdx];
+
+  // Miss = no damage
+  if (tierIdx === 0) return { dmg:0, dodged:false, blocked:false, crit:false, roll, tier:tierIdx, d1, d2, tierLabel:tier.label };
 
   let base;
   if (isSpell && spell) {
@@ -1324,29 +1456,15 @@ function calcDamage(attacker, defender, mult, isSpell, spell) {
   // Status mods
   (attacker.statusFx||[]).forEach(s => { const e=STATUS_FX[s.id]; if(e?.dmgMod) base*=(1+e.dmgMod); });
   (defender.statusFx||[]).forEach(s => { const e=STATUS_FX[s.id]; if(e?.atkMod) base*=(1+e.atkMod); });
-
-  // Orc rage
   if (isP && player.race==='orc' && player.hp < player.maxHp*0.25) base *= 1.25;
 
-  // Variance
-  base *= (0.85 + Math.random()*0.3);
+  // Apply tier multiplier (replaces old variance + crit)
+  base *= tier.mult;
+  const isCrit = tierIdx === 4;
 
-  // Crit
-  let isCrit = false;
-  if (!isSpell && Math.random() < atkD.crit) { base *= 1.8; isCrit = true; }
-
-  // Dodge
-  let dodged = false;
-  if (Math.random() < defD.dodge) dodged = true;
-  // Elven Grace
-  if (!dodged && defender!==player && combat.enemy?.isChampion && combat.enemy.championData?.passive==='elvenGrace') {
-    if (Math.random() < 0.3) dodged = true;
-  }
-  if (dodged) return { dmg:0, dodged:true, blocked:false, crit:false };
-
-  // Block
+  // Block (only on graze/hit, not strong/crit)
   let blocked = false;
-  if (!isSpell && Math.random() < defD.block) { base *= 0.4; blocked = true; }
+  if (!isSpell && tierIdx <= 2 && Math.random() < defD.block) { base *= 0.4; blocked = true; }
 
   // Armor
   let dmg = base - defD.flatDR;
@@ -1358,7 +1476,7 @@ function calcDamage(attacker, defender, mult, isSpell, spell) {
   if (defender.voidArmor > 0) { const ab=Math.min(defender.voidArmor, dmg); defender.voidArmor-=ab; dmg-=ab; }
 
   dmg = Math.max(1, Math.floor(dmg));
-  return { dmg, dodged:false, blocked, crit:isCrit };
+  return { dmg, dodged:false, blocked, crit:isCrit, roll, tier:tierIdx, d1, d2, tierLabel:tier.label };
 }
 
 // ── Apply Damage ──
@@ -1371,14 +1489,28 @@ function applyResult(target, result, atkName, tgtName) {
     animDodge(target===player, null);
     return;
   }
+  // Miss from roll
+  if (result.tier === 0) {
+    addLog(`[${result.d1}+${result.d2}=${result.roll}] ${atkName} misses ${tgtName}!`, 'move');
+    Snd.dodge();
+    const x = target===player ? gameCanvas.width*0.3 : gameCanvas.width*0.7;
+    showFloat('MISS', x, gameCanvas.height*0.25, '#666', false);
+    return;
+  }
   target.hp = Math.max(0, target.hp - result.dmg);
+  const tierTag = result.tierLabel ? `[${result.d1}+${result.d2}=${result.roll} ${result.tierLabel}] ` : '';
   const pre = result.crit ? 'CRIT! ' : result.blocked ? 'Blocked! ' : '';
-  addLog(`${pre}${atkName} hits ${tgtName} for ${result.dmg}`, result.crit ? 'crit' : 'damage');
+  addLog(`${tierTag}${pre}${result.dmg} dmg → ${tgtName}`, result.crit ? 'crit' : 'damage');
   if (result.crit) Snd.heavyHit(); else Snd.swordHit();
   const x = target===player ? gameCanvas.width*0.3 : gameCanvas.width*0.7;
-  showFloat((result.crit?'!':'')+result.dmg, x, gameCanvas.height*0.25, result.crit?'#ff4444':result.blocked?'#ffaa44':'#fff', result.crit);
-  spawnParts(x, gameCanvas.height*0.35, result.crit?'#ff4444':'#ffaa44', result.crit?12:6, 8);
-  triggerShake(result.crit ? 12 : 6);
+  const tierColor = result.crit ? '#ff4444' : result.tier>=3 ? '#44ff44' : result.tier>=2 ? '#ffff44' : '#ff8844';
+  showFloat((result.crit?'!':'')+result.dmg, x, gameCanvas.height*0.25, tierColor, result.crit||result.tier>=3);
+  // Show dice roll float
+  if (result.d1 !== undefined) {
+    showFloat(`🎲${result.d1}+${result.d2}`, x, gameCanvas.height*0.20, ROLL_TIERS[result.tier].color, false);
+  }
+  spawnParts(x, gameCanvas.height*0.35, tierColor, result.crit?18:result.tier>=3?12:6, 8);
+  triggerShake(result.crit ? 14 : result.tier>=3 ? 8 : 4);
 }
 
 // ── Status Tick ──
@@ -2820,23 +2952,102 @@ function renderVictory() {
 }
 
 // ── Combat HUD ──
+// ── Action Definitions (for HUD rendering) ──
+function getActionDefs() {
+  const e = combat.enemy; if (!e) return [];
+  const wep = player.equipment.weapon;
+  const wepRange = wep ? wep.range : [0,2];
+  const dist = combat.distance;
+  const race = RACES.find(r=>r.id===player.race);
+
+  function atkPreview(mult) {
+    const th = getRollThresholds(player, e, mult, false);
+    const ch = tierChances(th);
+    const dmg = previewDamageRange(player, e, mult, false);
+    return { th, ch, dmg };
+  }
+
+  const actions = [
+    { id:'adv', icon:'🏃', name:'Advance', cost:`${Math.min(3,dist)} STA`, type:'move',
+      desc:`Close ${Math.min(3,dist)} distance. Costs 1 stamina per step.`,
+      canUse: dist>0 && player.stamina>=Math.min(3,dist), fn:pAdvance },
+    { id:'ret', icon:'🔙', name:'Retreat', cost:`${Math.min(3,10-dist)} STA`, type:'move',
+      desc:`Fall back ${Math.min(3,10-dist)} distance. Costs 1 stamina per step.`,
+      canUse: dist<10 && player.stamina>=Math.min(3,10-dist), fn:pRetreat },
+    { id:'light', icon:'⚔️', name:'Quick Atk', cost:'4 STA', type:'light',
+      desc:'Fast strike. Low damage, reliable. Melee range only.', mult:0.7,
+      canUse: player.stamina>=4 && dist<=1, ...atkPreview(0.7), fn:pLightAtk },
+    { id:'heavy', icon:'💥', name:'Power Atk', cost:'8 STA', type:'heavy',
+      desc:'Devastating blow. High damage. Uses weapon range.', mult:1.4,
+      canUse: player.stamina>=8 && dist>=wepRange[0] && dist<=wepRange[1], ...atkPreview(1.4), fn:pHeavyAtk },
+    { id:'thrust', icon:'🔱', name:'Thrust', cost:'6 STA', type:'medium',
+      desc:'Extended reach attack. Medium damage. Range +2 from weapon.', mult:1.0,
+      canUse: player.stamina>=6 && dist<=(wep?wep.range[1]+2:3), ...atkPreview(1.0), fn:pThrust },
+    { id:'ranged', icon:'🏹', name:'Ranged', cost:'5 STA', type:'medium',
+      desc:'Ranged attack. Range 3-8 only.', mult:0.9,
+      canUse: player.stamina>=5 && dist>=3 && dist<=8, ...atkPreview(0.9), fn:pRanged },
+    { id:'defend', icon:'🛡️', name:'Defend', cost:'3 STA', type:'defend',
+      desc:'Defensive stance. Reduces incoming damage by 30% for 1 turn.',
+      canUse: player.stamina>=3, fn:pDefend },
+    { id:'taunt', icon:'📢', name:'Taunt', cost:'5 STA', type:'util',
+      desc:`Taunt the enemy. ${Math.floor(computeDerived(player.stats,player.equipment,player.race).taunt*100)}% chance to demoralize. Earn gold from crowd.`,
+      canUse: player.stamina>=5, fn:pTaunt },
+    { id:'spell', icon:'✨', name:'Spells', cost:'MP', type:'spell',
+      desc:'Open spell menu. Cast magic using mana.',
+      canUse: true, fn:() => toggleSpellMenu() },
+    { id:'rest', icon:'😴', name:'Rest', cost:'Free', type:'util',
+      desc:'Skip turn. Recover 50% stamina and mana.',
+      canUse: true, fn:pRest },
+  ];
+  if (player.race==='dragonknight') {
+    const fbDmg = Math.floor(15 + player.stats.STR*1.5);
+    actions.splice(-1, 0, { id:'fire', icon:'🔥', name:'Fire Breath', cost:'6 STA', type:'heavy',
+      desc:`Draconic fire. ~${fbDmg} fire damage + burn. Range 0-3.`,
+      canUse: player.stamina>=6 && dist<=3, fn:pFireBreath,
+      dmg: { graze:Math.floor(fbDmg*0.4), hit:fbDmg, strong:Math.floor(fbDmg*1.5), crit:Math.floor(fbDmg*2.2) } });
+  }
+  actions.push({ id:'flee', icon:'🚪', name:'Flee', cost:'50% Gold', type:'flee',
+    desc:'Escape combat. You lose half your gold.',
+    canUse: true, fn:() => { if(confirm('Flee? You lose 50% of your gold!')) pFlee(); } });
+  return actions;
+}
+
+let selectedActionId = null;
+
 function renderCombatHUD() {
   const top = document.getElementById('combat-top');
   const hud = document.getElementById('combat-hud');
+  const e = combat.enemy;
+  const pRace = RACES.find(r=>r.id===player.race);
+  const eRace = RACES.find(r=>r.id===e?.race);
+  const pDerived = computeDerived(player.stats, player.equipment, player.race);
+
   top.innerHTML = `
     <div class="ct-row">
       <div class="ct-fighter">
-        <div class="ct-name player-name">${player.name} Lv${player.level}</div>
+        <div class="ct-portrait">
+          <div class="ct-avatar player-av">${pRace?.icon||'🧑'}</div>
+          <div class="ct-info">
+            <div class="ct-name player-name">${player.name}</div>
+            <div class="ct-sub">Lv${player.level} ${pRace?.name||'Unknown'} · Dodge ${Math.floor(pDerived.dodge*100)}%</div>
+          </div>
+        </div>
         <div class="ct-bars">
-          <div class="bar-wrap bar-hp ct-bar" id="p-hp-bar"><div class="bar-fill" id="p-hp-fill"></div><div class="bar-text" id="p-hp-text"></div></div>
+          <div class="bar-wrap bar-hp ct-bar"><div class="bar-fill" id="p-hp-fill"></div><div class="bar-text" id="p-hp-text"></div></div>
           <div class="bar-wrap bar-sta ct-bar"><div class="bar-fill" id="p-sta-fill"></div><div class="bar-text" id="p-sta-text"></div></div>
           <div class="bar-wrap bar-mana ct-bar"><div class="bar-fill" id="p-mana-fill"></div><div class="bar-text" id="p-mana-text"></div></div>
         </div>
         <div class="ct-status" id="p-status"></div>
       </div>
-      <div class="ct-vs">VS</div>
+      <div class="ct-vs">⚔</div>
       <div class="ct-fighter" style="text-align:right">
-        <div class="ct-name enemy-name" id="e-name"></div>
+        <div class="ct-portrait" style="flex-direction:row-reverse">
+          <div class="ct-avatar enemy-av">${eRace?.icon||'👹'}</div>
+          <div class="ct-info" style="text-align:right">
+            <div class="ct-name enemy-name" id="e-name"></div>
+            <div class="ct-sub" id="e-sub" style="text-align:right"></div>
+          </div>
+        </div>
         <div class="ct-bars">
           <div class="bar-wrap bar-hp ct-bar"><div class="bar-fill" id="e-hp-fill"></div><div class="bar-text" id="e-hp-text"></div></div>
           <div class="bar-wrap bar-sta ct-bar"><div class="bar-fill" id="e-sta-fill"></div><div class="bar-text" id="e-sta-text"></div></div>
@@ -2847,77 +3058,140 @@ function renderCombatHUD() {
     <div class="ct-turn" id="ct-turn"></div>
     <div class="ct-distance" id="ct-dist"></div>`;
 
-  hud.innerHTML = `
-    <div class="combat-actions">
-      <button class="action-btn" id="ab-adv"><span class="ab-icon">🏃</span><span class="ab-name">Advance</span><span class="ab-cost">1/step</span></button>
-      <button class="action-btn" id="ab-ret"><span class="ab-icon">🔙</span><span class="ab-name">Retreat</span><span class="ab-cost">1/step</span></button>
-      <button class="action-btn" id="ab-light"><span class="ab-icon">⚔️</span><span class="ab-name">Light</span><span class="ab-cost">4 sta</span></button>
-      <button class="action-btn" id="ab-heavy"><span class="ab-icon">💥</span><span class="ab-name">Heavy</span><span class="ab-cost">8 sta</span></button>
-      <button class="action-btn" id="ab-thrust"><span class="ab-icon">🔱</span><span class="ab-name">Thrust</span><span class="ab-cost">6 sta</span></button>
-      <button class="action-btn" id="ab-ranged"><span class="ab-icon">🏹</span><span class="ab-name">Ranged</span><span class="ab-cost">5 sta</span></button>
-      <button class="action-btn" id="ab-defend"><span class="ab-icon">🛡️</span><span class="ab-name">Defend</span><span class="ab-cost">3 sta</span></button>
-      <button class="action-btn" id="ab-taunt"><span class="ab-icon">📢</span><span class="ab-name">Taunt</span><span class="ab-cost">5 sta</span></button>
-      <button class="action-btn" id="ab-spell"><span class="ab-icon">✨</span><span class="ab-name">Spell</span><span class="ab-cost">mana</span></button>
-      <button class="action-btn" id="ab-rest"><span class="ab-icon">😴</span><span class="ab-name">Rest</span><span class="ab-cost">free</span></button>
-      ${player.race==='dragonknight'?'<button class="action-btn" id="ab-fire"><span class="ab-icon">🔥</span><span class="ab-name">Fire</span><span class="ab-cost">6 sta</span></button>':''}
-      <button class="action-btn" id="ab-flee" style="border-color:#ff4444"><span class="ab-icon">🚪</span><span class="ab-name">Flee</span><span class="ab-cost">50% gold</span></button>
-    </div>`;
-
-  document.getElementById('ab-adv').onclick = () => { if(combat.playerTurn&&!combat.animating) pAdvance(); };
-  document.getElementById('ab-ret').onclick = () => { if(combat.playerTurn&&!combat.animating) pRetreat(); };
-  document.getElementById('ab-light').onclick = () => { if(combat.playerTurn&&!combat.animating) pLightAtk(); };
-  document.getElementById('ab-heavy').onclick = () => { if(combat.playerTurn&&!combat.animating) pHeavyAtk(); };
-  document.getElementById('ab-thrust').onclick = () => { if(combat.playerTurn&&!combat.animating) pThrust(); };
-  document.getElementById('ab-ranged').onclick = () => { if(combat.playerTurn&&!combat.animating) pRanged(); };
-  document.getElementById('ab-defend').onclick = () => { if(combat.playerTurn&&!combat.animating) pDefend(); };
-  document.getElementById('ab-taunt').onclick = () => { if(combat.playerTurn&&!combat.animating) pTaunt(); };
-  document.getElementById('ab-rest').onclick = () => { if(combat.playerTurn&&!combat.animating) pRest(); };
-  document.getElementById('ab-spell').onclick = () => { if(combat.playerTurn&&!combat.animating) toggleSpellMenu(); };
-  if(player.race==='dragonknight') {
-    const fb=document.getElementById('ab-fire');
-    if(fb) fb.onclick = () => { if(combat.playerTurn&&!combat.animating) pFireBreath(); };
-  }
-  document.getElementById('ab-flee').onclick = () => { if(combat.playerTurn&&!combat.animating) { if(confirm('Flee? You lose 50% of your gold!')) pFlee(); } };
-
+  renderCombatActions();
   updateCombatHUD();
+}
+
+function renderCombatActions() {
+  const hud = document.getElementById('combat-hud');
+  const actions = getActionDefs();
+
+  let btns = '';
+  actions.forEach(a => {
+    const hasDmg = a.dmg && a.ch;
+    let dmgHtml = '';
+    if (hasDmg) {
+      const hitPct = a.ch.hit + a.ch.strong + a.ch.crit;
+      dmgHtml = `<span class="ab-dmg" style="color:${ROLL_TIERS[2].color}">${a.dmg.hit}</span>`;
+      dmgHtml += `<span class="ab-tiers">${hitPct}% hit · ${a.ch.crit}% crit</span>`;
+    }
+    btns += `<button class="action-btn ab-type-${a.type}" id="ab-${a.id}" data-action="${a.id}">
+      <span class="ab-icon">${a.icon}</span>
+      <span class="ab-name">${a.name}</span>
+      ${dmgHtml}
+      <span class="ab-cost">${a.cost}</span>
+    </button>`;
+  });
+
+  hud.innerHTML = `
+    <div class="action-info" id="action-info">
+      <span class="ai-icon">🎲</span>
+      <div class="ai-body">
+        <div class="ai-name">Roll 2d10 for each attack</div>
+        <div class="ai-desc">Tap an action to see damage tiers. Higher stats = better rolls needed.</div>
+      </div>
+    </div>
+    <div class="combat-actions">${btns}</div>`;
+
+  // Wire up click handlers and info panel hover
+  actions.forEach(a => {
+    const btn = document.getElementById(`ab-${a.id}`);
+    if (!btn) return;
+    // Long-press / hover shows info
+    btn.addEventListener('pointerenter', () => showActionInfo(a));
+    btn.addEventListener('pointerdown', (ev) => {
+      selectedActionId = a.id;
+      showActionInfo(a);
+    });
+    btn.onclick = () => {
+      if (combat.playerTurn && !combat.animating) a.fn();
+    };
+  });
+}
+
+function showActionInfo(a) {
+  const info = document.getElementById('action-info');
+  if (!info) return;
+  const hasDmg = a.dmg && a.ch;
+  let tiersHtml = '';
+  if (hasDmg) {
+    tiersHtml = `<div class="ai-tiers">
+      <span class="ai-tier t-miss">Miss ${a.ch.miss}%</span>
+      <span class="ai-tier t-graze">Graze ${a.ch.graze}%: ${a.dmg.graze}</span>
+      <span class="ai-tier t-hit">Hit ${a.ch.hit}%: ${a.dmg.hit}</span>
+      <span class="ai-tier t-strong">Strong ${a.ch.strong}%: ${a.dmg.strong}</span>
+      <span class="ai-tier t-crit">CRIT ${a.ch.crit}%: ${a.dmg.crit}</span>
+    </div>`;
+  }
+  info.innerHTML = `
+    <span class="ai-icon">${a.icon}</span>
+    <div class="ai-body">
+      <div class="ai-name">${a.name} <span style="color:var(--iris-mid);font-weight:400">${a.cost}</span></div>
+      <div class="ai-desc">${a.desc}</div>
+      ${tiersHtml}
+    </div>`;
 }
 
 function updateCombatHUD() {
   const e = combat.enemy; if(!e) return;
+  const eRace = RACES.find(r=>r.id===e.race);
+  const eDerived = computeDerived(e.stats, emptyEquip(), e.race);
   // Player bars
   document.getElementById('p-hp-fill').style.width = `${player.hp/player.maxHp*100}%`;
-  document.getElementById('p-hp-text').textContent = `${player.hp}/${player.maxHp}`;
+  document.getElementById('p-hp-text').textContent = `${player.hp} / ${player.maxHp}`;
   document.getElementById('p-sta-fill').style.width = `${player.stamina/player.maxStamina*100}%`;
-  document.getElementById('p-sta-text').textContent = `${player.stamina}/${player.maxStamina}`;
+  document.getElementById('p-sta-text').textContent = `${player.stamina} / ${player.maxStamina}`;
   document.getElementById('p-mana-fill').style.width = `${player.mana/player.maxMana*100}%`;
-  document.getElementById('p-mana-text').textContent = `${player.mana}/${player.maxMana}`;
+  document.getElementById('p-mana-text').textContent = `${player.mana} / ${player.maxMana}`;
   // Enemy bars
-  document.getElementById('e-name').textContent = `${e.name} Lv${e.level}`;
+  const eName = document.getElementById('e-name');
+  if (eName) eName.textContent = `${e.name}`;
+  const eSub = document.getElementById('e-sub');
+  if (eSub) eSub.textContent = `Lv${e.level} ${eRace?.name||'?'} · Dodge ${Math.floor(eDerived.dodge*100)}%`;
   document.getElementById('e-hp-fill').style.width = `${e.hp/e.maxHp*100}%`;
-  document.getElementById('e-hp-text').textContent = `${e.hp}/${e.maxHp}`;
+  document.getElementById('e-hp-text').textContent = `${e.hp} / ${e.maxHp}`;
   document.getElementById('e-sta-fill').style.width = `${e.stamina/e.maxStamina*100}%`;
-  document.getElementById('e-sta-text').textContent = `${e.stamina}/${e.maxStamina}`;
+  document.getElementById('e-sta-text').textContent = `${e.stamina} / ${e.maxStamina}`;
   // Status icons
   document.getElementById('p-status').innerHTML = (player.statusFx||[]).map(s=>`<span class="ct-status-icon" title="${s.id}">${STATUS_FX[s.id]?.icon||'?'}${s.turns}</span>`).join('');
   document.getElementById('e-status').innerHTML = (e.statusFx||[]).map(s=>`<span class="ct-status-icon" title="${s.id}">${STATUS_FX[s.id]?.icon||'?'}${s.turns}</span>`).join('');
   // Turn & distance
-  document.getElementById('ct-turn').textContent = combat.playerTurn ? 'YOUR TURN' : 'ENEMY TURN';
-  document.getElementById('ct-dist').textContent = `Distance: ${combat.distance} ${combat.distance<=1?'(Melee)':combat.distance<=3?'(Mid)':combat.distance<=6?'(Ranged)':'(Extreme)'}`;
+  document.getElementById('ct-turn').textContent = combat.playerTurn ? '— YOUR TURN —' : '— ENEMY TURN —';
+  document.getElementById('ct-dist').textContent = `Distance: ${combat.distance} ${combat.distance<=1?'⚔ Melee':combat.distance<=3?'🗡 Mid Range':combat.distance<=6?'🏹 Ranged':'💨 Extreme'}`;
+  // Re-render action buttons to update damage previews and canUse
+  renderCombatActions();
   // Disable buttons during enemy turn or animation
   const dis = !combat.playerTurn || combat.animating;
-  document.querySelectorAll('.action-btn').forEach(b => b.classList.toggle('disabled', dis));
+  document.querySelectorAll('.action-btn').forEach(b => {
+    const actionId = b.dataset.action;
+    const actions = getActionDefs();
+    const a = actions.find(x => x.id === actionId);
+    b.classList.toggle('disabled', dis || (a && !a.canUse));
+  });
 }
 
 function toggleSpellMenu() {
   const menu = document.getElementById('spell-menu');
   if (menu.classList.contains('visible')) { menu.classList.remove('visible'); return; }
   const available = SPELLS.filter(sp => player.level >= sp.unlock);
+  const e = combat.enemy;
   menu.innerHTML = available.map(sp => {
     const cd = player.spellCooldowns[sp.id] || 0;
     const canCast = player.mana >= sp.mana && cd <= 0 && combat.distance >= sp.range[0] && combat.distance <= sp.range[1];
+    let dmgInfo = '';
+    if (sp.type === 'damage' && e) {
+      const dmg = previewDamageRange(player, e, 1.0, true, sp);
+      const th = getRollThresholds(player, e, 1.0, true);
+      const ch = tierChances(th);
+      dmgInfo = `<span class="sr-dmg">${dmg.hit} dmg · ${ch.hit+ch.strong+ch.crit}% hit</span>`;
+    } else if (sp.type === 'heal') {
+      const amt = Math.floor(sp.base + player.stats.MAG * sp.scale);
+      dmgInfo = `<span class="sr-dmg" style="color:#44ff44">+${amt} HP</span>`;
+    }
     return `<div class="spell-row ${canCast?'':'disabled'}" data-spell="${sp.id}">
-      <span style="font-size:clamp(16px,2.5dvh,22px)">${sp.icon}</span>
+      <span class="sr-icon">${sp.icon}</span>
       <span class="sr-name">${sp.name}</span>
+      ${dmgInfo}
       <span class="sr-cost">${sp.mana} MP</span>
       ${cd>0?`<span class="sr-cd">CD:${cd}</span>`:''}
     </div>`;
