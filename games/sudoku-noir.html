@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Sudoku Noir — Iris Moon Arcade</title>
+<title>Sudoku Noir — Maas Arcade</title>
 <meta name="theme-color" content="#0d0a1a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -361,6 +361,7 @@
       <div class="game-title text-gradient">Sudoku Noir</div>
       <div class="game-subtitle">CLASSIC NUMBER PUZZLE</div>
     </div>
+    <button id="skin-toggle" style="width:28px;height:28px;border-radius:50%;border:none;cursor:pointer;background:var(--game-accent);box-shadow:0 0 8px var(--game-glow);flex-shrink:0;" title="Change skin"></button>
   </div>
 
   <!-- Score Bar / Info -->
@@ -383,7 +384,7 @@
   <div class="controls-row">
     <button class="ctrl-btn" id="btn-undo" onclick="doUndo()">Undo</button>
     <button class="ctrl-btn" id="btn-redo" onclick="doRedo()">Redo</button>
-    <button class="ctrl-btn" id="btn-hint" onclick="useHint()">Hint (5&#127801;)</button>
+    <button class="ctrl-btn" id="btn-hint" onclick="useHint()">Hint (3&#127801;)</button>
     <button class="ctrl-btn" id="btn-errors" onclick="toggleErrors()">Errors</button>
     <button class="ctrl-btn" id="btn-new" onclick="showNewGameMenu()">New</button>
   </div>
@@ -445,10 +446,10 @@
   const SAVE_KEY = 'sudoku_noir_save';
 
   const DIFFICULTY = {
-    easy:   { min: 35, max: 40, label: 'Easy',   mult: 1 },
-    medium: { min: 28, max: 34, label: 'Medium', mult: 2 },
-    hard:   { min: 22, max: 27, label: 'Hard',   mult: 3 },
-    expert: { min: 17, max: 21, label: 'Expert', mult: 4 },
+    easy:   { min: 35, max: 40, label: 'Easy',   mult: 1, hintCost: 3 },
+    medium: { min: 28, max: 34, label: 'Medium', mult: 2, hintCost: 5 },
+    hard:   { min: 22, max: 27, label: 'Hard',   mult: 3, hintCost: 8 },
+    expert: { min: 17, max: 21, label: 'Expert', mult: 4, hintCost: 12 },
   };
 
   // ── State ──
@@ -456,6 +457,7 @@
   let puzzle = [];          // 9x9 puzzle (0 = empty)
   let board = [];           // 9x9 current player state
   let pencilMarks = [];     // 9x9 array of Sets
+  let candidateCache = [];  // 9x9 array of Sets — valid candidates per empty cell
   let selectedCell = null;  // { row, col }
   let difficulty = 'easy';
   let timerSeconds = 0;
@@ -533,6 +535,51 @@
     return true;
   }
 
+  // ── Candidate Cache ──
+  // Compute valid candidates for a single cell based on current board state
+  function computeCandidates(row, col) {
+    if (board[row][col] !== 0) return new Set();
+    const cands = new Set();
+    for (let n = 1; n <= 9; n++) {
+      if (isValid(board, row, col, n)) cands.add(n);
+    }
+    return cands;
+  }
+
+  // Rebuild entire candidate cache from scratch
+  function rebuildCandidateCache() {
+    candidateCache = Array.from({ length: 9 }, (_, r) =>
+      Array.from({ length: 9 }, (_, c) => computeCandidates(r, c))
+    );
+  }
+
+  // Update candidate cache for all cells affected by a change at (row, col)
+  function updateCandidateCacheFor(row, col) {
+    // Update the changed cell itself
+    candidateCache[row][col] = computeCandidates(row, col);
+    // Update same row
+    for (let c = 0; c < 9; c++) {
+      if (c !== col) candidateCache[row][c] = computeCandidates(row, c);
+    }
+    // Update same col
+    for (let r = 0; r < 9; r++) {
+      if (r !== row) candidateCache[r][col] = computeCandidates(r, col);
+    }
+    // Update same box
+    const br = Math.floor(row / 3) * 3;
+    const bc = Math.floor(col / 3) * 3;
+    for (let r = br; r < br + 3; r++) {
+      for (let c = bc; c < bc + 3; c++) {
+        if (r !== row || c !== col) candidateCache[r][c] = computeCandidates(r, c);
+      }
+    }
+  }
+
+  // Get cached candidates for a cell
+  function getCandidates(row, col) {
+    return candidateCache[row][col] || new Set();
+  }
+
   // Fill diagonal 3x3 boxes (independent, no conflict possible between them)
   function fillDiagonalBoxes(grid) {
     for (let box = 0; box < 3; box++) {
@@ -548,13 +595,20 @@
     }
   }
 
+  // Iteration budget for generator — abandon and restart if exceeded
+  const GENERATOR_ITER_LIMIT = 500000;
+  let generatorIterations = 0;
+
   // Solve grid with backtracking — returns true if solvable
+  // Throws if iteration limit exceeded
   function solveGrid(grid) {
     for (let r = 0; r < 9; r++) {
       for (let c = 0; c < 9; c++) {
         if (grid[r][c] === 0) {
           const nums = shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9]);
           for (const n of nums) {
+            generatorIterations++;
+            if (generatorIterations > GENERATOR_ITER_LIMIT) throw new Error('iter_limit');
             if (isValid(grid, r, c, n)) {
               grid[r][c] = n;
               if (solveGrid(grid)) return true;
@@ -569,6 +623,7 @@
   }
 
   // Count solutions (up to limit) for uniqueness check
+  // Throws if iteration limit exceeded
   function countSolutions(grid, limit = 2) {
     let count = 0;
 
@@ -578,6 +633,8 @@
         for (let c = 0; c < 9; c++) {
           if (g[r][c] === 0) {
             for (let n = 1; n <= 9; n++) {
+              generatorIterations++;
+              if (generatorIterations > GENERATOR_ITER_LIMIT) throw new Error('iter_limit');
               if (isValid(g, r, c, n)) {
                 g[r][c] = n;
                 solve(g);
@@ -597,49 +654,65 @@
     return count;
   }
 
-  // Generate a complete solved grid
+  // Generate a complete solved grid (with retry on iteration limit)
   function generateSolution() {
-    const grid = createEmptyGrid();
-    fillDiagonalBoxes(grid);
-    solveGrid(grid);
-    return grid;
+    while (true) {
+      try {
+        generatorIterations = 0;
+        const grid = createEmptyGrid();
+        fillDiagonalBoxes(grid);
+        solveGrid(grid);
+        return grid;
+      } catch (e) {
+        if (e.message === 'iter_limit') continue; // retry
+        throw e;
+      }
+    }
   }
 
-  // Remove numbers to create puzzle with unique solution
+  // Remove numbers to create puzzle with unique solution (with retry on iteration limit)
   function generatePuzzle(sol, diff) {
-    const cfg = DIFFICULTY[diff];
-    const givens = cfg.min + Math.floor(Math.random() * (cfg.max - cfg.min + 1));
-    const toRemove = 81 - givens;
+    while (true) {
+      try {
+        generatorIterations = 0;
+        const cfg = DIFFICULTY[diff];
+        const givens = cfg.min + Math.floor(Math.random() * (cfg.max - cfg.min + 1));
+        const toRemove = 81 - givens;
 
-    // Copy the solution
-    const puz = sol.map(r => [...r]);
+        // Copy the solution
+        const puz = sol.map(r => [...r]);
 
-    // Create list of all cells and shuffle
-    const cells = [];
-    for (let r = 0; r < 9; r++) {
-      for (let c = 0; c < 9; c++) {
-        cells.push([r, c]);
+        // Create list of all cells and shuffle
+        const cells = [];
+        for (let r = 0; r < 9; r++) {
+          for (let c = 0; c < 9; c++) {
+            cells.push([r, c]);
+          }
+        }
+        shuffle(cells);
+
+        let removed = 0;
+        for (const [r, c] of cells) {
+          if (removed >= toRemove) break;
+
+          const backup = puz[r][c];
+          puz[r][c] = 0;
+
+          // Check uniqueness
+          const testGrid = puz.map(row => [...row]);
+          if (countSolutions(testGrid, 2) === 1) {
+            removed++;
+          } else {
+            puz[r][c] = backup; // restore — removing breaks uniqueness
+          }
+        }
+
+        return puz;
+      } catch (e) {
+        if (e.message === 'iter_limit') continue; // retry with fresh attempt
+        throw e;
       }
     }
-    shuffle(cells);
-
-    let removed = 0;
-    for (const [r, c] of cells) {
-      if (removed >= toRemove) break;
-
-      const backup = puz[r][c];
-      puz[r][c] = 0;
-
-      // Check uniqueness
-      const testGrid = puz.map(row => [...row]);
-      if (countSolutions(testGrid, 2) === 1) {
-        removed++;
-      } else {
-        puz[r][c] = backup; // restore — removing breaks uniqueness
-      }
-    }
-
-    return puz;
   }
 
   // ══════════════════════════════════════════
@@ -662,6 +735,7 @@
     pencilMarks = Array.from({ length: 9 }, () =>
       Array.from({ length: 9 }, () => new Set())
     );
+    rebuildCandidateCache();
 
     diffDisplay.textContent = DIFFICULTY[diff].label.toUpperCase();
     updateTimerDisplay();
@@ -675,6 +749,7 @@
     // Update button states
     updatePencilButton();
     updateErrorButton();
+    updateHintButton();
   }
 
   function resumeGame() {
@@ -691,6 +766,7 @@
     pencilMarks = saved.pencilMarks.map(row =>
       row.map(marks => new Set(marks))
     );
+    rebuildCandidateCache();
     timerSeconds = saved.timerSeconds;
     undoStack = saved.undoStack || [];
     redoStack = saved.redoStack || [];
@@ -707,6 +783,7 @@
     startTimer();
     updatePencilButton();
     updateErrorButton();
+    updateHintButton();
   }
 
   function showNewGameMenu() {
@@ -887,6 +964,7 @@
 
       board[row][col] = num;
       pencilMarks[row][col].clear();
+      updateCandidateCacheFor(row, col);
 
       action.pencilAfter = new Set(pencilMarks[row][col]);
 
@@ -923,6 +1001,7 @@
 
     board[row][col] = 0;
     pencilMarks[row][col].clear();
+    updateCandidateCacheFor(row, col);
 
     action.valueAfter = 0;
     action.pencilAfter = new Set();
@@ -1075,6 +1154,7 @@
       board[row][col] = action.before;
     }
 
+    updateCandidateCacheFor(row, col);
     selectedCell = { row, col };
     renderBoard();
     buildNumpad();
@@ -1102,6 +1182,7 @@
       board[row][col] = action.after;
     }
 
+    updateCandidateCacheFor(row, col);
     selectedCell = { row, col };
     renderBoard();
     buildNumpad();
@@ -1112,6 +1193,16 @@
   // ══════════════════════════════════════════
   //  HINT SYSTEM
   // ══════════════════════════════════════════
+
+  function getHintCost() {
+    return DIFFICULTY[difficulty].hintCost;
+  }
+
+  function updateHintButton() {
+    const cost = getHintCost();
+    const btnHint = document.getElementById('btn-hint');
+    if (btnHint) btnHint.innerHTML = 'Hint (' + cost + '&#127801;)';
+  }
 
   function useHint() {
     if (gameOver) return;
@@ -1128,8 +1219,9 @@
 
     if (candidates.length === 0) return;
 
-    // Spend petals
-    if (!ArcadeData.spendPetals(5)) {
+    // Spend petals (cost scales by difficulty)
+    const cost = getHintCost();
+    if (!ArcadeData.spendPetals(cost)) {
       // Flash the hint button to indicate insufficient petals
       const btn = document.getElementById('btn-hint');
       btn.style.color = 'var(--error-red)';
@@ -1160,6 +1252,7 @@
 
     board[r][c] = correctVal;
     pencilMarks[r][c].clear();
+    updateCandidateCacheFor(r, c);
     clearRelatedPencilMarks(r, c, correctVal);
     pushUndo(action);
 
@@ -1382,6 +1475,21 @@
   window.doRedo = doRedo;
   window.useHint = useHint;
   window.toggleErrors = toggleErrors;
+
+  // ── Skin Toggle ──
+  const skinToggleBtn = document.getElementById('skin-toggle');
+  const gameSkins = ThemeManager.GAME_SKINS[GAME_ID];
+  let currentSkinIdx = ThemeManager.getGameSkin(GAME_ID);
+
+  skinToggleBtn.addEventListener('click', () => {
+    if (!gameSkins || gameSkins.length === 0) return;
+    currentSkinIdx = (currentSkinIdx + 1) % gameSkins.length;
+    ThemeManager.setGameSkin(GAME_ID, currentSkinIdx);
+    skinToggleBtn.style.background = 'var(--game-accent)';
+    skinToggleBtn.style.boxShadow = '0 0 8px var(--game-glow)';
+    AudioManager.playClick();
+    haptic('light');
+  });
 
   // ── Start ──
   init();

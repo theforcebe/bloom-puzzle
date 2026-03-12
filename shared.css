@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════
-   IRIS MOON ARCADE — Design System
-   "Neon Art Nouveau" — futuristic + ornamental
+   MAAS ARCADE — Design System
+   "Star Wars × Lord of the Rings × Tron" — epic sci-fantasy neon
    ═══════════════════════════════════════════════════════════════ */
 
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Quicksand:wght@300;400;500;600&display=swap');
@@ -446,6 +446,15 @@ body.hub-page html {
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+@keyframes screenShake {
+  0%, 100% { transform: translate(0, 0); }
+  10% { transform: translate(-3px, 2px); }
+  30% { transform: translate(3px, -2px); }
+  50% { transform: translate(-2px, -1px); }
+  70% { transform: translate(2px, 1px); }
+  90% { transform: translate(-1px, -1px); }
 }
 
 /* ── Difficulty / Level Selector ── */

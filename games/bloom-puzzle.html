@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Bloom Puzzle — Iris Moon Arcade</title>
+<title>Bloom Puzzle — Maas Arcade</title>
 <meta name="theme-color" content="#0d0a1a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -60,11 +60,28 @@
   }
 
   .cell.ghost {
-    background: rgba(255, 107, 157, 0.15);
+    background: rgba(255, 107, 157, 0.35);
+    animation: ghostPulse 1s ease infinite;
+    border: 1px solid rgba(255,107,157,0.3);
   }
 
   .cell.ghost-invalid {
-    background: rgba(255, 60, 60, 0.12);
+    background: rgba(255, 60, 60, 0.25);
+  }
+
+  @keyframes ghostPulse {
+    0%, 100% { opacity: 0.35; }
+    50% { opacity: 0.5; }
+  }
+
+  .cell.just-placed .petal-inner {
+    animation: placeBounce 0.3s ease;
+  }
+
+  @keyframes placeBounce {
+    0% { transform: scale(0.5); opacity: 0.5; }
+    50% { transform: scale(1.15); }
+    100% { transform: scale(1); opacity: 1; }
   }
 
   /* ── Piece Tray ── */
@@ -139,7 +156,8 @@
   }
 
   .drag-ghost.active {
-    opacity: 0.85;
+    opacity: 0.95;
+    filter: drop-shadow(0 0 12px var(--game-glow));
   }
 
   .drag-ghost .ghost-cell {
@@ -259,9 +277,10 @@
   <div class="game-header">
     <a class="btn-back" href="../index.html">&#8592;</a>
     <div style="text-align:center;">
-      <div class="game-subtitle">Iris Moon Arcade</div>
+      <div class="game-subtitle">Maas Arcade</div>
       <div class="game-title text-gradient">Bloom Puzzle</div>
     </div>
+    <button id="skin-toggle" style="width:28px;height:28px;border-radius:50%;border:none;cursor:pointer;background:var(--game-accent);box-shadow:0 0 8px var(--game-glow);flex-shrink:0;" title="Change skin"></button>
   </div>
 
   <!-- Score Bar -->
@@ -643,9 +662,15 @@
     AudioManager.playPlace();
     haptic('light');
 
-    // Update board cells
+    // Update board cells with place bounce
     for (const [dr, dc] of piece.shape) {
       updateCell(anchorRow + dr, anchorCol + dc);
+      const idx = (anchorRow + dr) * GRID + (anchorCol + dc);
+      const cellEl = boardEl.children[idx];
+      if (cellEl) {
+        cellEl.classList.add('just-placed');
+        setTimeout(() => cellEl.classList.remove('just-placed'), 300);
+      }
     }
 
     // Mark piece as placed in tray
@@ -717,6 +742,8 @@
 
     AudioManager.playClear();
     haptic('medium');
+    screenShake();
+    if (combo > 1) boardFlash();
 
     // Animate clearing
     const cellsToClear = new Set();
@@ -739,7 +766,7 @@
         const cx = rect.left + rect.width / 2;
         const cy = rect.top + rect.height / 2;
         const color = PETAL_COLOR_MAP[board[r][c]] || '#d4728c';
-        particles.spawn(cx, cy, color, 4);
+        particles.spawn(cx, cy, color, 8);
       }
     }
 
@@ -778,6 +805,26 @@
     comboEl.classList.add('show');
 
     setTimeout(() => comboEl.classList.remove('show'), 1300);
+  }
+
+  function screenShake() {
+    const el = document.querySelector('.board-wrap');
+    let frames = 0;
+    const shake = () => {
+      if (frames > 6) { el.style.transform = ''; return; }
+      const x = (Math.random() - 0.5) * (6 - frames);
+      const y = (Math.random() - 0.5) * (6 - frames);
+      el.style.transform = `translate(${x}px, ${y}px)`;
+      frames++;
+      requestAnimationFrame(shake);
+    };
+    shake();
+  }
+
+  function boardFlash() {
+    const el = document.querySelector('.board');
+    el.style.boxShadow = '0 0 40px var(--game-glow), inset 0 0 30px var(--game-glow)';
+    setTimeout(() => { el.style.boxShadow = ''; }, 250);
   }
 
   // ═══════════════════════════════════════════
@@ -1052,6 +1099,32 @@
     haptic('light');
     newGame();
   });
+
+  // ═══════════════════════════════════════════
+  //  Skin Toggle
+  // ═══════════════════════════════════════════
+
+  const skinBtn = document.getElementById('skin-toggle');
+  skinBtn.addEventListener('click', () => {
+    const skins = ThemeManager.GAME_SKINS['bloom-puzzle'];
+    if (!skins) return;
+    let current = ThemeManager.getGameSkin('bloom-puzzle') || 0;
+    const nextIdx = (current + 1) % skins.length;
+    ThemeManager.setGameSkin('bloom-puzzle', nextIdx);
+    skinBtn.style.background = skins[nextIdx].accent;
+    skinBtn.style.boxShadow = `0 0 8px ${skins[nextIdx].glow}`;
+    AudioManager.playClick();
+    haptic('light');
+  });
+
+  // Set initial skin button color
+  (function initSkinBtn() {
+    const skins = ThemeManager.GAME_SKINS['bloom-puzzle'];
+    if (!skins) return;
+    const idx = ThemeManager.getGameSkin('bloom-puzzle') || 0;
+    skinBtn.style.background = skins[idx].accent;
+    skinBtn.style.boxShadow = `0 0 8px ${skins[idx].glow}`;
+  })();
 
   // ═══════════════════════════════════════════
   //  Start

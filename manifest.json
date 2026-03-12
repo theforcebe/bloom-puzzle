@@ -1,7 +1,7 @@
 {
-  "name": "Iris Moon Arcade",
-  "short_name": "Iris Arcade",
-  "description": "A neon art nouveau game arcade by Iris Moon Design Co.",
+  "name": "Maas Arcade",
+  "short_name": "Maas Arcade",
+  "description": "Where galaxies collide with legend — Maas Design Co.",
   "start_url": "./index.html",
   "display": "standalone",
   "orientation": "any",

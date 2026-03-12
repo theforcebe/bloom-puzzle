@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Neon 2048 — Iris Moon Arcade</title>
+<title>Obi's Block Game — Maas Arcade</title>
 <meta name="theme-color" content="#0d0a1a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -278,11 +278,48 @@
   @media (pointer: coarse) {
     .keyboard-hint { display: none; }
   }
+
+  /* ── Obi's Background Photo ── */
+  .obi-bg {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .obi-bg img {
+    position: absolute;
+    /* Photo is rotated 90deg CCW, so rotate it back */
+    transform: rotate(90deg);
+    transform-origin: center center;
+    /* Position so puppy head is at top, game board sits below chin */
+    width: auto;
+    height: 140vw;
+    top: -25%;
+    left: 50%;
+    margin-left: -70vw;
+    opacity: 0.35;
+    filter: brightness(0.7) saturate(0.8);
+  }
+  /* Dark overlay so tiles remain legible */
+  .obi-bg::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      180deg,
+      rgba(10,8,24,0.3) 0%,
+      rgba(10,8,24,0.65) 35%,
+      rgba(10,8,24,0.85) 55%,
+      rgba(10,8,24,0.95) 100%
+    );
+  }
 </style>
 </head>
 <body>
 
-<canvas class="bg-canvas" id="bg-canvas"></canvas>
+<div class="obi-bg"><img src="obi.jpg" alt="Obi the puppy"></div>
+<canvas class="bg-canvas" id="bg-canvas" style="opacity:0.3"></canvas>
 <canvas class="particle-canvas" id="particle-canvas"></canvas>
 
 <div class="game-page">
@@ -290,7 +327,7 @@
   <div class="game-header">
     <a class="btn-back" href="../index.html" aria-label="Back">&#8592;</a>
     <div>
-      <div class="game-title text-gradient">Neon 2048</div>
+      <div class="game-title text-gradient">Obi's Block Game</div>
       <div class="game-subtitle">Swipe &amp; Merge</div>
     </div>
   </div>

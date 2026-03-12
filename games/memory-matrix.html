@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Memory Matrix — Iris Moon Arcade</title>
+<title>Memory Matrix — Maas Arcade</title>
 <meta name="theme-color" content="#0d0a1a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -269,6 +269,13 @@
   margin-bottom: var(--spacing-sm);
   animation: fadeInUp 0.8s ease 0.4s both;
 }
+
+/* ── Streak HUD ── */
+#streak-display.active {
+  color: var(--neon-gold) !important;
+  text-shadow: 0 0 10px rgba(255,215,64,0.4);
+  animation: scorePop 0.4s ease;
+}
 </style>
 </head>
 <body>
@@ -285,10 +292,11 @@
   <!-- Header -->
   <div class="game-header">
     <a class="btn-back" onclick="goToHub()" aria-label="Back">&#9664;</a>
-    <div>
+    <div style="text-align:center;">
+      <div class="game-subtitle">Maas Arcade</div>
       <div class="game-title text-gradient">Memory Matrix</div>
-      <div class="game-subtitle">Flip &amp; Match</div>
     </div>
+    <button id="skin-toggle" style="width:28px;height:28px;border-radius:50%;border:none;cursor:pointer;background:var(--game-accent);box-shadow:0 0 8px var(--game-glow);flex-shrink:0;" title="Change skin"></button>
   </div>
 
   <!-- Difficulty Selector -->
@@ -313,6 +321,10 @@
     <div class="score-box">
       <div class="score-label">Time</div>
       <div class="score-value" id="timer-display">0:00</div>
+    </div>
+    <div class="score-box">
+      <div class="score-label">Streak</div>
+      <div class="score-value" id="streak-display">0</div>
     </div>
   </div>
 
@@ -402,6 +414,7 @@ const timerEl = document.getElementById('timer-display');
 const petalCountEl = document.getElementById('petal-count');
 const peekBtn = document.getElementById('peek-btn');
 const winOverlay = document.getElementById('win-overlay');
+const streakEl = document.getElementById('streak-display');
 
 // ── Background & Particles ──
 let ambientBg, particles;
@@ -453,6 +466,8 @@ function startGame() {
   movesEl.textContent = '0';
   matchesEl.textContent = '0';
   timerEl.textContent = '0:00';
+  streakEl.textContent = '0';
+  streakEl.classList.remove('active');
   updatePetalDisplay();
 
   winOverlay.classList.remove('visible');
@@ -495,6 +510,15 @@ function startGame() {
     gridEl.appendChild(card);
     cards.push(card);
   });
+
+  // Dynamic initial peek: show all cards briefly
+  const peekDuration = 1500 + (totalPairs * 100);
+  isLocked = true;
+  cards.forEach(card => card.classList.add('peek'));
+  setTimeout(() => {
+    cards.forEach(card => card.classList.remove('peek'));
+    isLocked = false;
+  }, peekDuration);
 }
 
 // ── Timer ──
@@ -564,6 +588,15 @@ function checkMatch() {
       matchesEl.textContent = matchedPairs;
       popScore(matchesEl);
 
+      // Update streak HUD
+      streakEl.textContent = streak;
+      if (streak >= 2) {
+        streakEl.classList.add('active');
+        streakEl.classList.remove('active');
+        void streakEl.offsetWidth;
+        streakEl.classList.add('active');
+      }
+
       AudioManager.playClear();
       haptic('medium');
 
@@ -587,6 +620,8 @@ function checkMatch() {
   } else {
     // Mismatch
     streak = 0;
+    streakEl.textContent = '0';
+    streakEl.classList.remove('active');
     setTimeout(() => {
       card1.classList.add('shake');
       card2.classList.add('shake');
@@ -637,15 +672,21 @@ function showCombo(streakCount) {
 }
 
 // ── Calculate Score ──
-// 1000 base - 10/miss - 1/second + 50 per streak match (2+ consecutive)
+// basePerMatch * boardSizeMultiplier - max(0, timePenalty) + streakBonus
+// Time penalty only applies over expected pace (pairs * 2 seconds)
 function calculateScore() {
   const misses = moves - matchedPairs;
-  let s = 1000;
-  s -= misses * 10;
-  s -= timerSeconds;
-  s += streakBonus;
+  const basePerMatch = 100;
+  // Board size multiplier: scales with total pairs
+  const boardSizeMultiplier = 1 + (totalPairs - 6) * 0.15; // easy=1.0, medium=1.3, hard=1.6, expert=2.35, master=2.8
+  const matchScore = totalPairs * basePerMatch * boardSizeMultiplier;
+  const missPenalty = misses * 15;
+  const expectedTime = totalPairs * 2; // 2 seconds per pair expected
+  const timePenalty = Math.max(0, timerSeconds - expectedTime) * 2;
 
-  return Math.max(s, 10); // minimum 10 points
+  let s = matchScore - missPenalty - timePenalty + streakBonus;
+
+  return Math.max(Math.round(s), 10); // minimum 10 points
 }
 
 // ── Handle Win ──
@@ -736,6 +777,32 @@ function playAgain() {
   haptic('light');
   startGame();
 }
+
+// ═══════════════════════════════════════════
+//  Skin Toggle
+// ═══════════════════════════════════════════
+
+const skinBtn = document.getElementById('skin-toggle');
+skinBtn.addEventListener('click', () => {
+  const skins = ThemeManager.GAME_SKINS['memory-matrix'];
+  if (!skins) return;
+  let current = ThemeManager.getGameSkin('memory-matrix') || 0;
+  const nextIdx = (current + 1) % skins.length;
+  ThemeManager.setGameSkin('memory-matrix', nextIdx);
+  skinBtn.style.background = skins[nextIdx].accent;
+  skinBtn.style.boxShadow = `0 0 8px ${skins[nextIdx].glow}`;
+  AudioManager.playClick();
+  haptic('light');
+});
+
+// Set initial skin button color
+(function initSkinBtn() {
+  const skins = ThemeManager.GAME_SKINS['memory-matrix'];
+  if (!skins) return;
+  const idx = ThemeManager.getGameSkin('memory-matrix') || 0;
+  skinBtn.style.background = skins[idx].accent;
+  skinBtn.style.boxShadow = `0 0 8px ${skins[idx].glow}`;
+})();
 
 // ── Init ──
 initSystems();

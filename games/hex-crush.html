@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Hex Crush — Iris Moon Arcade</title>
+<title>Hex Crush — Maas Arcade</title>
 <meta name="theme-color" content="#0d0a1a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -50,6 +50,30 @@
   gap: var(--spacing-md);
   animation: fadeInUp 0.8s ease 0.5s both;
 }
+
+/* Power-up pulsing glow */
+@keyframes powerUpGlow {
+  0%, 100% { box-shadow: 0 0 8px var(--game-glow), 0 0 16px var(--game-glow); }
+  50% { box-shadow: 0 0 16px var(--game-glow), 0 0 32px var(--game-glow), 0 0 48px var(--game-glow); }
+}
+
+/* Combo streak floating text */
+.streak-text {
+  position: fixed;
+  z-index: 65;
+  font-family: var(--font-display);
+  font-size: clamp(24px, 4dvh, 36px);
+  font-weight: 700;
+  pointer-events: none;
+  opacity: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  text-shadow: 0 0 12px currentColor;
+}
+
+.streak-text.show {
+  animation: comboFloat 1.2s ease forwards;
+}
 </style>
 </head>
 <body>
@@ -60,10 +84,11 @@
 <div class="game-page">
   <div class="game-header">
     <a class="btn-back" href="../index.html">&#8592;</a>
-    <div>
+    <div style="text-align:center;">
+      <div class="game-subtitle">Maas Arcade</div>
       <div class="game-title text-gradient">Hex Crush</div>
-      <div class="game-subtitle">Match &middot; Cascade &middot; Conquer</div>
     </div>
+    <button id="skin-toggle" style="width:28px;height:28px;border-radius:50%;border:none;cursor:pointer;background:var(--game-accent);box-shadow:0 0 8px var(--game-glow);flex-shrink:0;" title="Change skin"></button>
   </div>
 
   <div class="score-bar">
@@ -123,6 +148,7 @@ const COLORS = [
 ];
 
 const STONE_COLOR = '#5a5a6a';
+const MAX_STONES = 8;
 
 /* ── Neighbor offset tables for pointy-top, odd-r ──
    Row parity determines column offsets for diagonal neighbors.
@@ -148,6 +174,7 @@ let animating = false;
 let gameOver = false;
 let activeColors = 4;
 let chainMultiplier = 1;
+let comboStreak = 0;
 
 // Canvas
 const canvas = document.getElementById('game-canvas');
@@ -394,8 +421,21 @@ function drawCell(col, row, cell, isSwap) {
     ctx.fillRect(x - dr, y - dr, dr * 2, dr);
     ctx.restore();
 
-    // Power-up icon
+    // Power-up icon + pulsing glow
     if (cell.powerUp) {
+      // Pulsing glow ring around power-up cells
+      const glowPulse = 0.5 + 0.5 * Math.sin(Date.now() * 0.005);
+      ctx.save();
+      ctx.shadowColor = base;
+      ctx.shadowBlur = 12 + 12 * glowPulse;
+      ctx.strokeStyle = base;
+      ctx.lineWidth = 2 + glowPulse;
+      ctx.globalAlpha = 0.5 + 0.4 * glowPulse;
+      hexPath(x, y, dr + 4 + 2 * glowPulse);
+      ctx.stroke();
+      ctx.restore();
+
+      // Icon
       ctx.save();
       ctx.font = `bold ${dr * 0.7}px sans-serif`;
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -594,9 +634,11 @@ function addScore(pts) {
    ══════════════════════════════════════════ */
 async function processMatches() {
   chainMultiplier = 1;
+  let cascadeCount = 0;
   while (true) {
     const matches = findAllMatches();
     if (matches.size === 0) break;
+    cascadeCount++;
 
     const arr = [...matches].map(k => { const [c,r] = k.split(',').map(Number); return {col:c, row:r}; });
 
@@ -661,6 +703,14 @@ async function processMatches() {
 
     chainMultiplier *= 2;
     if (chainMultiplier >= 2) showCombo(chainMultiplier + 'x Chain!');
+  }
+
+  // Track combo streak (consecutive successful swap matches)
+  if (cascadeCount > 0) {
+    comboStreak++;
+    if (comboStreak >= 2) {
+      showStreakText('x' + comboStreak + '!');
+    }
   }
 
   if (score >= 2000) maybeAddStone();
@@ -773,16 +823,34 @@ function swap(c1, r1, c2, r2) {
 }
 
 /* ── Stone placement ── */
+function countStones() {
+  let count = 0;
+  for (let c = 0; c < COLS; c++) for (let r = 0; r < ROWS; r++) {
+    if (grid[c][r]?.colorIdx < 0) count++;
+  }
+  return count;
+}
+
 function maybeAddStone() {
   if (Math.random() > 0.08) return;
+  // Stone cap: don't add more if already at MAX_STONES
+  if (countStones() >= MAX_STONES) return;
   const cands = [];
   for (let c = 0; c < COLS; c++) for (let r = 0; r < ROWS; r++) {
     if (grid[c][r]?.colorIdx >= 0 && !grid[c][r].powerUp) cands.push({col:c,row:r});
   }
-  if (cands.length) {
-    const p = cands[Math.floor(Math.random() * cands.length)];
+  if (!cands.length) return;
+  // Try random candidates and check solvability before placing
+  for (let attempt = 0; attempt < Math.min(cands.length, 10); attempt++) {
+    const idx = Math.floor(Math.random() * cands.length);
+    const p = cands[idx];
+    const savedCell = grid[p.col][p.row];
     grid[p.col][p.row] = makeCell(-1);
+    if (hasValidMoves()) return; // Stone placed, game still solvable
+    grid[p.col][p.row] = savedCell; // Revert if no valid moves
+    cands.splice(idx, 1);
   }
+  // If no safe placement found, skip adding stone
 }
 
 /* ══════════════════════════════════════════
@@ -844,6 +912,7 @@ async function doSwap(c1, r1, c2, r2) {
     AudioManager.playPlace();
     await processMatches();
   } else {
+    comboStreak = 0; // Reset combo streak on failed swap
     AudioManager.playFail(); haptic('light');
     await animateSwap(c1, r1, c2, r2);
     swap(c1, r1, c2, r2);
@@ -858,6 +927,17 @@ function showCombo(text) {
   el.className = 'combo-text show';
   el.textContent = text;
   el.style.top = '40%';
+  el.style.color = COLORS[Math.floor(Math.random() * activeColors)].hex;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1200);
+}
+
+/* ── Streak floating text ── */
+function showStreakText(text) {
+  const el = document.createElement('div');
+  el.className = 'streak-text show';
+  el.textContent = text;
+  el.style.top = '32%';
   el.style.color = COLORS[Math.floor(Math.random() * activeColors)].hex;
   document.body.appendChild(el);
   setTimeout(() => el.remove(), 1200);
@@ -889,7 +969,7 @@ function gameLoop() {
 }
 
 function startGame() {
-  score = 0; moves = 0; activeColors = 4; chainMultiplier = 1;
+  score = 0; moves = 0; activeColors = 4; chainMultiplier = 1; comboStreak = 0;
   selectedHex = null; animating = false; gameOver = false;
   burstParticles = []; swapAnim = null;
 
@@ -911,6 +991,32 @@ document.getElementById('btn-restart').addEventListener('click', startGame);
 
 startGame();
 requestAnimationFrame(gameLoop);
+
+// ═══════════════════════════════════════════
+//  Skin Toggle
+// ═══════════════════════════════════════════
+
+const skinBtn = document.getElementById('skin-toggle');
+skinBtn.addEventListener('click', () => {
+  const skins = ThemeManager.GAME_SKINS['hex-crush'];
+  if (!skins) return;
+  let current = ThemeManager.getGameSkin('hex-crush') || 0;
+  const nextIdx = (current + 1) % skins.length;
+  ThemeManager.setGameSkin('hex-crush', nextIdx);
+  skinBtn.style.background = skins[nextIdx].accent;
+  skinBtn.style.boxShadow = `0 0 8px ${skins[nextIdx].glow}`;
+  AudioManager.playClick();
+  haptic('light');
+});
+
+// Set initial skin button color
+(function initSkinBtn() {
+  const skins = ThemeManager.GAME_SKINS['hex-crush'];
+  if (!skins) return;
+  const idx = ThemeManager.getGameSkin('hex-crush') || 0;
+  skinBtn.style.background = skins[idx].accent;
+  skinBtn.style.boxShadow = `0 0 8px ${skins[idx].glow}`;
+})();
 
 })();
 </script>

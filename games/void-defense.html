@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Galactic Defense — Iris Moon Arcade</title>
+<title>Galactic Defense — Maas Arcade</title>
 <meta name="theme-color" content="#0d0a1a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -87,6 +87,8 @@ html,body{overflow:hidden;position:fixed;inset:0;width:100%;height:100dvh;touch-
 /* Back / Pause — inline with HUD */
 .back-btn{background:rgba(30,24,50,0.7);border:1px solid var(--glass-border);border-radius:5px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--iris-light);font-size:14px;text-decoration:none;pointer-events:auto;flex-shrink:0}
 .pause-btn{background:rgba(30,24,50,0.7);border:1px solid var(--glass-border);border-radius:5px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--iris-light);font-size:12px;pointer-events:auto;flex-shrink:0}
+.skin-btn{background:rgba(30,24,50,0.7);border:1px solid var(--glass-border);border-radius:5px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--iris-light);font-size:12px;pointer-events:auto;flex-shrink:0;transition:all .15s}
+.skin-btn:active{background:rgba(74,63,107,0.6)}
 
 /* Placement ghost */
 .placement-range{position:fixed;z-index:5;pointer-events:none;border:2px dashed rgba(179,136,255,0.3);border-radius:50%;display:none}
@@ -101,16 +103,17 @@ html,body{overflow:hidden;position:fixed;inset:0;width:100%;height:100dvh;touch-
 <div class="hud" id="hud" style="display:none">
   <div class="hud-left">
     <a class="back-btn" href="../index.html">&#8592;</a>
-    <div class="hud-item"><span class="gold-icon">CR</span><span id="hudGold">650</span></div>
-    <div class="hud-item"><span class="life-icon">&#128737;</span><span id="hudLives">150</span></div>
+    <div class="hud-item"><span class="gold-icon">CR</span><span id="hudGold">500</span></div>
+    <div class="hud-item"><span class="life-icon">&#128737;</span><span id="hudLives">100</span></div>
   </div>
   <div class="hud-center">
-    <div class="hud-item">Wave <span id="hudWave">0/40</span></div>
+    <div class="hud-item">Wave <span id="hudWave">0/50</span></div>
   </div>
   <div class="hud-right">
     <div class="speed-btn active" data-speed="1">1x</div>
     <div class="speed-btn" data-speed="2">2x</div>
     <div class="speed-btn" data-speed="3">3x</div>
+    <div class="skin-btn" id="skinBtn" title="Cycle skin">&#127912;</div>
     <div class="pause-btn" id="pauseBtn">&#9208;</div>
   </div>
 </div>
@@ -169,10 +172,10 @@ const DPR = Math.min(window.devicePixelRatio || 1, 3);
 let STATE = 'menu'; // menu, between_waves, playing, paused, gameover, victory
 let gameSpeed = 1;
 let selectedMap = 0;
-let gold = 650;
-let lives = 150;
+let gold = 500;
+let lives = 100;
 let currentWave = 0;
-const TOTAL_WAVES = 40;
+const TOTAL_WAVES = 50;
 let totalPops = 0;
 let totalGoldEarned = 0;
 let totalTowersBuilt = 0;
@@ -265,15 +268,15 @@ const BLOOM_TYPES = {
   red:     { hp:1, speed:1.0, reward:1, color:'#ff4444', children:[], rbe:1, name:'TIE Scout' },
   blue:    { hp:1, speed:1.4, reward:1, color:'#4488ff', children:['red'], rbe:2, name:'TIE Fighter' },
   green:   { hp:1, speed:1.8, reward:1, color:'#44dd44', children:['blue'], rbe:3, name:'TIE Interceptor' },
-  yellow:  { hp:1, speed:3.2, reward:1, color:'#ffdd00', children:['green'], rbe:4, name:'TIE Bomber' },
-  pink:    { hp:1, speed:3.5, reward:1, color:'#ff88cc', children:['yellow'], rbe:5, name:'TIE Striker' },
+  yellow:  { hp:1, speed:3.5, reward:1, color:'#ffdd00', children:['green'], rbe:4, name:'TIE Bomber' },
+  pink:    { hp:1, speed:3.8, reward:1, color:'#ff88cc', children:['yellow'], rbe:5, name:'TIE Striker' },
   black:   { hp:1, speed:1.8, reward:2, color:'#444444', children:['pink','pink'], rbe:12, name:'Shadow Squad', immuneExplosion:true },
   white:   { hp:1, speed:2.0, reward:2, color:'#eeeeee', children:['pink','pink'], rbe:12, name:'Snow Squad', immuneFreeze:true },
   lead:    { hp:1, speed:1.0, reward:5, color:'#778899', children:['black','black'], rbe:25, name:'AT-ST', immuneSharp:true },
   rainbow: { hp:1, speed:2.2, reward:3, color:'rainbow', children:['black','white'], rbe:25, name:'Elite Squad' },
-  ceramic: { hp:10, speed:2.5, reward:10, color:'#cc7744', children:['rainbow','rainbow'], rbe:60, name:'AT-AT' },
-  moab:    { hp:200, speed:0.25, reward:50, color:'#8b0000', children:['ceramic','ceramic','ceramic','ceramic'], rbe:440, name:'Sith Lord', moabClass:true },
-  bfb:     { hp:700, speed:0.12, reward:100, color:'#4a0033', children:['moab','moab','moab','moab'], rbe:2460, name:'Sith Emperor', moabClass:true },
+  ceramic: { hp:15, speed:2.5, reward:10, color:'#cc7744', children:['rainbow','rainbow'], rbe:60, name:'AT-AT' },
+  moab:    { hp:300, speed:0.25, reward:50, color:'#8b0000', children:['ceramic','ceramic','ceramic','ceramic'], rbe:440, name:'Sith Lord', moabClass:true },
+  bfb:     { hp:1000, speed:0.12, reward:100, color:'#4a0033', children:['moab','moab','moab','moab'], rbe:2460, name:'Sith Emperor', moabClass:true },
 };
 
 // ═══════════════════════════════════════
@@ -315,7 +318,7 @@ const TOWER_DEFS = [
     id:'frost', name:'Cryo Emitter', baseCost:150, accent:'#88eeff', accentRGB:'136,238,255',
     damage:0, pierce:0, fireRate:0, range:80, projSpeed:0,
     type:'freeze', projColor:'#88eeff', attackType:'freeze',
-    slowFactor:0.4, slowDuration:1.5,
+    slowFactor:0.3, slowDuration:1.2,
     desc:'Slows all enemies in range.',
     pathA:[
       { name:'Deep Freeze', cost:125, desc:'Stronger slow, also pops' },
@@ -437,8 +440,8 @@ function getTowerStats(t) {
       if (pB >= 2) { ringOfFire = true; }
       break;
     case 'frost':
-      if (pA >= 1) { slow = 0.6; slowDur = 2.5; snapPop = true; }
-      if (pA >= 2) { range *= 1.8; freezeSolid = true; slowDur = 3; slow = 0.8; }
+      if (pA >= 1) { slow = 0.45; slowDur = 1.8; snapPop = true; }
+      if (pA >= 2) { range *= 1.5; freezeSolid = true; slowDur = 2.0; slow = 0.55; }
       if (pB >= 1) { snapPop = true; }
       if (pB >= 2) { cryoCannon = true; range *= 1.5; }
       break;
@@ -937,6 +940,27 @@ function generateWaves() {
   W.push(w([...rep('bfb',2),...rep('moab',6),...mix('ceramic',30,'rainbow',30,'lead',15)], 0.1));
   W.push(w([...rep('bfb',3),...rep('moab',8),...mix('ceramic',30,'rainbow',40,'lead',20,'pink',50)], 0.08));
 
+  // 40: Wave 40 — heavy BFB + MOAB assault (original final wave escalated)
+  W.push(w([...rep('bfb',3),...rep('moab',10),...mix('ceramic',35,'rainbow',45,'lead',25,'pink',60)], 0.07));
+
+  // 41-43: AT-AT/MOAB swarms with dense rainbow waves
+  W.push(w([...rep('moab',6),...mix('ceramic',40,'rainbow',50,'lead',20,'black',20,'white',20)], 0.08));
+  W.push(w([...rep('bfb',2),...rep('moab',6),...mix('ceramic',35,'rainbow',40,'pink',50,'lead',15)], 0.07));
+  W.push(w([...rep('bfb',2),...rep('moab',8),...mix('ceramic',40,'rainbow',50,'black',20,'white',20)], 0.06));
+
+  // 44-46: Multiple MOABs + BFBs — escalating dread
+  W.push(w([...rep('bfb',3),...rep('moab',8),...mix('ceramic',30,'rainbow',40,'lead',20)], 0.07));
+  W.push(w([...rep('bfb',3),...rep('moab',10),...mix('ceramic',35,'rainbow',45,'lead',20,'pink',40)], 0.06));
+  W.push(w([...rep('bfb',4),...rep('moab',8),...mix('ceramic',40,'rainbow',50,'black',25,'white',25)], 0.06));
+
+  // 47-49: Dense BFB waves with MOAB escorts
+  W.push(w([...rep('bfb',4),...rep('moab',10),...mix('ceramic',45,'rainbow',50,'lead',25,'pink',50)], 0.05));
+  W.push(w([...rep('bfb',5),...rep('moab',10),...mix('ceramic',50,'rainbow',60,'lead',30,'black',20,'white',20)], 0.05));
+  W.push(w([...rep('bfb',5),...rep('moab',12),...mix('ceramic',50,'rainbow',60,'lead',30,'pink',60)], 0.04));
+
+  // 50: BOSS WAVE — 4 BFBs + 6 MOABs + massive rainbow/ceramic swarm
+  W.push(w([...rep('bfb',4),...rep('moab',6),...mix('ceramic',60,'rainbow',70,'lead',30,'black',30,'white',30,'pink',60)], 0.04));
+
   return W;
 }
 
@@ -1326,42 +1350,56 @@ function drawTowers() {
     // Beam rendering — SUPER spectacular
     if (def.type === 'beam' && t.beamTargets && t.beamTargets.length > 0) {
       const pulse = Math.sin(now * 0.008) * 2;
+      const isSuperLaser = t.pathA >= 2;
+      const beamScale = isSuperLaser ? 2.5 : 1;
       ctx.save();
       for (const bt of t.beamTargets) {
         if (bt.dead) continue;
+        // Superlaser outer green glow layer
+        if (isSuperLaser) {
+          ctx.strokeStyle = 'rgba(0,255,80,0.08)';
+          ctx.lineWidth = (35 + pulse * 2) * beamScale;
+          ctx.beginPath(); ctx.moveTo(t.x, t.y); ctx.lineTo(bt.x, bt.y); ctx.stroke();
+          ctx.strokeStyle = 'rgba(0,255,80,0.15)';
+          ctx.lineWidth = (20 + pulse) * beamScale;
+          ctx.beginPath(); ctx.moveTo(t.x, t.y); ctx.lineTo(bt.x, bt.y); ctx.stroke();
+        }
         // Wide outer glow
         ctx.strokeStyle = `rgba(${def.accentRGB},0.1)`;
-        ctx.lineWidth = 14 + pulse;
+        ctx.lineWidth = (14 + pulse) * beamScale;
         ctx.beginPath(); ctx.moveTo(t.x, t.y); ctx.lineTo(bt.x, bt.y); ctx.stroke();
         // Mid glow
         ctx.strokeStyle = `rgba(${def.accentRGB},0.25)`;
-        ctx.lineWidth = 6 + pulse*0.5;
+        ctx.lineWidth = (6 + pulse*0.5) * beamScale;
         ctx.beginPath(); ctx.moveTo(t.x, t.y); ctx.lineTo(bt.x, bt.y); ctx.stroke();
         // Inner color
         ctx.globalAlpha = 0.8;
-        ctx.strokeStyle = def.accent; ctx.lineWidth = 3 + pulse*0.3;
+        ctx.strokeStyle = isSuperLaser ? '#44ff88' : def.accent;
+        ctx.lineWidth = (3 + pulse*0.3) * beamScale;
         ctx.beginPath(); ctx.moveTo(t.x, t.y); ctx.lineTo(bt.x, bt.y); ctx.stroke();
         ctx.globalAlpha = 1;
         // Bright core
-        ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5;
-        ctx.shadowColor = def.accent; ctx.shadowBlur = 20;
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5 * beamScale;
+        ctx.shadowColor = isSuperLaser ? '#44ff88' : def.accent; ctx.shadowBlur = 20 * beamScale;
         ctx.beginPath(); ctx.moveTo(t.x, t.y); ctx.lineTo(bt.x, bt.y); ctx.stroke();
         ctx.shadowBlur = 0;
         // Many sparkles along beam
         const bdx = bt.x-t.x, bdy = bt.y-t.y;
-        for (let i = 0; i < 6; i++) {
+        const sparkleCount = isSuperLaser ? 12 : 6;
+        const sparkleSpread = isSuperLaser ? 15 : 6;
+        for (let i = 0; i < sparkleCount; i++) {
           const f = Math.random();
           ctx.fillStyle = '#fff'; ctx.globalAlpha = 0.3+Math.random()*0.7;
-          ctx.shadowColor = def.accent; ctx.shadowBlur = 6;
-          ctx.beginPath(); ctx.arc(t.x+bdx*f+(Math.random()-0.5)*6, t.y+bdy*f+(Math.random()-0.5)*6, 1+Math.random(), 0, Math.PI*2); ctx.fill();
+          ctx.shadowColor = isSuperLaser ? '#44ff88' : def.accent; ctx.shadowBlur = 6 * beamScale;
+          ctx.beginPath(); ctx.arc(t.x+bdx*f+(Math.random()-0.5)*sparkleSpread, t.y+bdy*f+(Math.random()-0.5)*sparkleSpread, (1+Math.random()) * beamScale, 0, Math.PI*2); ctx.fill();
         }
         ctx.globalAlpha = 1; ctx.shadowBlur = 0;
         // Impact explosion effect
-        const ir = 4+Math.sin(now*0.01)*3;
-        ctx.strokeStyle = def.accent; ctx.lineWidth = 1.5;
-        ctx.shadowColor = def.accent; ctx.shadowBlur = 12;
+        const ir = (4+Math.sin(now*0.01)*3) * beamScale;
+        ctx.strokeStyle = isSuperLaser ? '#44ff88' : def.accent; ctx.lineWidth = 1.5 * beamScale;
+        ctx.shadowColor = isSuperLaser ? '#44ff88' : def.accent; ctx.shadowBlur = 12 * beamScale;
         ctx.beginPath(); ctx.arc(bt.x, bt.y, ir, 0, Math.PI*2); ctx.stroke();
-        ctx.fillStyle = `rgba(${def.accentRGB},0.3)`;
+        ctx.fillStyle = isSuperLaser ? 'rgba(0,255,80,0.3)' : `rgba(${def.accentRGB},0.3)`;
         ctx.beginPath(); ctx.arc(bt.x, bt.y, ir*1.5, 0, Math.PI*2); ctx.fill();
         ctx.shadowBlur = 0;
       }
@@ -2146,12 +2184,10 @@ function update(dt) {
     if (trackTarget) {
       const desiredAngle = Math.atan2(trackTarget.y - t.y, trackTarget.x - t.x);
       let diff = desiredAngle - (t.angle || 0);
-      // Normalize to [-PI, PI]
       while (diff > Math.PI) diff -= Math.PI * 2;
       while (diff < -Math.PI) diff += Math.PI * 2;
-      // Smooth rotation (lerp toward target angle)
-      const rotSpeed = 8 * sDt; // radians per second
-      t.angle = (t.angle || 0) + diff * Math.min(rotSpeed, 1);
+      const maxRot = 8 * sDt;
+      t.angle = (t.angle || 0) + Math.sign(diff) * Math.min(Math.abs(diff), maxRot);
     }
 
     if (def.type === 'beam') {
@@ -2182,7 +2218,7 @@ function update(dt) {
       // Cryo Emitter: AoE slow/freeze around tower
       t.fireTimer = (t.fireTimer || 0) - sDt;
       if (t.fireTimer <= 0) {
-        t.fireTimer = 0.5; // tick every 0.5s
+        t.fireTimer = 0.8; // tick every 0.8s
         const targets = findEnemiesInRange(t.x, t.y, scaledRange);
         for (const tgt of targets) {
           if (BLOOM_TYPES[tgt.type].immuneFreeze) continue;
@@ -2191,7 +2227,7 @@ function update(dt) {
           tgt.slowTimer = stats.slowDur;
           if (stats.freezeSolid && !BLOOM_TYPES[tgt.type].moabClass) {
             tgt.frozen = true;
-            tgt.freezeTimer = 1.5;
+            tgt.freezeTimer = 1.0;
           }
           if (stats.snapPop) {
             damageBloom(tgt, 1, 'freeze');
@@ -2441,9 +2477,9 @@ function enterBetweenWaves() {
   STATE = 'between_waves';
   waveCountdown = 20;
 
-  // Round income: $100 base + 5% interest (capped at 50)
-  const income = 100;
-  const interest = Math.min(Math.floor(gold * 0.05), 50);
+  // Round income: 75CR base + 4% interest (capped at 35)
+  const income = 75;
+  const interest = Math.min(Math.floor(gold * 0.04), 35);
   gold += income + interest;
   totalGoldEarned += income + interest;
 
@@ -2462,8 +2498,8 @@ function sendWaveEarly() {
 // ═══════════════════════════════════════
 
 function startGame() {
-  gold = 650;
-  lives = 150;
+  gold = 500;
+  lives = 100;
   currentWave = 0;
   totalPops = 0;
   totalGoldEarned = 0;
@@ -2948,6 +2984,20 @@ function drawMenuBG() {
   requestAnimationFrame(drawMenuBG);
 }
 drawMenuBG();
+
+// ═══════════════════════════════════════
+//  SKIN TOGGLE
+// ═══════════════════════════════════════
+
+$('skinBtn').addEventListener('pointerdown', (e) => {
+  e.stopPropagation();
+  const skins = ThemeManager.GAME_SKINS['void-defense'];
+  if (!skins || skins.length === 0) return;
+  const curIdx = ThemeManager.getGameSkin('void-defense') || 0;
+  const nextIdx = (curIdx + 1) % skins.length;
+  ThemeManager.setGameSkin('void-defense', nextIdx);
+  AudioManager.playClick();
+});
 
 })();
 </script>

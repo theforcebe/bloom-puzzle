@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════
-   IRIS MOON ARCADE — Shared Infrastructure
-   TouchManager, ArcadeDataManager, AudioManager, Navigation
+   MAAS ARCADE — Shared Infrastructure
+   ThemeManager, TouchManager, ArcadeDataManager, AudioManager, Navigation
    ═══════════════════════════════════════════════════════════════ */
 
 // ── Scroll Lock (prevents ALL iOS bounce/scroll on game pages) ──
@@ -25,7 +25,8 @@ const ArcadeData = (() => {
   const KEY = 'arcade_data';
   const GAME_IDS = [
     'bloom-puzzle','neon-2048','hex-crush','snake-flux','void-defense',
-    'memory-matrix','garden-maze','flappy-petal','sudoku-noir','minesweeper'
+    'memory-matrix','garden-maze','flappy-petal','sudoku-noir','minesweeper',
+    'blade-of-ruin'
   ];
 
   function getDefault() {
@@ -552,3 +553,186 @@ function haptic(style = 'light') {
     else if (style === 'heavy') navigator.vibrate(50);
   }
 }
+
+// ══════════════════════════════════════════
+//  ThemeManager — Hub themes + per-game skins
+// ══════════════════════════════════════════
+const ThemeManager = (() => {
+  // 4 hub themes — each overrides core CSS variables
+  const HUB_THEMES = {
+    'void-neon': {
+      label: 'Void Neon',
+      '--void': '#0a0818',
+      '--void-mid': '#12102a',
+      '--void-light': '#1a1530',
+      '--surface': '#221c3a',
+      '--surface-light': '#2e264a',
+      '--iris-deep': '#4a3f6b',
+      '--iris-mid': '#7b6fa0',
+      '--iris-light': '#b8a9d4',
+      '--moon-glow': '#f5f0e8',
+      '--moon-gold': '#d4a86a',
+      '--glass-bg': 'rgba(30, 24, 50, 0.6)',
+      '--glass-border': 'rgba(184, 169, 212, 0.12)',
+      '--hub-gradient-a': 'rgba(74,63,107,0.15)',
+      '--hub-gradient-b': 'rgba(212,114,140,0.08)',
+    },
+    'hyperspace': {
+      label: 'Hyperspace',
+      '--void': '#020a14',
+      '--void-mid': '#061826',
+      '--void-light': '#0a2238',
+      '--surface': '#0f2e4a',
+      '--surface-light': '#163a58',
+      '--iris-deep': '#1a4a7a',
+      '--iris-mid': '#3a8acf',
+      '--iris-light': '#7abcf0',
+      '--moon-glow': '#e8f4ff',
+      '--moon-gold': '#6ac4ff',
+      '--glass-bg': 'rgba(6, 24, 50, 0.65)',
+      '--glass-border': 'rgba(100, 180, 255, 0.12)',
+      '--hub-gradient-a': 'rgba(20,80,160,0.15)',
+      '--hub-gradient-b': 'rgba(0,180,255,0.08)',
+    },
+    'mirkwood': {
+      label: 'Mirkwood',
+      '--void': '#060d08',
+      '--void-mid': '#0c1a10',
+      '--void-light': '#142618',
+      '--surface': '#1c3422',
+      '--surface-light': '#24422c',
+      '--iris-deep': '#2a5a38',
+      '--iris-mid': '#48a060',
+      '--iris-light': '#7acc8e',
+      '--moon-glow': '#e8f5e8',
+      '--moon-gold': '#c9a84c',
+      '--glass-bg': 'rgba(12, 30, 18, 0.65)',
+      '--glass-border': 'rgba(120, 200, 140, 0.12)',
+      '--hub-gradient-a': 'rgba(30,100,50,0.15)',
+      '--hub-gradient-b': 'rgba(200,168,76,0.08)',
+    },
+    'mordor-forge': {
+      label: 'Mordor Forge',
+      '--void': '#140804',
+      '--void-mid': '#201008',
+      '--void-light': '#2c180c',
+      '--surface': '#3a2010',
+      '--surface-light': '#4a2a16',
+      '--iris-deep': '#6a3a1a',
+      '--iris-mid': '#b06030',
+      '--iris-light': '#e0a060',
+      '--moon-glow': '#fff0d8',
+      '--moon-gold': '#ff8c00',
+      '--glass-bg': 'rgba(40, 20, 10, 0.65)',
+      '--glass-border': 'rgba(224, 160, 96, 0.12)',
+      '--hub-gradient-a': 'rgba(160,60,10,0.15)',
+      '--hub-gradient-b': 'rgba(255,140,0,0.08)',
+    },
+  };
+
+  // Per-game skins — 3 color variants per game (accent + glow)
+  const GAME_SKINS = {
+    'bloom-puzzle': [
+      { label: 'Neon Rose', accent: '#ff6b9d', glow: 'rgba(255,107,157,0.3)' },
+      { label: 'Kyber Blue', accent: '#00bfff', glow: 'rgba(0,191,255,0.3)' },
+      { label: 'Elvish Gold', accent: '#ffd740', glow: 'rgba(255,215,64,0.3)' },
+    ],
+    'hex-crush': [
+      { label: 'Neon Magenta', accent: '#e040fb', glow: 'rgba(224,64,251,0.3)' },
+      { label: 'Sith Red', accent: '#ff3333', glow: 'rgba(255,51,51,0.3)' },
+      { label: 'Tron Cyan', accent: '#00e5ff', glow: 'rgba(0,229,255,0.3)' },
+    ],
+    'snake-flux': [
+      { label: 'Neon Green', accent: '#76ff03', glow: 'rgba(118,255,3,0.3)' },
+      { label: 'Mithril Silver', accent: '#c0d8e8', glow: 'rgba(192,216,232,0.3)' },
+      { label: 'Lava Orange', accent: '#ff6600', glow: 'rgba(255,102,0,0.3)' },
+    ],
+    'void-defense': [
+      { label: 'Neon Purple', accent: '#b388ff', glow: 'rgba(179,136,255,0.3)' },
+      { label: 'Empire Blue', accent: '#4488cc', glow: 'rgba(68,136,204,0.3)' },
+      { label: 'Rebellion Red', accent: '#ff4444', glow: 'rgba(255,68,68,0.3)' },
+    ],
+    'memory-matrix': [
+      { label: 'Neon Gold', accent: '#ffd740', glow: 'rgba(255,215,64,0.3)' },
+      { label: 'Force Purple', accent: '#b388ff', glow: 'rgba(179,136,255,0.3)' },
+      { label: 'Shire Green', accent: '#76ff03', glow: 'rgba(118,255,3,0.3)' },
+    ],
+    'garden-maze': [
+      { label: 'Neon Lime', accent: '#c6ff00', glow: 'rgba(198,255,0,0.3)' },
+      { label: 'Rivendell Blue', accent: '#4fc3f7', glow: 'rgba(79,195,247,0.3)' },
+      { label: 'Ember Orange', accent: '#ff9100', glow: 'rgba(255,145,0,0.3)' },
+    ],
+    'flappy-petal': [
+      { label: 'Neon Rose', accent: '#ff6b9d', glow: 'rgba(255,107,157,0.3)' },
+      { label: 'Lightsaber Green', accent: '#44ff44', glow: 'rgba(68,255,68,0.3)' },
+      { label: 'Ring Gold', accent: '#ffd740', glow: 'rgba(255,215,64,0.3)' },
+    ],
+    'sudoku-noir': [
+      { label: 'Neon Gold', accent: '#ffd740', glow: 'rgba(255,215,64,0.3)' },
+      { label: 'Grid Cyan', accent: '#00e5ff', glow: 'rgba(0,229,255,0.3)' },
+      { label: 'Shadow Red', accent: '#ff4444', glow: 'rgba(255,68,68,0.3)' },
+    ],
+    'minesweeper': [
+      { label: 'Neon Cyan', accent: '#00e5ff', glow: 'rgba(0,229,255,0.3)' },
+      { label: 'Gandalf White', accent: '#e0dce8', glow: 'rgba(224,220,232,0.3)' },
+      { label: 'Mordor Red', accent: '#cc3333', glow: 'rgba(204,51,51,0.3)' },
+    ],
+    'blade-of-ruin': [
+      { label: 'Crimson', accent: '#ff4444', glow: 'rgba(255,68,68,0.3)' },
+      { label: 'Shadow Purple', accent: '#9944cc', glow: 'rgba(153,68,204,0.3)' },
+      { label: 'Flame Gold', accent: '#ff8c00', glow: 'rgba(255,140,0,0.3)' },
+    ],
+  };
+
+  function setTheme(name) {
+    const theme = HUB_THEMES[name];
+    if (!theme) return;
+    const root = document.documentElement;
+    for (const [prop, val] of Object.entries(theme)) {
+      if (prop.startsWith('--')) root.style.setProperty(prop, val);
+    }
+    ArcadeData.setSetting('theme', name);
+  }
+
+  function setGameSkin(gameId, skinIndex) {
+    const skins = GAME_SKINS[gameId];
+    if (!skins || !skins[skinIndex]) return;
+    const skin = skins[skinIndex];
+    const root = document.documentElement;
+    root.style.setProperty('--game-accent', skin.accent);
+    root.style.setProperty('--game-glow', skin.glow);
+    ArcadeData.setSetting('skin_' + gameId, skinIndex);
+  }
+
+  function getTheme() {
+    return ArcadeData.getSetting('theme') || 'void-neon';
+  }
+
+  function getGameSkin(gameId) {
+    return ArcadeData.getSetting('skin_' + gameId) || 0;
+  }
+
+  function applyStored() {
+    const themeName = getTheme();
+    if (themeName && HUB_THEMES[themeName]) setTheme(themeName);
+
+    // Detect current game from pathname
+    const path = window.location.pathname;
+    const match = path.match(/games\/([^.]+)\.html/);
+    if (match) {
+      const gameId = match[1];
+      const skinIdx = getGameSkin(gameId);
+      if (skinIdx > 0 && GAME_SKINS[gameId]) setGameSkin(gameId, skinIdx);
+    }
+  }
+
+  // Auto-apply on load
+  applyStored();
+
+  return {
+    HUB_THEMES, GAME_SKINS,
+    setTheme, setGameSkin,
+    getTheme, getGameSkin,
+    applyStored
+  };
+})();

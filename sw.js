@@ -1,4 +1,4 @@
-const CACHE_NAME = 'iris-arcade-v3';
+const CACHE_NAME = 'maas-arcade-v4';
 const ASSETS = [
   './',
   './index.html',
@@ -17,7 +17,9 @@ const ASSETS = [
   './games/garden-maze.html',
   './games/flappy-petal.html',
   './games/sudoku-noir.html',
-  './games/minesweeper.html'
+  './games/minesweeper.html',
+  './games/blade-of-ruin.html',
+  './games/obi.jpg'
 ];
 
 self.addEventListener('install', e => {

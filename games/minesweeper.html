@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Minesweeper — Iris Moon Arcade</title>
+<title>Minesweeper — Maas Arcade</title>
 <meta name="theme-color" content="#0d0a1a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -201,6 +201,18 @@
     gap: var(--spacing-sm);
     animation: fadeInUp 0.8s ease 0.6s both;
   }
+
+  .mine-count-negative {
+    color: #ff4060 !important;
+    text-shadow: 0 0 8px rgba(255,64,96,0.5) !important;
+  }
+
+  .overlay-streak {
+    font-size: clamp(12px, 1.8dvh, 16px);
+    color: var(--neon-cyan);
+    margin-bottom: var(--spacing-sm);
+    animation: fadeInUp 0.8s ease 0.45s both;
+  }
 </style>
 </head>
 <body>
@@ -215,8 +227,9 @@
     <a class="btn-back" onclick="goToHub()" aria-label="Back">&#8592;</a>
     <div>
       <div class="game-title text-gradient">Minesweeper</div>
-      <div class="game-subtitle">iris moon arcade</div>
+      <div class="game-subtitle">maas arcade</div>
     </div>
+    <button id="skin-toggle" style="width:28px;height:28px;border-radius:50%;border:none;cursor:pointer;background:var(--game-accent);box-shadow:0 0 8px var(--game-glow);flex-shrink:0;" title="Change skin"></button>
   </div>
 
   <!-- Difficulty selector -->
@@ -261,6 +274,7 @@
     </div>
   </div>
   <div class="overlay-best" id="overlay-best" style="display:none;">New Best Score!</div>
+  <div class="overlay-streak" id="overlay-streak" style="display:none;"></div>
   <div class="overlay-petals" id="overlay-petals" style="display:none;"></div>
   <div class="overlay-buttons">
     <button class="btn-primary" onclick="newGame()">Play Again</button>
@@ -271,7 +285,7 @@
 <script src="../shared.js"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════════
-   MINESWEEPER — Iris Moon Arcade
+   MINESWEEPER — Maas Arcade
    ═══════════════════════════════════════════════════════════════ */
 (() => {
   'use strict';
@@ -308,8 +322,17 @@
   const overlayTime = document.getElementById('overlay-time');
   const overlayDiff = document.getElementById('overlay-diff');
   const overlayBest = document.getElementById('overlay-best');
+  const overlayStreak = document.getElementById('overlay-streak');
   const overlayPetals = document.getElementById('overlay-petals');
   const diffBtns = document.querySelectorAll('.difficulty-btn');
+
+  // Win streak tracking (persisted in ArcadeData settings)
+  function getWinStreak() {
+    return ArcadeData.getSetting('minesweeper_streak') || 0;
+  }
+  function setWinStreak(val) {
+    ArcadeData.setSetting('minesweeper_streak', val);
+  }
 
   // ── Background & particles ──
   const bg = new AmbientBackground(document.getElementById('bg-canvas'));
@@ -381,6 +404,7 @@
     timerInterval = null;
 
     mineCountEl.textContent = totalMines;
+    mineCountEl.classList.remove('mine-count-negative');
     timerEl.textContent = '0';
   }
 
@@ -492,6 +516,14 @@
   function revealCell(r, c) {
     if (gameOver || gameWon) return;
     const cell = board[r][c];
+
+    // Chord clicking: if cell is already revealed and numbered,
+    // and adjacent flag count equals the cell's number, auto-reveal non-flagged neighbors
+    if (cell.revealed && !cell.mine && cell.adjacent > 0) {
+      chordReveal(r, c);
+      return;
+    }
+
     if (cell.revealed || cell.flagged) return;
 
     // First tap: place mines
@@ -518,6 +550,53 @@
     }
 
     // Check win
+    checkWin();
+  }
+
+  // ── Chord reveal (auto-reveal neighbors when flag count matches number) ──
+  function chordReveal(r, c) {
+    const cell = board[r][c];
+    // Count adjacent flags
+    let adjFlags = 0;
+    forNeighbors(r, c, (nr, nc) => {
+      if (board[nr][nc].flagged) adjFlags++;
+    });
+
+    if (adjFlags !== cell.adjacent) return;
+
+    // Reveal all non-flagged, non-revealed neighbors
+    let hitMine = false;
+    let hitR = -1, hitC = -1;
+    forNeighbors(r, c, (nr, nc) => {
+      const neighbor = board[nr][nc];
+      if (neighbor.revealed || neighbor.flagged) return;
+
+      neighbor.revealed = true;
+      revealedCount++;
+
+      if (neighbor.mine) {
+        // Wrong flag placement — hitting a mine
+        hitMine = true;
+        hitR = nr;
+        hitC = nc;
+        return;
+      }
+
+      updateCell(nr, nc);
+      addRevealAnimation(nr, nc, 0);
+
+      if (neighbor.adjacent === 0) {
+        floodFill(nr, nc);
+      }
+    });
+
+    if (hitMine) {
+      handleLoss(hitR, hitC);
+      return;
+    }
+
+    AudioManager.playClick();
+    haptic('light');
     checkWin();
   }
 
@@ -578,7 +657,9 @@
 
     cell.flagged = !cell.flagged;
     flagCount += cell.flagged ? 1 : -1;
-    mineCountEl.textContent = totalMines - flagCount;
+    const remaining = totalMines - flagCount;
+    mineCountEl.textContent = remaining;
+    mineCountEl.classList.toggle('mine-count-negative', remaining < 0);
     updateCell(r, c);
     AudioManager.playClick();
     haptic('medium');
@@ -617,10 +698,15 @@
 
     gridEl.classList.add('win-glow');
 
+    // Win streak
+    const streak = getWinStreak() + 1;
+    setWinStreak(streak);
+    const streakBonus = streak * 2;
+
     // Score: max(0, 999 - seconds) * multiplier
     const cfg = DIFFS[diff];
     const score = Math.max(0, 999 - timerVal) * cfg.mult;
-    const petals = 5;
+    const petals = 5 + streakBonus;
 
     // Celebrate with particles
     const rect = gridEl.getBoundingClientRect();
@@ -640,7 +726,7 @@
     ArcadeData.earnPetals(petals);
 
     // Show overlay
-    setTimeout(() => showOverlay(true, score, isBest, petals), 800);
+    setTimeout(() => showOverlay(true, score, isBest, petals, streak, streakBonus), 800);
   }
 
   // ── Handle loss ──
@@ -704,14 +790,17 @@
     const cfg = DIFFS[diff];
     const score = 0;
 
+    // Reset win streak on loss
+    setWinStreak(0);
+
     ArcadeData.submitScore('minesweeper', score);
 
     const totalDelay = 50 + minePositions.length * 25 + 400;
-    setTimeout(() => showOverlay(false, score, false, 0), totalDelay);
+    setTimeout(() => showOverlay(false, score, false, 0, 0, 0), totalDelay);
   }
 
   // ── Show overlay ──
-  function showOverlay(won, score, isBest, petals) {
+  function showOverlay(won, score, isBest, petals, streak, streakBonus) {
     overlayTitle.textContent = won ? 'Cleared!' : 'Game Over';
     overlayScore.textContent = score;
     overlayScoreLabel.textContent = 'SCORE';
@@ -723,6 +812,14 @@
       overlayBest.textContent = '\u2728 New Best Score! \u2728';
     } else {
       overlayBest.style.display = 'none';
+    }
+
+    // Win streak display
+    if (won && streak > 0) {
+      overlayStreak.style.display = 'block';
+      overlayStreak.textContent = 'Win Streak: ' + streak + (streakBonus > 0 ? ' (+' + streakBonus + ' bonus petals)' : '');
+    } else {
+      overlayStreak.style.display = 'none';
     }
 
     if (petals > 0) {
@@ -791,6 +888,21 @@
   // ── Handle resize ──
   window.addEventListener('resize', () => {
     if (!gameOver) updateCellSize();
+  });
+
+  // ── Skin Toggle ──
+  const skinToggleBtn = document.getElementById('skin-toggle');
+  const gameSkins = ThemeManager.GAME_SKINS['minesweeper'];
+  let currentSkinIdx = ThemeManager.getGameSkin('minesweeper');
+
+  skinToggleBtn.addEventListener('click', () => {
+    if (!gameSkins || gameSkins.length === 0) return;
+    currentSkinIdx = (currentSkinIdx + 1) % gameSkins.length;
+    ThemeManager.setGameSkin('minesweeper', currentSkinIdx);
+    skinToggleBtn.style.background = 'var(--game-accent)';
+    skinToggleBtn.style.boxShadow = '0 0 8px var(--game-glow)';
+    AudioManager.playClick();
+    haptic('light');
   });
 
   // ── Initialize ──
