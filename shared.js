@@ -398,24 +398,38 @@ class AmbientBackground {
   constructor(canvas) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
-    this.floaters = [];
     this.running = false;
+    this.stars = [];
+    this.particles = [];
     this.resize();
     window.addEventListener('resize', () => this.resize());
   }
 
   resize() {
-    this.canvas.width = window.innerWidth;
-    this.canvas.height = window.innerHeight;
-    if (this.floaters.length === 0) {
-      for (let i = 0; i < 30; i++) {
-        this.floaters.push({
-          x: Math.random() * this.canvas.width,
-          y: Math.random() * this.canvas.height,
-          size: 1 + Math.random() * 3,
-          speed: 0.1 + Math.random() * 0.3,
-          opacity: 0.1 + Math.random() * 0.2,
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = window.innerWidth, h = window.innerHeight;
+    this.canvas.width = w * dpr;
+    this.canvas.height = h * dpr;
+    this.canvas.style.width = w + 'px';
+    this.canvas.style.height = h + 'px';
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    this.w = w; this.h = h;
+    if (this.stars.length === 0) {
+      for (let i = 0; i < 70; i++) {
+        this.stars.push({
+          x: Math.random(), y: Math.random() * 0.72,
+          size: 0.4 + Math.random() * 1.2,
           phase: Math.random() * Math.PI * 2,
+          twinkle: 0.15 + Math.random() * 0.55,
+          color: i % 5 === 0 ? '#aaccff' : i % 7 === 0 ? '#ffddaa' : '#ffffff',
+        });
+      }
+      for (let i = 0; i < 20; i++) {
+        this.particles.push({
+          x: Math.random(), y: Math.random(),
+          speed: 0.008 + Math.random() * 0.015,
+          phase: Math.random() * Math.PI * 2,
+          color: i % 3 === 0 ? '#cc8844' : i % 3 === 1 ? '#8866cc' : '#6688cc',
         });
       }
     }
@@ -429,34 +443,128 @@ class AmbientBackground {
 
   _animate() {
     if (!this.running) return;
-    const { ctx, canvas } = this;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const { ctx, w, h } = this;
+    const now = Date.now() * 0.001;
+    ctx.clearRect(0, 0, w, h);
 
-    const grad = ctx.createRadialGradient(
-      canvas.width * 0.5, canvas.height * 0.3, 0,
-      canvas.width * 0.5, canvas.height * 0.3, canvas.width * 0.7
-    );
-    grad.addColorStop(0, 'rgba(74, 63, 107, 0.08)');
-    grad.addColorStop(1, 'transparent');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // ── Sky gradient ──
+    const sky = ctx.createLinearGradient(0, 0, 0, h);
+    sky.addColorStop(0, '#0a0a18');
+    sky.addColorStop(0.3, '#14143a');
+    sky.addColorStop(0.6, '#1f1f56');
+    sky.addColorStop(0.85, '#2a1a40');
+    sky.addColorStop(1, '#1a0c20');
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, w, h);
 
-    const t = Date.now() * 0.001;
-    for (const f of this.floaters) {
-      f.y -= f.speed;
-      if (f.y < -10) {
-        f.y = canvas.height + 10;
-        f.x = Math.random() * canvas.width;
-      }
-      const wobble = Math.sin(t + f.phase) * 15;
+    // ── Twinkling stars ──
+    for (const s of this.stars) {
+      const alpha = s.twinkle * (0.5 + 0.5 * Math.sin(now * 1.5 + s.phase));
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = s.color;
+      ctx.beginPath(); ctx.arc(s.x * w, s.y * h, s.size, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    // ── Shooting star ──
+    const shootCycle = (now * 0.15) % 14;
+    if (shootCycle < 0.6) {
       ctx.save();
-      ctx.globalAlpha = f.opacity;
-      ctx.fillStyle = '#b8a9d4';
-      ctx.beginPath();
-      ctx.arc(f.x + wobble, f.y, f.size, 0, Math.PI * 2);
-      ctx.fill();
+      const sp = shootCycle / 0.6;
+      const sx = w * 0.15 + sp * w * 0.55;
+      const sy = h * 0.04 + sp * h * 0.18;
+      ctx.globalAlpha = (1 - sp) * 0.5;
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(sx - 35, sy - 10); ctx.stroke();
       ctx.restore();
     }
+
+    // ── Nebula clouds ──
+    ctx.save();
+    const nebData = [
+      [0.18, 0.22, 90, '80,40,140'], [0.50, 0.28, 100, '60,30,120'],
+      [0.78, 0.35, 80, '120,40,100'], [0.35, 0.45, 70, '50,25,100'],
+      [0.65, 0.18, 75, '100,30,80'], [0.88, 0.50, 65, '70,35,130'],
+    ];
+    for (const [rx, ry, r, c] of nebData) {
+      const nx = w * rx + Math.sin(now * 0.08 + rx * 10) * w * 0.04;
+      const ny = h * ry + Math.cos(now * 0.06 + ry * 10) * 12;
+      const ng = ctx.createRadialGradient(nx, ny, 5, nx, ny, r);
+      ng.addColorStop(0, `rgba(${c},0.1)`);
+      ng.addColorStop(0.5, `rgba(${c},0.04)`);
+      ng.addColorStop(1, 'transparent');
+      ctx.fillStyle = ng;
+      ctx.beginPath(); ctx.ellipse(nx, ny, r, r * 0.5, rx, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+
+    // ── Horizon glow ──
+    const horizY = h * 0.78;
+    ctx.save();
+    const hg = ctx.createLinearGradient(0, horizY - 50, 0, horizY + 15);
+    hg.addColorStop(0, 'transparent');
+    hg.addColorStop(0.5, 'rgba(140,40,80,0.08)');
+    hg.addColorStop(0.8, 'rgba(180,50,90,0.1)');
+    hg.addColorStop(1, 'rgba(100,30,60,0.05)');
+    ctx.fillStyle = hg;
+    ctx.fillRect(0, horizY - 50, w, 65);
+    ctx.restore();
+
+    // ── Far mountains ──
+    ctx.save();
+    ctx.globalAlpha = 0.55;
+    ctx.fillStyle = '#0a0810';
+    ctx.beginPath(); ctx.moveTo(0, horizY);
+    const fp = [0.08,0.62, 0.18,0.52, 0.28,0.58, 0.38,0.48, 0.50,0.55, 0.58,0.45, 0.68,0.52, 0.78,0.58, 0.88,0.50, 1.0,0.60];
+    for (let i = 0; i < fp.length; i += 2) ctx.lineTo(w * fp[i], h * fp[i+1]);
+    ctx.lineTo(w, horizY); ctx.closePath(); ctx.fill();
+    // Near mountains
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#060510';
+    ctx.beginPath(); ctx.moveTo(0, horizY);
+    const np = [0.05,0.72, 0.12,0.60, 0.22,0.68, 0.30,0.56, 0.40,0.65, 0.48,0.52, 0.55,0.62, 0.65,0.54, 0.75,0.64, 0.82,0.58, 0.92,0.66, 1.0,0.70];
+    for (let i = 0; i < np.length; i += 2) ctx.lineTo(w * np[i], h * np[i+1]);
+    ctx.lineTo(w, horizY); ctx.closePath(); ctx.fill();
+    // Moon rim lighting on ridgeline
+    ctx.strokeStyle = 'rgba(140,120,180,0.06)'; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    for (let i = 0; i < np.length; i += 2) {
+      if (i === 0) ctx.moveTo(w * np[i], h * np[i+1]);
+      else ctx.lineTo(w * np[i], h * np[i+1]);
+    }
+    ctx.stroke();
+    ctx.restore();
+
+    // ── Treeline at base ──
+    ctx.save();
+    ctx.fillStyle = '#050408';
+    ctx.beginPath(); ctx.moveTo(0, horizY);
+    for (let x = 0; x <= w; x += 8) {
+      const th = 5 + Math.sin(x * 0.03) * 4 + Math.sin(x * 0.08 + 1) * 3;
+      ctx.lineTo(x, horizY - th);
+    }
+    ctx.lineTo(w, horizY); ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.closePath(); ctx.fill();
+    ctx.restore();
+
+    // ── Floating magic particles ──
+    ctx.save();
+    for (const p of this.particles) {
+      p.y -= p.speed;
+      if (p.y < -0.05) { p.y = 1.05; p.x = Math.random(); }
+      ctx.globalAlpha = 0.2 + Math.sin(now * 2 + p.phase) * 0.1;
+      ctx.fillStyle = p.color;
+      ctx.beginPath(); ctx.arc(p.x * w, p.y * h, 1.2, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+
+    // ── Vignette ──
+    ctx.save();
+    const vig = ctx.createRadialGradient(w * 0.5, h * 0.5, Math.min(w, h) * 0.3, w * 0.5, h * 0.5, Math.max(w, h) * 0.75);
+    vig.addColorStop(0, 'transparent');
+    vig.addColorStop(1, 'rgba(5,3,10,0.5)');
+    ctx.fillStyle = vig;
+    ctx.fillRect(0, 0, w, h);
+    ctx.restore();
 
     requestAnimationFrame(() => this._animate());
   }
