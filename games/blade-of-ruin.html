@@ -191,6 +191,35 @@ html,body{overflow:hidden;position:fixed;inset:0;width:100%;height:100dvh;touch-
 .equip-slot .es-name{font-size:clamp(8px,1dvh,10px);font-weight:600}
 .equip-slot.filled{border-color:rgba(184,169,212,0.2)}
 
+/* ── Character Panel (WoW-style inventory) ── */
+.char-panel{width:100%;max-width:min(480px,96vw)}
+.char-header{text-align:center;margin-bottom:clamp(4px,0.6dvh,8px)}
+.char-header .ch-name{font-family:'Cinzel','Cormorant Garamond',serif;font-size:clamp(16px,2.2dvh,22px);font-weight:700;color:var(--moon-glow)}
+.char-header .ch-sub{font-size:clamp(10px,1.2dvh,13px);color:var(--iris-light)}
+.char-body{display:grid;grid-template-columns:auto 1fr auto;gap:clamp(4px,0.6vw,8px);align-items:start}
+.eq-col{display:flex;flex-direction:column;gap:clamp(3px,0.5dvh,6px);min-width:clamp(56px,14vw,72px)}
+.eq-slot{background:rgba(20,16,36,0.6);border:2px solid rgba(184,169,212,0.1);border-radius:8px;padding:clamp(4px,0.5dvh,6px) clamp(3px,0.5vw,6px);text-align:center;cursor:pointer;transition:all .2s;position:relative}
+.eq-slot.filled{border-color:rgba(184,169,212,0.25)}
+.eq-slot.selected{border-color:var(--game-accent);box-shadow:0 0 10px var(--game-glow)}
+.eq-slot .eq-label{font-size:clamp(6px,0.7dvh,8px);color:var(--iris-mid);text-transform:uppercase;letter-spacing:0.5px}
+.eq-slot .eq-name{font-size:clamp(7px,0.85dvh,9px);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:clamp(52px,13vw,68px)}
+.eq-slot.filled:active{transform:scale(0.95)}
+.char-model-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:clamp(160px,28dvh,240px)}
+.char-model-wrap canvas{border-radius:8px;border:1px solid rgba(184,169,212,0.08);background:radial-gradient(ellipse at 50% 80%,rgba(74,63,107,0.15),transparent 70%)}
+.char-stats-panel{width:100%;margin-top:clamp(4px,0.6dvh,8px)}
+.csp-section{font-family:'Cormorant Garamond',serif;font-size:clamp(11px,1.3dvh,14px);font-weight:600;color:var(--moon-glow);border-bottom:1px solid rgba(184,169,212,0.12);padding-bottom:2px;margin:clamp(4px,0.6dvh,8px) 0 clamp(2px,0.3dvh,4px)}
+.csp-row{display:flex;justify-content:space-between;padding:clamp(1px,0.15dvh,2px) 0;font-family:'Quicksand',sans-serif;font-size:clamp(9px,1.1dvh,12px)}
+.csp-row .csp-label{color:var(--iris-light)}
+.csp-row .csp-val{font-weight:700;color:var(--moon-glow)}
+.csp-row .csp-val.bonus{color:#76ff03}
+/* Item detail tooltip */
+.eq-detail{background:rgba(12,10,24,0.95);border:1px solid rgba(184,169,212,0.15);border-radius:10px;padding:clamp(8px,1dvh,12px);margin-top:clamp(4px,0.6dvh,8px);width:100%;animation:bloomIn .2s ease-out}
+.eq-detail .eqd-name{font-family:'Cormorant Garamond',serif;font-size:clamp(13px,1.6dvh,16px);font-weight:700;margin-bottom:2px}
+.eq-detail .eqd-type{font-size:clamp(9px,1dvh,11px);color:var(--iris-mid);text-transform:uppercase;letter-spacing:0.5px}
+.eq-detail .eqd-stats{font-size:clamp(10px,1.2dvh,12px);color:var(--iris-light);margin-top:4px;line-height:1.5}
+.eq-detail .eqd-set{font-size:clamp(9px,1dvh,11px);color:#ffd740;margin-top:3px}
+.eq-detail .eqd-actions{display:flex;gap:6px;margin-top:6px}
+
 /* ── Dialogue Box ── */
 .dialogue-box{position:fixed;bottom:clamp(70px,14dvh,120px);left:50%;transform:translateX(-50%);z-index:110;width:min(400px,90vw);background:rgba(10,8,20,0.95);border:1px solid rgba(255,68,68,0.2);border-radius:12px;padding:clamp(10px,1.5dvh,16px);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);display:none}
 .dialogue-box.visible{display:block}
@@ -3554,47 +3583,157 @@ function renderArenaGate() {
 }
 
 // ── Inventory ──
+let _invSelected = null; // {type:'equip'|'bag', slot/idx}
+
 function renderInventory() {
   const el = document.getElementById('inventory-content');
-  el.innerHTML = `
-    <div class="section-title">Equipment</div>
-    <div class="equip-slots">${EQUIP_SLOTS.map(sl => {
-      const it = player.equipment[sl];
-      return `<div class="equip-slot ${it?'filled':''}" data-unequip="${sl}">
-        <div class="es-label">${SLOT_LABELS[sl]}</div>
-        <div class="es-name" style="color:${it?ITEM_TIERS[it.tier].color:'var(--iris-mid)'}; font-size:clamp(7px,0.9dvh,9px)">${it?it.name:'Empty'}</div>
+  const race = RACES.find(r=>r.id===player.race);
+  const d = computeDerived(player.stats, player.equipment, player.race);
+  const modelLv = getModelLv(player.equipment);
+  const wepId = player.equipment.weapon?.weaponType || 'sword';
+
+  // Left column: head, shoulders, chest, arms
+  const leftSlots = ['head','shoulders','chest','arms'];
+  // Right column: weapon, shield, legs (+ empty)
+  const rightSlots = ['weapon','shield','legs'];
+
+  function slotHtml(sl) {
+    const it = player.equipment[sl];
+    const sel = _invSelected && _invSelected.type==='equip' && _invSelected.slot===sl;
+    return `<div class="eq-slot ${it?'filled':''} ${sel?'selected':''}" data-eq-slot="${sl}">
+      <div class="eq-label">${SLOT_LABELS[sl]}</div>
+      <div class="eq-name" style="color:${it?ITEM_TIERS[it.tier].color:'var(--iris-mid)'}">${it?it.name:'—'}</div>
+    </div>`;
+  }
+
+  // Detailed item view
+  let detailHtml = '';
+  if (_invSelected) {
+    let it = null, actions = '';
+    if (_invSelected.type === 'equip') {
+      it = player.equipment[_invSelected.slot];
+      if (it) actions = `<button class="btn btn-sm btn-danger" id="eqd-unequip">Unequip</button>`;
+    } else {
+      it = player.inventory[_invSelected.idx];
+      if (it) actions = `<button class="btn btn-sm btn-accent" id="eqd-equip">Equip</button>
+        <button class="btn btn-sm btn-danger" id="eqd-drop">Drop</button>`;
+    }
+    if (it) {
+      const setInfo = it.setId ? ARMOR_SETS.find(s=>s.id===it.setId) : null;
+      detailHtml = `<div class="eq-detail">
+        <div class="eqd-name" style="color:${ITEM_TIERS[it.tier].color}">${it.name}</div>
+        <div class="eqd-type">${SLOT_LABELS[it.slot]} · ${ITEM_TIERS[it.tier].name}</div>
+        <div class="eqd-stats">${itemStatText(it)}</div>
+        ${setInfo?`<div class="eqd-set">${setInfo.name}</div>`:''}
+        <div class="eqd-actions">${actions}</div>
       </div>`;
-    }).join('')}</div>
-    <div class="section-title mt-md">Inventory (${player.inventory.length})</div>
-    <div class="item-grid">${player.inventory.map((it,i) => `
-      <div class="item-card ${ITEM_TIERS[it.tier].css}" data-equip="${i}">
+    }
+  }
+
+  el.innerHTML = `<div class="char-panel">
+    <div class="char-header">
+      <div class="ch-name">${player.name}</div>
+      <div class="ch-sub">Level ${player.level} ${race?.name||''} · ${race?.icon||''}</div>
+    </div>
+    <div class="char-body">
+      <div class="eq-col eq-col-left">${leftSlots.map(slotHtml).join('')}</div>
+      <div class="char-model-wrap"><canvas id="inv-char-canvas" width="130" height="210"></canvas></div>
+      <div class="eq-col eq-col-right">${rightSlots.map(slotHtml).join('')}</div>
+    </div>
+    ${detailHtml}
+    <div class="char-stats-panel">
+      <div class="csp-section">Attributes</div>
+      ${STAT_NAMES.map(s => {
+        const base = player.stats[s];
+        const bonus = d[s] !== undefined ? 0 : 0; // bonuses shown via derived
+        return `<div class="csp-row"><span class="csp-label">${s}</span><span class="csp-val">${base}</span></div>`;
+      }).join('')}
+      <div class="csp-section">Combat Stats</div>
+      <div class="csp-row"><span class="csp-label">Max HP</span><span class="csp-val">${d.maxHp}</span></div>
+      <div class="csp-row"><span class="csp-label">Max Stamina</span><span class="csp-val">${d.maxSta}</span></div>
+      <div class="csp-row"><span class="csp-label">Max Mana</span><span class="csp-val">${d.maxMana}</span></div>
+      <div class="csp-row"><span class="csp-label">Melee Mult</span><span class="csp-val">${d.meleeMult.toFixed(2)}x</span></div>
+      <div class="csp-row"><span class="csp-label">Spell Mult</span><span class="csp-val">${d.spellMult.toFixed(2)}x</span></div>
+      <div class="csp-section">Defense</div>
+      <div class="csp-row"><span class="csp-label">Dodge</span><span class="csp-val">${Math.round(d.dodge*100)}%</span></div>
+      <div class="csp-row"><span class="csp-label">Block</span><span class="csp-val">${Math.round(d.block*100)}%</span></div>
+      <div class="csp-row"><span class="csp-label">Armor DR</span><span class="csp-val">${Math.round(d.dr*100)}% + ${d.flatDR}</span></div>
+      <div class="csp-section">Other</div>
+      <div class="csp-row"><span class="csp-label">HP Regen</span><span class="csp-val">${d.hpRegen.toFixed(1)}/turn</span></div>
+      <div class="csp-row"><span class="csp-label">Sta Regen</span><span class="csp-val">${d.staRegen}/turn</span></div>
+      <div class="csp-row"><span class="csp-label">Mana Regen</span><span class="csp-val">${d.manaRegen.toFixed(1)}/turn</span></div>
+      <div class="csp-row"><span class="csp-label">Shop Discount</span><span class="csp-val">${Math.round(d.discount*100)}%</span></div>
+      <div class="csp-row"><span class="csp-label">Gold</span><span class="csp-val" style="color:#ffd740">${player.gold}</span></div>
+    </div>
+    <div class="section-title mt-md">Bag (${player.inventory.length})</div>
+    <div class="item-grid">${player.inventory.map((it,i) => {
+      const sel = _invSelected && _invSelected.type==='bag' && _invSelected.idx===i;
+      return `<div class="item-card ${ITEM_TIERS[it.tier].css} ${sel?'selected':''}" data-bag="${i}">
         <div class="ic-name" style="color:${ITEM_TIERS[it.tier].color}">${it.name}</div>
         <div class="ic-type">${SLOT_LABELS[it.slot]} · ${ITEM_TIERS[it.tier].name}</div>
         <div class="ic-stats">${itemStatText(it)}</div>
-      </div>`).join('')}${player.inventory.length===0?'<div class="info-text text-center w-full">No items</div>':''}</div>
-    <div class="btn-row"><button class="btn" id="inv-back">Back</button></div>`;
-  // Equip from inventory
-  el.querySelectorAll('[data-equip]').forEach(c => c.onclick = () => {
-    const idx = parseInt(c.dataset.equip);
+      </div>`;
+    }).join('')}${player.inventory.length===0?'<div class="info-text text-center w-full">No items</div>':''}</div>
+    <div class="btn-row"><button class="btn" id="inv-back">Back</button></div>
+  </div>`;
+
+  // Draw character model on canvas
+  const cvs = document.getElementById('inv-char-canvas');
+  if (cvs) {
+    const img = getCharImg(player.race, modelLv, wepId);
+    const drawModel = () => {
+      const cx = cvs.getContext('2d');
+      cx.clearRect(0, 0, 130, 210);
+      cx.drawImage(img, 10, 5, 110, 200);
+    };
+    if (img.complete) drawModel(); else img.onload = drawModel;
+  }
+
+  // Equipment slot click — select to view detail
+  el.querySelectorAll('[data-eq-slot]').forEach(c => c.onclick = () => {
+    const sl = c.dataset.eqSlot;
+    if (_invSelected && _invSelected.type==='equip' && _invSelected.slot===sl) _invSelected = null;
+    else _invSelected = { type:'equip', slot:sl };
+    Snd.click(); renderInventory();
+  });
+  // Bag item click — select to view detail
+  el.querySelectorAll('[data-bag]').forEach(c => c.onclick = () => {
+    const idx = parseInt(c.dataset.bag);
+    if (_invSelected && _invSelected.type==='bag' && _invSelected.idx===idx) _invSelected = null;
+    else _invSelected = { type:'bag', idx };
+    Snd.click(); renderInventory();
+  });
+  // Detail actions
+  const unequipBtn = el.querySelector('#eqd-unequip');
+  if (unequipBtn) unequipBtn.onclick = () => {
+    const sl = _invSelected.slot;
+    const it = player.equipment[sl]; if(!it) return;
+    player.inventory.push(it);
+    player.equipment[sl] = null;
+    _invSelected = null;
+    recalcPlayer(); clearImgCache(); saveGame(); Snd.click();
+    renderInventory();
+  };
+  const equipBtn = el.querySelector('#eqd-equip');
+  if (equipBtn) equipBtn.onclick = () => {
+    const idx = _invSelected.idx;
     const it = player.inventory[idx]; if(!it) return;
-    // Unequip current
     const current = player.equipment[it.slot];
     if(current) player.inventory.push(current);
     player.equipment[it.slot] = it;
     player.inventory.splice(idx, 1);
+    _invSelected = null;
     recalcPlayer(); clearImgCache(); saveGame(); Snd.click();
     renderInventory();
-  });
-  // Unequip
-  el.querySelectorAll('[data-unequip]').forEach(c => c.onclick = () => {
-    const sl = c.dataset.unequip;
-    const it = player.equipment[sl]; if(!it) return;
-    player.inventory.push(it);
-    player.equipment[sl] = null;
-    recalcPlayer(); clearImgCache(); saveGame(); Snd.click();
-    renderInventory();
-  });
-  el.querySelector('#inv-back').onclick = () => changeState(ST.TOWN);
+  };
+  const dropBtn = el.querySelector('#eqd-drop');
+  if (dropBtn) dropBtn.onclick = () => {
+    const idx = _invSelected.idx;
+    player.inventory.splice(idx, 1);
+    _invSelected = null;
+    saveGame(); Snd.click(); renderInventory();
+  };
+  el.querySelector('#inv-back').onclick = () => { _invSelected = null; changeState(ST.TOWN); };
 }
 
 // ── Level Up ──
