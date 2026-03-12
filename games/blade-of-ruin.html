@@ -4760,6 +4760,12 @@ function drawTown(ctx, w, h, now) {
   ctx.fillStyle = gGrad;
   ctx.fillRect(-offX/scale, -offY/scale, w/scale+10, h/scale+10);
 
+  // DEBUG — bright test shapes to verify rendering
+  ctx.fillStyle = '#ff0000'; ctx.fillRect(150, 150, 100, 100); // red square center
+  ctx.fillStyle = '#00ff00'; ctx.fillRect(30, 90, 100, 65);    // green at bounty pos
+  ctx.fillStyle = '#0000ff'; ctx.fillRect(270, 90, 100, 65);   // blue at armory pos
+  ctx.fillStyle = '#ffff00'; ctx.fillRect(160, 30, 80, 60);    // yellow at sanctum pos
+
   // ── Cobblestone texture ──
   ctx.save();
   ctx.globalAlpha = 0.25;
@@ -5058,6 +5064,7 @@ function drawTown(ctx, w, h, now) {
     // Wall outline
     ctx.strokeStyle = 'rgba(160,140,100,0.15)'; ctx.lineWidth = 1;
     ctx.strokeRect(b.tx, b.ty, b.tw, b.th);
+    ctx.restore(); // close building body save
 
     // Highlight glow when near
     if (isNear) {
