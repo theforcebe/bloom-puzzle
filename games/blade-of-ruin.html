@@ -147,8 +147,10 @@ html,body{overflow:hidden;position:fixed;inset:0;width:100%;height:100dvh;touch-
 .ct-distance{text-align:center;font-size:clamp(9px,1dvh,11px);color:var(--iris-mid)}
 
 /* ── Town ── */
+#ov-town{background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none}
+#ov-town .overlay-scroll{background:linear-gradient(180deg,rgba(13,10,26,0.4) 0%,rgba(13,10,26,0.65) 40%,rgba(13,10,26,0.8) 100%)}
 .town-buildings{display:flex;gap:clamp(4px,1vw,10px);justify-content:center;flex-wrap:wrap;margin:clamp(6px,1dvh,12px) 0}
-.town-bldg{background:rgba(30,24,50,0.6);border:1px solid rgba(184,169,212,0.1);border-radius:12px;padding:clamp(10px,1.5dvh,16px) clamp(8px,1.5vw,14px);cursor:pointer;text-align:center;transition:all .2s;width:clamp(70px,18vw,100px)}
+.town-bldg{background:rgba(30,24,50,0.55);border:1px solid rgba(184,169,212,0.12);border-radius:12px;padding:clamp(10px,1.5dvh,16px) clamp(8px,1.5vw,14px);cursor:pointer;text-align:center;transition:all .2s;width:clamp(70px,18vw,100px);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
 .town-bldg:active{background:rgba(74,63,107,0.4);transform:scale(0.95)}
 .town-bldg .tb-icon{font-size:clamp(24px,4dvh,36px);display:block}
 .town-bldg .tb-name{font-size:clamp(8px,1dvh,10px);color:var(--iris-light);margin-top:4px;font-weight:600}
