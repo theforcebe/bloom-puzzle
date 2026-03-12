@@ -227,6 +227,26 @@ html,body{overflow:hidden;position:fixed;inset:0;width:100%;height:100dvh;touch-
 .dmg-float.block-text{color:#ffaa44!important}
 @keyframes dmgFloat{0%{opacity:1;transform:translateY(0) scale(1)}50%{opacity:1}100%{opacity:0;transform:translateY(clamp(-60px,-10dvh,-100px)) scale(0.7)}}
 
+/* ── Cinematic Dice Roll Banner ── */
+.dice-roll{position:fixed;z-index:40;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:clamp(2px,0.4dvh,4px);animation:diceRollIn 1.4s ease-out forwards}
+.dice-roll.side-left{left:8%;top:28%}
+.dice-roll.side-right{right:8%;top:28%}
+.dice-roll.side-left{transform-origin:left center}
+.dice-roll.side-right{transform-origin:right center}
+.dice-row{display:flex;align-items:center;gap:clamp(4px,0.8vw,8px)}
+.die-box{width:clamp(32px,5dvh,44px);height:clamp(32px,5dvh,44px);background:rgba(15,12,28,0.92);border:2px solid rgba(255,255,255,0.2);border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:clamp(18px,2.8dvh,26px);font-weight:700;color:#fff;text-shadow:0 0 8px rgba(255,255,255,0.3);animation:dieSlot .35s ease-out both}
+.die-box:nth-child(1){animation-delay:.05s}
+.die-box:nth-child(3){animation-delay:.15s}
+.die-plus{font-size:clamp(14px,2dvh,18px);color:var(--iris-mid);font-weight:700}
+.dice-total{font-family:'Cormorant Garamond',serif;font-size:clamp(12px,1.6dvh,16px);font-weight:600;color:rgba(255,255,255,0.6);letter-spacing:1px}
+.dice-tier{font-family:'Cinzel','Cormorant Garamond',serif;font-size:clamp(22px,3.5dvh,34px);font-weight:700;letter-spacing:clamp(2px,0.5vw,5px);text-transform:uppercase;text-shadow:0 0 20px currentColor,0 2px 8px rgba(0,0,0,0.8);animation:tierPop .3s .25s ease-out both}
+.dice-dmg{font-family:'Cormorant Garamond',serif;font-size:clamp(28px,5dvh,48px);font-weight:700;text-shadow:0 0 24px currentColor,0 4px 12px rgba(0,0,0,0.9);animation:dmgSlam .35s .4s cubic-bezier(0.2,1.5,0.4,1) both}
+.dice-blocked{font-size:clamp(10px,1.2dvh,13px);color:#ffaa44;font-weight:600;animation:tierPop .2s .5s ease-out both}
+@keyframes diceRollIn{0%{opacity:0;transform:scale(0.5) translateY(10px)}8%{opacity:1;transform:scale(1.05) translateY(-2px)}15%{transform:scale(1) translateY(0)}75%{opacity:1;transform:scale(1) translateY(0)}100%{opacity:0;transform:scale(0.9) translateY(-15px)}}
+@keyframes dieSlot{0%{transform:rotateX(90deg) scale(0.5);opacity:0}50%{transform:rotateX(-10deg) scale(1.1);opacity:1}100%{transform:rotateX(0) scale(1);opacity:1}}
+@keyframes tierPop{0%{transform:scale(0) translateY(6px);opacity:0}60%{transform:scale(1.2) translateY(-2px);opacity:1}100%{transform:scale(1) translateY(0);opacity:1}}
+@keyframes dmgSlam{0%{transform:scale(2.5);opacity:0}50%{transform:scale(0.9);opacity:1}100%{transform:scale(1);opacity:1}}
+
 /* ── Level Up Glow ── */
 @keyframes lvlGlow{0%,100%{box-shadow:0 0 20px var(--game-glow)}50%{box-shadow:0 0 50px var(--game-glow),0 0 80px rgba(255,68,68,0.2)}}
 .lvl-up-panel{animation:lvlGlow 1.5s infinite}
@@ -1695,6 +1715,33 @@ function showFloat(text, x, y, color, big) {
   setTimeout(() => el.remove(), 1200);
 }
 
+// ── Cinematic Dice Roll Display ──
+function showDiceRoll(result, isPlayerTarget) {
+  // Remove any existing roll display
+  document.querySelectorAll('.dice-roll').forEach(e => e.remove());
+  const tier = ROLL_TIERS[result.tier];
+  const side = isPlayerTarget ? 'side-left' : 'side-right';
+  const el = document.createElement('div');
+  el.className = `dice-roll ${side}`;
+  // Die border color matches tier
+  const borderColor = tier.color;
+  let html = `<div class="dice-row">
+    <div class="die-box" style="border-color:${borderColor}80">${result.d1}</div>
+    <span class="die-plus">+</span>
+    <div class="die-box" style="border-color:${borderColor}80">${result.d2}</div>
+  </div>
+  <div class="dice-total">= ${result.roll}</div>
+  <div class="dice-tier" style="color:${tier.color}">${tier.icon} ${tier.label} ${tier.icon}</div>`;
+  if (result.tier > 0) {
+    const dmgColor = result.crit ? '#ff4444' : result.tier >= 3 ? '#44ff44' : result.tier >= 2 ? '#ffff44' : '#ff8844';
+    html += `<div class="dice-dmg" style="color:${dmgColor}">${result.crit ? '!' : ''}${result.dmg}</div>`;
+    if (result.blocked) html += `<div class="dice-blocked">BLOCKED</div>`;
+  }
+  el.innerHTML = html;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1500);
+}
+
 // ── Damage Calculation ──
 function emptyEquip() { return {head:null,shoulders:null,chest:null,arms:null,legs:null,shield:null,weapon:null}; }
 
@@ -1842,20 +1889,23 @@ function calcDamage(attacker, defender, mult, isSpell, spell) {
 
 // ── Apply Damage ──
 function applyResult(target, result, atkName, tgtName) {
+  const isPlayerTarget = target === player;
   if (result.dodged) {
     addLog(`${tgtName} dodges!`, 'move');
     Snd.dodge();
-    const x = target===player ? gameCanvas.width*0.3 : gameCanvas.width*0.7;
+    const x = isPlayerTarget ? gameCanvas.width*0.3 : gameCanvas.width*0.7;
     showFloat('DODGE', x, gameCanvas.height*0.25, '#44aaff', false);
-    animDodge(target===player, null);
+    animDodge(isPlayerTarget, null);
     return;
+  }
+  // Show cinematic dice roll for all roll results (miss or hit)
+  if (result.d1 !== undefined) {
+    showDiceRoll(result, isPlayerTarget);
   }
   // Miss from roll
   if (result.tier === 0) {
     addLog(`[${result.d1}+${result.d2}=${result.roll}] ${atkName} misses ${tgtName}!`, 'move');
     Snd.dodge();
-    const x = target===player ? gameCanvas.width*0.3 : gameCanvas.width*0.7;
-    showFloat('MISS', x, gameCanvas.height*0.25, '#666', false);
     return;
   }
   target.hp = Math.max(0, target.hp - result.dmg);
@@ -1863,15 +1913,12 @@ function applyResult(target, result, atkName, tgtName) {
   const pre = result.crit ? 'CRIT! ' : result.blocked ? 'Blocked! ' : '';
   addLog(`${tierTag}${pre}${result.dmg} dmg → ${tgtName}`, result.crit ? 'crit' : 'damage');
   if (result.crit) Snd.heavyHit(); else Snd.swordHit();
-  const x = target===player ? gameCanvas.width*0.3 : gameCanvas.width*0.7;
+  const x = isPlayerTarget ? gameCanvas.width*0.3 : gameCanvas.width*0.7;
   const tierColor = result.crit ? '#ff4444' : result.tier>=3 ? '#44ff44' : result.tier>=2 ? '#ffff44' : '#ff8844';
-  showFloat((result.crit?'!':'')+result.dmg, x, gameCanvas.height*0.25, tierColor, result.crit||result.tier>=3);
-  // Show dice roll float
-  if (result.d1 !== undefined) {
-    showFloat(`🎲${result.d1}+${result.d2}`, x, gameCanvas.height*0.20, ROLL_TIERS[result.tier].color, false);
-  }
   spawnParts(x, gameCanvas.height*0.35, tierColor, result.crit?18:result.tier>=3?12:6, 8);
   triggerShake(result.crit ? 14 : result.tier>=3 ? 8 : 4);
+  // Extra screen flash on crits
+  if (result.crit) triggerScreenFlash(tierColor, 15);
 }
 
 // ── Status Tick ──
