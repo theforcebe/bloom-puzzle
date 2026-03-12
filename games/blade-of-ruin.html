@@ -191,7 +191,7 @@ html,body{overflow:hidden;position:fixed;inset:0;width:100%;height:100dvh;touch-
 .equip-slot.filled{border-color:rgba(184,169,212,0.2)}
 
 /* ── Dialogue Box ── */
-.dialogue-box{position:fixed;bottom:clamp(70px,14dvh,120px);left:50%;transform:translateX(-50%);z-index:30;width:min(400px,90vw);background:rgba(10,8,20,0.95);border:1px solid rgba(255,68,68,0.2);border-radius:12px;padding:clamp(10px,1.5dvh,16px);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);display:none}
+.dialogue-box{position:fixed;bottom:clamp(70px,14dvh,120px);left:50%;transform:translateX(-50%);z-index:110;width:min(400px,90vw);background:rgba(10,8,20,0.95);border:1px solid rgba(255,68,68,0.2);border-radius:12px;padding:clamp(10px,1.5dvh,16px);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);display:none}
 .dialogue-box.visible{display:block}
 .dialogue-name{font-family:'Cormorant Garamond',serif;font-size:clamp(14px,1.8dvh,18px);font-weight:600;color:var(--game-accent);margin-bottom:4px}
 .dialogue-text{font-family:'Quicksand',sans-serif;font-size:clamp(11px,1.4dvh,14px);color:var(--moon-glow);line-height:1.5;min-height:2em}
@@ -257,6 +257,23 @@ html,body{overflow:hidden;position:fixed;inset:0;width:100%;height:100dvh;touch-
 .diff-btn.selected{border-color:rgba(200,60,40,0.5);color:var(--moon-glow);background:rgba(140,20,0,0.2);box-shadow:0 0 10px rgba(255,68,68,0.15)}
 .preview-wrap{width:clamp(80px,18vw,120px);height:clamp(140px,28dvh,220px);margin:clamp(4px,0.8dvh,8px) auto;display:flex;align-items:center;justify-content:center}
 .preview-wrap img,.preview-wrap svg{max-width:100%;max-height:100%}
+
+/* ── Shop Interior Split Layout ── */
+.shop-interior{display:flex;gap:16px;height:100%}
+.shop-npc{flex:0 0 30%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;border-right:1px solid rgba(255,255,255,0.1)}
+.shop-npc canvas{width:120px;height:180px;border-radius:8px;border:2px solid rgba(255,255,255,0.15)}
+.shop-npc .npc-name{font-family:'Cormorant Garamond',serif;font-size:clamp(14px,2vw,18px);color:#f5f0e8;margin-top:8px;text-align:center}
+.shop-npc .npc-title{font-size:clamp(10px,1.5vw,13px);color:#b8a9d4;text-align:center}
+.shop-body{flex:1;overflow-y:auto;padding:8px}
+@media(max-width:600px){
+  .shop-interior{flex-direction:column}
+  .shop-npc{flex:0 0 auto;flex-direction:row;border-right:none;border-bottom:1px solid rgba(255,255,255,0.1);padding:8px;gap:12px}
+  .shop-npc canvas{width:60px;height:90px}
+}
+
+/* ── Town Enter Button (mobile) ── */
+#town-enter-btn{position:fixed;bottom:120px;left:50%;transform:translateX(-50%);z-index:20;padding:12px 32px;font-family:'Cormorant Garamond',serif;font-size:18px;color:#f5f0e8;background:rgba(30,20,10,0.85);border:2px solid rgba(255,200,100,0.5);border-radius:12px;backdrop-filter:blur(4px);display:none;cursor:pointer}
+#town-enter-btn:active{background:rgba(60,40,20,0.9);transform:translateX(-50%) scale(0.95)}
 </style>
 </head>
 <body>
@@ -272,6 +289,9 @@ html,body{overflow:hidden;position:fixed;inset:0;width:100%;height:100dvh;touch-
   <div class="th-hp-wrap"><div class="th-hp-fill" id="th-hp-fill"></div></div>
   <button class="th-btn" id="th-inv-btn" title="Inventory">🎒</button>
 </div>
+
+<!-- Town Enter Button (mobile-friendly explicit entry) -->
+<button id="town-enter-btn">Enter</button>
 
 <!-- Back button (always visible) -->
 <a class="back-btn" onclick="goToHub()" title="Back to Arcade">&#8592;</a>
@@ -1064,6 +1084,21 @@ const TOWN_BUILDINGS = [
   { id:'arena',    label:'Grand Arena',     state:ST.ARENA_GATE,   tx:140, ty:355, tw:120,th:40,  color:'#ffd740', doorX:200, doorY:360 },
 ];
 
+// ── Shopkeeper NPCs for building interiors ──
+const SHOPKEEPERS = {
+  forge:     { name:'Valdris',              title:'Master Blacksmith',   race:'human',       weapon:'axe',   modelLv:5, skinColor:'#c8956c', hairColor:'#4a3520', armorColor:'#8b4513', greeting:'Looking to sharpen your blade, warrior?',      bgColor:['#3d1a00','#1a0a00'] },
+  mercenary: { name:'Captain Rhenna',       title:'Mercenary Captain',   race:'human',       weapon:'sword', modelLv:6, skinColor:'#d4a574', hairColor:'#8b1a1a', armorColor:'#5c3a1e', greeting:'Ready for a hunt? Check the board.',            bgColor:['#2a1a0a','#1a0f05'] },
+  moonwell:  { name:'Lysara',               title:'Moonwell Mystic',     race:'highelf',     weapon:'bow',   modelLv:4, skinColor:'#e8d5c0', hairColor:'#c0c0e0', armorColor:'#4a3f8b', greeting:'The stars whisper of your arrival...',           bgColor:['#0a0a2a','#1a0a3a'] },
+  arena:     { name:'Gorath',               title:'Arena Master',        race:'orc',         weapon:'axe',   modelLv:7, skinColor:'#6b8b4a', hairColor:'#2a2a1a', armorColor:'#8b0000', greeting:'Step into the ring, if you dare!',              bgColor:['#2a0a0a','#1a0505'] },
+  sanctum:   { name:'Brother Aldric',       title:'Keeper of Oaths',     race:'human',       weapon:'sword', modelLv:3, skinColor:'#d4b896', hairColor:'#e0d0a0', armorColor:'#f0e8d0', greeting:'Rest here, champion. You are safe.',            bgColor:['#1a1a0a','#0a0f05'] },
+  armory:    { name:'Quartermaster Durn',    title:'Armory Keeper',       race:'dwarf',       weapon:'axe',   modelLv:5, skinColor:'#c89664', hairColor:'#a06030', armorColor:'#707070', greeting:'Finest steel in the realm. Have a look.',       bgColor:['#1a1a1e','#0a0a10'] },
+};
+const SHOP_KEY_MAP = {
+  [ST.SHOP]:'forge', [ST.BOUNTY_BOARD]:'mercenary', [ST.MOONWELL]:'moonwell',
+  [ST.ARENA_GATE]:'arena', [ST.SANCTUM]:'sanctum', [ST.ARMORY_VAULT]:'armory',
+};
+let _npcGreeted = new Set();
+
 // Player town position (virtual coords) & movement
 let townPX = 200, townPY = 210; // start at fountain
 let townDir = 0; // 0=down,1=left,2=right,3=up
@@ -1353,6 +1388,7 @@ function saveGame() {
 }
 
 function loadGame() {
+  _npcGreeted = new Set();
   const raw=localStorage.getItem(SAVE_KEY);
   if(!raw) return false;
   try {
@@ -2854,8 +2890,15 @@ function changeState(st) {
   dial.classList.remove('visible');
   combLog.classList.remove('visible');
   hideSpellMenu();
-  // Hide town HUD unless entering town
-  if (st !== ST.TOWN) document.getElementById('town-hud').classList.add('hidden');
+  // Hide town HUD and enter button unless entering town
+  if (st !== ST.TOWN) {
+    document.getElementById('town-hud').classList.add('hidden');
+    document.getElementById('town-enter-btn').style.display = 'none';
+  }
+
+  // If entering a shop state, trigger enterBuilding for NPC greeting + bg
+  const shopKey = SHOP_KEY_MAP[st];
+  if (shopKey) enterBuilding(shopKey);
 
   switch(st) {
     case ST.MENU: showOverlay('ov-menu'); renderMenu(); break;
@@ -2893,6 +2936,52 @@ function showDialogue(name, text, cb) {
     else { clearInterval(iv); setTimeout(() => { box.classList.remove('visible'); if(cb)cb(); }, 1500); }
   }, 30);
   box.onclick = () => { clearInterval(iv); tEl.textContent=text; setTimeout(()=>{box.classList.remove('visible');if(cb)cb();},300); box.onclick=null; };
+}
+
+// ── NPC Portrait Rendering ──
+function renderNpcPortrait(shopKey, containerEl) {
+  const npc = SHOPKEEPERS[shopKey];
+  if (!npc || !containerEl) return;
+  const colorOvr = { skin:npc.skinColor, armor:npc.armorColor, accent:npc.armorColor };
+  const img = getCharImg(npc.race, npc.modelLv, npc.weapon, colorOvr);
+  const cvs = document.createElement('canvas');
+  cvs.width = 120; cvs.height = 180;
+  const draw = () => {
+    const cx = cvs.getContext('2d');
+    cx.clearRect(0, 0, 120, 180);
+    cx.drawImage(img, 5, 0, 110, 180);
+  };
+  if (img.complete) draw(); else img.onload = draw;
+  containerEl.appendChild(cvs);
+  const nameEl = document.createElement('div');
+  nameEl.className = 'npc-name';
+  nameEl.textContent = npc.name;
+  containerEl.appendChild(nameEl);
+  const titleEl = document.createElement('div');
+  titleEl.className = 'npc-title';
+  titleEl.textContent = npc.title;
+  containerEl.appendChild(titleEl);
+}
+
+// ── Building Entry with NPC Greeting & Background ──
+function enterBuilding(shopKey) {
+  const npc = SHOPKEEPERS[shopKey];
+  if (!npc) return;
+  // Show greeting dialogue on first visit per session
+  if (!_npcGreeted.has(shopKey)) {
+    _npcGreeted.add(shopKey);
+    showDialogue(npc.name, npc.greeting);
+  }
+  // Apply background gradient to overlay
+  const overlayMap = {
+    forge:'ov-shop', mercenary:'ov-bounty-board', moonwell:'ov-moonwell',
+    arena:'ov-arena-gate', sanctum:'ov-sanctum', armory:'ov-armory-vault',
+  };
+  const ovId = overlayMap[shopKey];
+  if (ovId) {
+    const ov = document.getElementById(ovId);
+    if (ov) ov.style.background = `linear-gradient(180deg, ${npc.bgColor[0]}f0, ${npc.bgColor[1]}f0)`;
+  }
 }
 
 // ── Menu ──
@@ -3033,6 +3122,7 @@ function updateCreatePreview() {
 }
 
 function startNewGame() {
+  _npcGreeted = new Set();
   player.name = createName.trim() || 'Champion';
   player.race = createRace;
   player.level = 1;
@@ -3106,7 +3196,9 @@ function shopCompare(item) {
 function renderShop() {
   const el = document.getElementById('shop-content');
   const disc = computeDerived(player.stats, player.equipment, player.race).discount;
-  el.innerHTML = `
+  el.innerHTML = `<div class="shop-interior">
+    <div class="shop-npc" id="shop-npc-forge"></div>
+    <div class="shop-body">
     <div class="section-title">Forge & Smith</div>
     <div class="info-text text-center mb-sm">Gold: <span class="gold-text">${player.gold}</span> ${disc>0?`(${Math.round(disc*100)}% discount)`:''}  </div>
     <div class="info-text text-center mb-sm" style="font-size:clamp(9px,1dvh,11px);color:var(--iris-mid)">Tap to buy · Long-press to compare</div>
@@ -3132,7 +3224,9 @@ function renderShop() {
         <div class="ic-price">Sell: ${sellPrice}g</div>
       </div>`;
     }).join('')}${player.inventory.length===0?'<div class="info-text text-center">No items to sell</div>':''}</div>
-    <div class="btn-row"><button class="btn" id="shop-back">Back to Town</button></div>`;
+    <div class="btn-row"><button class="btn" id="shop-back">Back to Town</button></div>
+    </div></div>`;
+  renderNpcPortrait('forge', el.querySelector('#shop-npc-forge'));
   // Buy handlers
   el.querySelectorAll('[data-idx]').forEach(c => c.onclick = () => {
     const idx = parseInt(c.dataset.idx);
@@ -3165,7 +3259,9 @@ function renderTemple() { renderSanctum(); }
 function renderSanctum() {
   const el = document.getElementById('sanctum-content');
   const healCost = 50;
-  el.innerHTML = `
+  el.innerHTML = `<div class="shop-interior">
+    <div class="shop-npc" id="shop-npc-sanctum"></div>
+    <div class="shop-body">
     <div class="section-title">Sanctum of Oaths</div>
     <div class="info-text text-center mb-md">Heal, pray, and prepare for battle</div>
     <div class="gp flex-col gap-md w-full">
@@ -3173,7 +3269,9 @@ function renderSanctum() {
       <button class="btn w-full" id="sanctum-save">Save Game</button>
       <button class="btn btn-sm w-full" id="sanctum-export">Export Save File</button>
     </div>
-    <div class="btn-row"><button class="btn" id="sanctum-back">Back to Town</button></div>`;
+    <div class="btn-row"><button class="btn" id="sanctum-back">Back to Town</button></div>
+    </div></div>`;
+  renderNpcPortrait('sanctum', el.querySelector('#shop-npc-sanctum'));
   el.querySelector('#sanctum-heal').onclick = () => {
     if(player.gold<healCost||player.hp>=player.maxHp) return;
     player.gold-=healCost;
@@ -3190,7 +3288,9 @@ function renderTavern() { renderBountyBoard(); }
 function renderBountyBoard() {
   const el = document.getElementById('bounty-board-content');
   if(!progression.bountiesCompleted) progression.bountiesCompleted = [];
-  el.innerHTML = `
+  el.innerHTML = `<div class="shop-interior">
+    <div class="shop-npc" id="shop-npc-mercenary"></div>
+    <div class="shop-body">
     <div class="section-title">Mercenary Hall — Bounty Board</div>
     <div class="info-text text-center mb-sm">Hunt dangerous monsters for gold, XP, and rare loot</div>
     <div class="info-text text-center mb-md" style="color:var(--iris-mid)">Bounties completed: ${progression.bountiesCompleted.length}/8</div>
@@ -3198,17 +3298,22 @@ function renderBountyBoard() {
       const done = progression.bountiesCompleted.includes(i);
       const canHunt = player.level >= Math.max(1, b.level-5);
       return `<div class="gp w-full mb-sm" style="opacity:${done?'0.5':'1'}">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <span style="color:${done?'#76ff03':'#ff6666'};font-weight:700;font-size:clamp(12px,1.5dvh,15px)">${done?'✓ ':''}${b.name}</span>
-          <span style="color:var(--iris-mid);font-size:clamp(9px,1dvh,11px)">Lv ${b.level}</span>
+        <div style="display:flex;gap:10px;align-items:center">
+          <canvas class="bounty-preview" data-bounty-preview="${i}" width="48" height="72" style="border-radius:6px;border:2px solid ${ITEM_TIERS[b.bountyTier].color}40;flex-shrink:0"></canvas>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span style="color:${done?'#76ff03':'#ff6666'};font-weight:700;font-size:clamp(12px,1.5dvh,15px)">${done?'✓ ':''}${b.name}</span>
+              <span style="color:var(--iris-mid);font-size:clamp(9px,1dvh,11px)">Lv ${b.level}</span>
+            </div>
+            <div class="info-text" style="font-style:italic;color:var(--iris-mid)">${b.desc}</div>
+            <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap">
+              <span class="gold-text" style="font-size:clamp(9px,1dvh,11px)">${b.bountyGold}g</span>
+              <span style="color:#66cc66;font-size:clamp(9px,1dvh,11px)">${b.bountyXp} XP</span>
+              <span style="color:${ITEM_TIERS[b.bountyTier].color};font-size:clamp(9px,1dvh,11px)">${ITEM_TIERS[b.bountyTier].name} Drop</span>
+            </div>
+            ${!done?`<button class="btn btn-sm btn-accent mt-sm ${!canHunt?'btn-disabled':''}" data-bounty="${i}">${canHunt?'Hunt':'Too low level'}</button>`:'<div class="info-text mt-sm" style="color:#76ff03">Bounty Complete</div>'}
+          </div>
         </div>
-        <div class="info-text" style="font-style:italic;color:var(--iris-mid)">${b.desc}</div>
-        <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap">
-          <span class="gold-text" style="font-size:clamp(9px,1dvh,11px)">${b.bountyGold}g</span>
-          <span style="color:#66cc66;font-size:clamp(9px,1dvh,11px)">${b.bountyXp} XP</span>
-          <span style="color:${ITEM_TIERS[b.bountyTier].color};font-size:clamp(9px,1dvh,11px)">${ITEM_TIERS[b.bountyTier].name} Drop</span>
-        </div>
-        ${!done?`<button class="btn btn-sm btn-accent mt-sm ${!canHunt?'btn-disabled':''}" data-bounty="${i}">${canHunt?'Hunt':'Too low level'}</button>`:'<div class="info-text mt-sm" style="color:#76ff03">Bounty Complete</div>'}
       </div>`;
     }).join('')}</div>
     <div class="section-title mt-md">Training</div>
@@ -3220,7 +3325,21 @@ function renderBountyBoard() {
         <button class="btn btn-sm btn-accent ${player.gold<50+player.level*10?'btn-disabled':''}" data-train="${s}">Train</button>
       </div>`).join('')}
     </div>
-    <div class="btn-row"><button class="btn" id="bounty-back">Back to Town</button></div>`;
+    <div class="btn-row"><button class="btn" id="bounty-back">Back to Town</button></div>
+    </div></div>`;
+  renderNpcPortrait('mercenary', el.querySelector('#shop-npc-mercenary'));
+  // Draw bounty monster previews
+  el.querySelectorAll('[data-bounty-preview]').forEach(cvs => {
+    const idx = parseInt(cvs.dataset.bountyPreview);
+    const b = BOUNTY_BOSSES[idx];
+    const img = getCharImg(b.race, ITEM_TIERS[b.bountyTier].modelLv, b.weapon);
+    const drawPreview = () => {
+      const cx = cvs.getContext('2d');
+      cx.clearRect(0, 0, 48, 72);
+      cx.drawImage(img, 2, 0, 44, 72);
+    };
+    if (img.complete) drawPreview(); else img.onload = drawPreview;
+  });
   el.querySelectorAll('[data-bounty]').forEach(b => b.onclick = () => {
     const idx = parseInt(b.dataset.bounty);
     startBountyCombat(idx);
@@ -3239,7 +3358,9 @@ function renderBountyBoard() {
 // ── Moonwell Shop (Consumables) ──
 function renderMoonwell() {
   const el = document.getElementById('moonwell-content');
-  el.innerHTML = `
+  el.innerHTML = `<div class="shop-interior">
+    <div class="shop-npc" id="shop-npc-moonwell"></div>
+    <div class="shop-body">
     <div class="section-title">Moonwell Shop</div>
     <div class="info-text text-center mb-sm">Tonics, oils, and blessings for battle</div>
     <div class="info-text text-center mb-md">Gold: <span class="gold-text">${player.gold}</span> · Consumables: ${playerConsumables.length}/5</div>
@@ -3263,7 +3384,9 @@ function renderMoonwell() {
           <button class="btn btn-sm btn-danger" data-drop="${i}">Drop</button>
         </div>`).join('')}
       </div>`:''}
-    <div class="btn-row"><button class="btn" id="mw-back">Back to Town</button></div>`;
+    <div class="btn-row"><button class="btn" id="mw-back">Back to Town</button></div>
+    </div></div>`;
+  renderNpcPortrait('moonwell', el.querySelector('#shop-npc-moonwell'));
   el.querySelectorAll('[data-buy]').forEach(b => b.onclick = () => {
     const c = CONSUMABLES[parseInt(b.dataset.buy)];
     if(player.gold<c.price||playerConsumables.length>=5) return;
@@ -3287,7 +3410,9 @@ function renderArmoryVault() {
     const it = player.equipment[sl];
     if(it && it.setId) setCounts[it.setId] = (setCounts[it.setId]||0) + 1;
   });
-  el.innerHTML = `
+  el.innerHTML = `<div class="shop-interior">
+    <div class="shop-npc" id="shop-npc-armory"></div>
+    <div class="shop-body">
     <div class="section-title">Armory Vault</div>
     <div class="info-text text-center mb-md">View armor sets and their bonuses</div>
     <div class="scrollable">${ARMOR_SETS.map(set => {
@@ -3313,7 +3438,9 @@ function renderArmoryVault() {
         ${it&&it.setId?`<div style="font-size:clamp(7px,0.8dvh,8px);color:#ffd740">${ARMOR_SETS.find(s=>s.id===it.setId)?.name||''}</div>`:''}
       </div>`;
     }).join('')}</div>
-    <div class="btn-row"><button class="btn" id="av-back">Back to Town</button></div>`;
+    <div class="btn-row"><button class="btn" id="av-back">Back to Town</button></div>
+    </div></div>`;
+  renderNpcPortrait('armory', el.querySelector('#shop-npc-armory'));
   el.querySelector('#av-back').onclick = () => changeState(ST.TOWN);
 }
 
@@ -3352,7 +3479,9 @@ function renderArenaGate() {
   if (isChamp) enemy = genChampion(progression.arena);
   else enemy = genEnemy(progression.arena, fightNum, player.level);
 
-  el.innerHTML = `
+  el.innerHTML = `<div class="shop-interior">
+    <div class="shop-npc" id="shop-npc-arena"></div>
+    <div class="shop-body">
     <div class="section-title">${ar.name}</div>
     <div class="info-text text-center mb-sm">Fight ${fightNum+1}/4 ${isChamp?'— CHAMPION':''}  </div>
     <div class="gp w-full flex-col gap-sm">
@@ -3366,7 +3495,9 @@ function renderArenaGate() {
     <div class="btn-row">
       <button class="btn" id="gate-back">Back</button>
       <button class="btn btn-accent" id="gate-fight">Fight!</button>
-    </div>`;
+    </div>
+    </div></div>`;
+  renderNpcPortrait('arena', el.querySelector('#shop-npc-arena'));
   el.querySelector('#gate-back').onclick = () => changeState(ST.TOWN);
   el.querySelector('#gate-fight').onclick = () => {
     Snd.click();
@@ -4740,6 +4871,14 @@ function updateTown() {
     const ddy = townPY - b.doorY;
     if (Math.sqrt(ddx*ddx + ddy*ddy) < 22) { townPromptBldg = b; break; }
   }
+  // Show/hide mobile enter button
+  const enterBtn = document.getElementById('town-enter-btn');
+  if (townPromptBldg) {
+    enterBtn.textContent = `Enter ${townPromptBldg.label}`;
+    enterBtn.style.display = 'block';
+  } else {
+    enterBtn.style.display = 'none';
+  }
 }
 
 // ── Town Canvas — 3/4 Top-Down Hub ──
@@ -4759,12 +4898,6 @@ function drawTown(ctx, w, h, now) {
   gGrad.addColorStop(1, '#1a150e');
   ctx.fillStyle = gGrad;
   ctx.fillRect(-offX/scale, -offY/scale, w/scale+10, h/scale+10);
-
-  // DEBUG — bright test shapes to verify rendering
-  ctx.fillStyle = '#ff0000'; ctx.fillRect(150, 150, 100, 100); // red square center
-  ctx.fillStyle = '#00ff00'; ctx.fillRect(30, 90, 100, 65);    // green at bounty pos
-  ctx.fillStyle = '#0000ff'; ctx.fillRect(270, 90, 100, 65);   // blue at armory pos
-  ctx.fillStyle = '#ffff00'; ctx.fillRect(160, 30, 80, 60);    // yellow at sanctum pos
 
   // ── Cobblestone texture ──
   ctx.save();
@@ -5179,7 +5312,7 @@ function drawTown(ctx, w, h, now) {
     ctx.save();
     ctx.font = `700 8px 'Cinzel', serif`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
-    const txt = 'Press E / Tap';
+    const txt = 'Press E to Enter';
     const tw = ctx.measureText(txt).width + 12;
     // Background pill
     ctx.fillStyle = 'rgba(0,0,0,0.7)';
@@ -5296,10 +5429,12 @@ function drawCombatCharacters() {
   const charW = charH * 0.55;
   const barW = charW * 0.9;
 
-  // Distance-reactive positions
+  // Distance-reactive positions (MIN_SPREAD prevents overlap at distance 0)
   const dist = combat.distance != null ? combat.distance : 5;
-  const pBaseX = w * (0.5 - dist * 0.042);
-  const eBaseX = w * (0.5 + dist * 0.042);
+  const MIN_SPREAD = 0.06;
+  const spread = MIN_SPREAD + dist * 0.042;
+  const pBaseX = w * (0.5 - spread);
+  const eBaseX = w * (0.5 + spread);
 
   // Idle breathing animation
   const breatheScale = 1 + Math.sin(now * 0.003) * 0.015;
@@ -5449,7 +5584,7 @@ function init() {
     }
   };
 
-  // Town canvas interaction — tap to move or enter building
+  // Town canvas interaction — tap to move (mobile enters via explicit button)
   gameCanvas.addEventListener('pointerup', (e) => {
     if (gameState !== ST.TOWN) return;
     const rect = gameCanvas.getBoundingClientRect();
@@ -5461,14 +5596,16 @@ function init() {
     const offY = (rect.height - TOWN_H * scale) / 2;
     const tvx = (sx - offX) / scale;
     const tvy = (sy - offY) / scale;
-    // If near a building prompt, enter it
+    // Tap-to-move (no auto-enter on tap — use Enter button or E key)
+    townTapTarget = { x: Math.max(10, Math.min(TOWN_W-10, tvx)), y: Math.max(10, Math.min(TOWN_H-10, tvy)) };
+  });
+
+  // Explicit "Enter" button for mobile building entry
+  document.getElementById('town-enter-btn').addEventListener('click', () => {
     if (townPromptBldg) {
       Snd.click();
       changeState(townPromptBldg.state);
-      return;
     }
-    // Otherwise tap-to-move
-    townTapTarget = { x: Math.max(10, Math.min(TOWN_W-10, tvx)), y: Math.max(10, Math.min(TOWN_H-10, tvy)) };
   });
 
   // WASD / Arrow key movement for town
