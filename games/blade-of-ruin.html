@@ -2088,11 +2088,12 @@ let shieldDome = null;
 
 function getCharPositions() {
   const w = window.innerWidth, h = window.innerHeight;
-  const dist = combat.distance || 5;
+  const dist = combat.distance != null ? combat.distance : 5;
   const floorY = h * 0.72;
   const charH = Math.min(h * 0.45, 300);
+  // 0.042 per distance unit: dist 0 = both at center, dist 10 = 8%/92% of screen
   return {
-    pX: w * (0.5 - dist * 0.035), eX: w * (0.5 + dist * 0.035),
+    pX: w * (0.5 - dist * 0.042), eX: w * (0.5 + dist * 0.042),
     midY: floorY - charH * 0.5, floorY, charH, w, h
   };
 }
@@ -4157,9 +4158,9 @@ function drawCombatCharacters() {
   const barW = charW * 0.9;
 
   // Distance-reactive positions
-  const dist = combat.distance || 5;
-  const pBaseX = w * (0.5 - dist * 0.035);
-  const eBaseX = w * (0.5 + dist * 0.035);
+  const dist = combat.distance != null ? combat.distance : 5;
+  const pBaseX = w * (0.5 - dist * 0.042);
+  const eBaseX = w * (0.5 + dist * 0.042);
 
   // Idle breathing animation
   const breatheScale = 1 + Math.sin(now * 0.003) * 0.015;
